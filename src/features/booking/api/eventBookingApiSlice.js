@@ -1,115 +1,122 @@
 import { apiSlice } from "../../../store/api/apiSlice";
 
-const createMockEvent = (i) => {
-  const statuses = [
-    "Booking Success",
-    "Waiting Payment",
-    "Booking Complete",
-    "Cancelled",
-  ];
-  const eventNames = [
-    "Turnamen FIFA Community",
-    "Nobar Final Liga Champion",
-    "Ulang Tahun Anak",
-  ];
-
-  return {
-    id: i + 1,
-    noTransaction: `EVT-202504${String(i + 1).padStart(3, "0")}`,
-    eventName: eventNames[i % eventNames.length],
-    eventDescription: "Acara komunitas untuk para penggemar game sepak bola.",
-    console: "PS5",
-    room: "Area Event",
-    unit: "Semua Unit",
-    totalPerson: 10 + (i % 15),
-    tanggalBooking: new Date(2025, 3, 15 + i).toISOString(), // Simpan sebagai ISO string untuk konsistensi
-    startTime: "19:00",
-    duration: 4,
-    endTime: "23:00",
-    statusBooking: statuses[i % statuses.length],
-  };
-};
-
-let mockEventBookings = Array.from({ length: 15 }, (_, i) =>
-  createMockEvent(i)
-);
-
 export const eventBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getEventBookings: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "", status = "" } = arg;
+      query: ({ page = 1, limit = 10, search = "", status = "" }) => ({
+        url: "/api/admin/events",
+        method: "GET",
+        params: { page, limit, search, status },
+      }),
+      transformResponse: (response) => {
+        console.log('API Response:', response);
 
-        const sortedData = [...mockEventBookings].sort(
-          (a, b) => new Date(b.tanggalBooking) - new Date(a.tanggalBooking)
-        );
+        // Transform the array of events into the expected format
+        const events = response || [];
+        console.log('Events array:', events);
 
-        let processedData = sortedData;
+        // Flatten bookings from all events
+        const allBookings = events.flatMap(event => {
+          console.log('Processing event:', event);
+          console.log('Event bookings2:', event.bookings2);
 
-        if (status && status !== "All") {
-          processedData = processedData.filter(
-            (event) => event.statusBooking === status
-          );
-        }
+          return event.bookings2?.map(booking => ({
+            id: booking.id,
+            noTransaction: booking.invoice_number,
+            eventName: event.name,
+            eventDescription: event.description,
+            unit: booking.unit?.name || "N/A",
+            unitId: booking.unit?.id || 1, // Add unitId for editing
+            totalPerson: booking.total_visitors || 0,
+            tanggalBooking: booking.created_at,
+            startTime: booking.start_time,
+            duration: 4, // Default duration
+            endTime: booking.end_time,
+            statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : "Unknown",
+            bookable: booking.bookable,
+            rawBooking: booking,
+            rawEvent: event,
+          })) || [];
+        });
 
-        if (search) {
-          processedData = processedData.filter(
-            (event) =>
-              event.eventName.toLowerCase().includes(search.toLowerCase()) ||
-              event.noTransaction.toLowerCase().includes(search.toLowerCase())
-          );
-        }
+        console.log('Transformed bookings:', allBookings);
 
-        const totalItems = processedData.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const paginatedData = processedData.slice(
-          (page - 1) * limit,
-          page * limit
-        );
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
         return {
-          data: { bookings: paginatedData, totalPages, currentPage: page },
+          bookings: allBookings,
+          totalPages: 1, // Default to 1 page since we don't have pagination info
+          currentPage: 1, // Default to page 1
+          total: allBookings.length,
         };
       },
       providesTags: ["EventBooking"],
     }),
+
     addEventBooking: builder.mutation({
-      queryFn: async (newEvent) => {
-        const completeEvent = {
-          ...newEvent,
-          id: Date.now(),
-          noTransaction: `EVT-${Date.now()}`,
-          statusBooking: "Booking Success",
+      query: (newEvent) => {
+        console.log('=== API MUTATION DEBUG ===');
+        console.log('Raw payload received:', newEvent);
+        console.log('Payload type:', typeof newEvent);
+        console.log('Payload keys:', Object.keys(newEvent));
+        console.log('=== END API DEBUG ===');
+
+        return {
+          url: "/api/admin/events",
+          method: "POST",
+          body: newEvent, // Send the payload directly as it's already formatted correctly
         };
-        mockEventBookings.unshift(completeEvent);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: completeEvent };
       },
-      invalidatesTags: ["EventBooking"],
-    }),
-    updateEventBooking: builder.mutation({
-      queryFn: async (updatedEvent) => {
-        const index = mockEventBookings.findIndex(
-          (e) => e.id === updatedEvent.id
-        );
-        if (index !== -1) {
-          mockEventBookings[index] = {
-            ...mockEventBookings[index],
-            ...updatedEvent,
+      transformResponse: (response) => {
+        // Transform the response to match the expected format
+        const event = response;
+        const booking = event.bookings2?.[0];
+
+        if (booking) {
+          return {
+            id: booking.id,
+            noTransaction: booking.invoice_number,
+            eventName: event.name,
+            eventDescription: event.description,
+            console: booking.unit?.name || "N/A",
+            room: "Event Area",
+            unit: booking.unit?.name || "N/A",
+            totalPerson: booking.total_visitors || 0,
+            tanggalBooking: booking.created_at,
+            startTime: booking.start_time,
+            duration: 4,
+            endTime: booking.end_time,
+            statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : "Unknown",
+            bookable: booking.bookable,
+            rawBooking: booking,
+            rawEvent: event,
           };
         }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: updatedEvent };
+
+        return response;
       },
       invalidatesTags: ["EventBooking"],
     }),
-    deleteEventBooking: builder.mutation({
-      queryFn: async (eventId) => {
-        mockEventBookings = mockEventBookings.filter((e) => e.id !== eventId);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: eventId };
+
+    updateEventBooking: builder.mutation({
+      query: ({ id, ...updatedEvent }) => {
+        console.log('=== UPDATE API DEBUG ===');
+        console.log('Update ID:', id);
+        console.log('Update payload:', updatedEvent);
+        console.log('=== END UPDATE DEBUG ===');
+
+        return {
+          url: `/api/admin/events/${id}`,
+          method: "POST",
+          body: updatedEvent, // Send the payload directly as it's already formatted correctly
+        };
       },
+      invalidatesTags: ["EventBooking"],
+    }),
+
+    deleteEventBooking: builder.mutation({
+      query: (eventId) => ({
+        url: `/api/admin/events/${eventId}`,
+        method: "DELETE",
+      }),
       invalidatesTags: ["EventBooking"],
     }),
   }),

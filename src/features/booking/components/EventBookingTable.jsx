@@ -9,14 +9,16 @@ const EventBookingTable = ({
   onEdit,
   onDelete,
 }) => {
+  // Debug: Log the events data
+  console.log('EventBookingTable - events:', events);
+  console.log('EventBookingTable - isLoading:', isLoading);
+
   const getStatusBadge = (status) => {
     const baseClasses = "badge font-semibold";
     switch (status) {
-      case "Booking Complete":
+      case "Confirmed":
         return `${baseClasses} badge-success`;
-      case "Booking Success":
-        return `${baseClasses} badge-info`;
-      case "Ongoing":
+      case "Pending":
         return `${baseClasses} badge-warning`;
       case "Cancelled":
         return `${baseClasses} badge-error`;
@@ -26,10 +28,19 @@ const EventBookingTable = ({
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
     return new Date(dateString).toLocaleDateString("id-ID", {
       day: "2-digit",
       month: "long",
       year: "numeric",
+    });
+  };
+
+  const formatTime = (timeString) => {
+    if (!timeString) return "N/A";
+    return new Date(timeString).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
     });
   };
 
@@ -77,14 +88,13 @@ const EventBookingTable = ({
                 <td>
                   <ul className="list-disc list-inside text-sm">
                     <li>
-                      <span className="font-semibold">Console:</span>{" "}
-                      {event.console}
-                    </li>
-                    <li>
-                      <span className="font-semibold">Room:</span> {event.room}
-                    </li>
-                    <li>
                       <span className="font-semibold">Unit:</span> {event.unit}
+                    </li>
+                    <li>
+                      <span className="font-semibold">Total Person:</span> {event.totalPerson} orang
+                    </li>
+                    <li>
+                      <span className="font-semibold">Customer:</span> {event.bookable?.name || "N/A"}
                     </li>
                   </ul>
                 </td>
@@ -93,10 +103,10 @@ const EventBookingTable = ({
                     {formatDate(event.tanggalBooking)}
                   </div>
                   <div className="text-xs opacity-70">
-                    {event.startTime} - {event.endTime} ({event.duration} jam)
+                    {formatTime(event.startTime)} - {formatTime(event.endTime)}
                   </div>
                   <div className="text-xs">
-                    Total: {event.totalPerson} orang
+                    Duration: {event.duration} jam
                   </div>
                 </td>
                 <td>
@@ -149,14 +159,16 @@ const EventBookingTable = ({
               <div className="text-sm mt-2 space-y-1">
                 <div>
                   <strong>Jadwal:</strong> {formatDate(event.tanggalBooking)},{" "}
-                  {event.startTime} - {event.endTime}
+                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
                 </div>
                 <div>
-                  <strong>Rental:</strong> {event.console} / {event.room} /{" "}
-                  {event.unit}
+                  <strong>Unit:</strong> {event.unit}
                 </div>
                 <div>
                   <strong>Peserta:</strong> {event.totalPerson} orang
+                </div>
+                <div>
+                  <strong>Customer:</strong> {event.bookable?.name || "N/A"}
                 </div>
               </div>
               <div className="card-actions justify-end mt-2">

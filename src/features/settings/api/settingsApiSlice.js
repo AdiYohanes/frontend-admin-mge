@@ -237,7 +237,7 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
           imageUrl: room.image
             ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${room.image}`
             : `https://placehold.co/150x75/EEE/31343C?text=No+Image`,
-          isActive: room.is_featured || false, // Default to false if not featured
+          isActive: room.is_available || false, // Map is_available to isActive
           description: room.description || "",
         })),
       }),
@@ -246,8 +246,8 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
     updateRoomFeaturedStatus: builder.mutation({
       query: ({ id, isActive }) => ({
         url: `/api/admin/rooms/${id}`,
-        method: "PUT",
-        body: { is_featured: isActive },
+        method: "POST",
+        body: { is_available: isActive }, // Send is_available in request body
       }),
       invalidatesTags: [{ type: "FeaturedRoom", id: "LIST" }],
     }),

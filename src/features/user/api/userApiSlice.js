@@ -25,9 +25,9 @@ export const userApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              { type: "User", id: "LIST" },
-              ...result.users.map(({ id }) => ({ type: "User", id })),
-            ]
+            { type: "User", id: "LIST" },
+            ...result.users.map(({ id }) => ({ type: "User", id })),
+          ]
           : [{ type: "User", id: "LIST" }],
     }),
 
@@ -86,6 +86,28 @@ export const userApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: [{ type: "User", id: "LIST" }],
     }),
+
+    verifyUser: builder.query({
+      query: (phone) => ({
+        url: "/api/admin/user",
+        method: "GET",
+        params: { phone },
+      }),
+      transformResponse: (response) => {
+        if (response && response.data && response.data.length > 0) {
+          return response.data[0]; // Return first user found
+        }
+        return null;
+      },
+    }),
+
+    redeemPoints: builder.mutation({
+      query: ({ user_id, points_to_redeem, description }) => ({
+        url: "/api/admin/points-redeem",
+        method: "POST",
+        body: { user_id, points_to_redeem, description },
+      }),
+    }),
   }),
 });
 
@@ -95,4 +117,6 @@ export const {
   useAddUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useVerifyUserQuery,
+  useRedeemPointsMutation,
 } = userApiSlice;

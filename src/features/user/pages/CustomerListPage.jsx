@@ -14,6 +14,7 @@ import ConfirmationModal from "../../../components/common/ConfirmationModal";
 import TopUserCard from "../components/TopUserCard";
 import CustomerTable from "../components/CustomerTable";
 import AddEditCustomerModal from "../components/AddEditCustomerModal";
+import RedeemPointModal from "../components/RedeemPointModal";
 
 const CustomerListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -24,6 +25,7 @@ const CustomerListPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
+  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const deleteModalRef = useRef(null);
 
   const {
@@ -69,7 +71,11 @@ const CustomerListPage = () => {
   };
 
   const handleRedeemPoint = () => {
-    toast.info("Fitur Redeem Point akan segera hadir!");
+    setIsRedeemModalOpen(true);
+  };
+
+  const handleCloseRedeemModal = () => {
+    setIsRedeemModalOpen(false);
   };
 
   return (
@@ -159,6 +165,12 @@ const CustomerListPage = () => {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         editingData={editingData}
+      />
+
+      {/* Modal untuk Redeem Point */}
+      <RedeemPointModal
+        isOpen={isRedeemModalOpen}
+        onClose={handleCloseRedeemModal}
       />
 
       <ConfirmationModal

@@ -16,7 +16,6 @@ const EventBookingPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
-  const [monthFilter, setMonthFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("All");
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -27,9 +26,8 @@ const EventBookingPage = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const statusTabs = [
     "All",
-    "Booking Success",
-    "Waiting Payment",
-    "Booking Complete",
+    "Confirmed",
+    "Pending",
     "Cancelled",
   ];
 
@@ -37,9 +35,13 @@ const EventBookingPage = () => {
     page: currentPage,
     limit,
     search: debouncedSearchTerm,
-    month: monthFilter,
     status: statusFilter,
   });
+
+  // Debug: Log the data received from API
+  console.log('EventBookingPage - API data:', data);
+  console.log('EventBookingPage - isLoading:', isLoading);
+  console.log('EventBookingPage - isFetching:', isFetching);
 
   const [deleteEventBooking, { isLoading: isDeleting }] =
     useDeleteEventBookingMutation();
@@ -66,7 +68,7 @@ const EventBookingPage = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      await deleteEventBooking(eventToDelete.id).unwrap();
+      await deleteEventBooking(eventToDelete.rawEvent?.id || eventToDelete.id).unwrap();
       toast.success("Event booking berhasil dihapus!");
       deleteModalRef.current?.close();
     } catch (err) {
@@ -77,7 +79,7 @@ const EventBookingPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, monthFilter, statusFilter]);
+  }, [limit, debouncedSearchTerm, statusFilter]);
 
   return (
     <>
@@ -88,9 +90,8 @@ const EventBookingPage = () => {
             {statusTabs.map((tab) => (
               <a
                 key={tab}
-                className={`tab tab-sm sm:tab-md ${
-                  statusFilter === tab ? "tab-active" : ""
-                }`}
+                className={`tab tab-sm sm:tab-md ${statusFilter === tab ? "tab-active" : ""
+                  }`}
                 onClick={() => setStatusFilter(tab)}
               >
                 {tab}
@@ -102,10 +103,9 @@ const EventBookingPage = () => {
             setLimit={setLimit}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            monthFilter={monthFilter}
-            setMonthFilter={setMonthFilter}
             onAddClick={handleOpenAddModal}
             addButtonText="Add Event"
+            showMonthFilter={false}
           />
           <EventBookingTable
             events={data?.bookings}
