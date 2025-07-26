@@ -1,66 +1,73 @@
 import React from "react";
-import {
-  CurrencyDollarIcon,
-  ShoppingCartIcon,
-  UsersIcon,
-  CalendarDaysIcon,
-} from "@heroicons/react/24/outline";
+import { DollarSign, ShoppingCart, Users, Calendar } from "lucide-react";
 
-const OrderStats = ({ stats }) => {
-  // Helper untuk memformat angka menjadi Rupiah
+const OrderStats = ({ stats, loading = false }) => {
   const formatCurrency = (number) =>
     new Intl.NumberFormat("id-ID", {
       style: "currency",
       currency: "IDR",
       minimumFractionDigits: 0,
     }).format(number || 0);
+  const formatNumber = (number) =>
+    new Intl.NumberFormat("id-ID").format(number || 0);
 
-  // Mendefinisikan data statistik dalam sebuah array agar mudah di-map
   const statItems = [
     {
       title: "Total Bookings",
-      value: stats?.booking || 0,
-      icon: <CalendarDaysIcon className="h-8 w-8 text-primary" />,
+      value: formatNumber(stats?.booking),
+      icon: Calendar,
+      color: "bg-blue-100 text-blue-600",
     },
     {
       title: "Food & Drink Orders",
-      value: stats?.foodDrink || 0,
-      icon: <ShoppingCartIcon className="h-8 w-8 text-secondary" />,
+      value: formatNumber(stats?.foodDrink),
+      icon: ShoppingCart,
+      color: "bg-emerald-100 text-emerald-600",
     },
     {
       title: "Total Revenue",
       value: formatCurrency(stats?.revenue),
-      icon: <CurrencyDollarIcon className="h-8 w-8 text-success" />,
+      icon: DollarSign,
+      color: "bg-purple-100 text-purple-600",
     },
     {
       title: "New Customers",
-      value: stats?.customer || 0,
-      icon: <UsersIcon className="h-8 w-8 text-accent" />,
+      value: formatNumber(stats?.customer),
+      icon: Users,
+      color: "bg-orange-100 text-orange-600",
     },
   ];
 
-  return (
-    <div className="card bg-base-100 shadow-md">
-      <div className="card-body">
-        <h2 className="card-title mb-4">Order Statistic</h2>
+  if (loading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {[...Array(4)].map((_, i) => (
+          <div key={i} className="rounded-lg bg-gray-100 h-24 animate-pulse" />
+        ))}
+      </div>
+    );
+  }
 
-        {/* Menggunakan grid untuk menata 4 item statistik */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {statItems.map((item, index) => (
-            <div
-              key={index}
-              className="flex items-center p-4 bg-base-200 rounded-lg"
-            >
-              <div className="mr-4">{item.icon}</div>
+  return (
+    <div className="w-full">
+      <div className="mb-4 flex items-center gap-2">
+        <span className="font-bold text-lg text-gray-900">Order Stats</span>
+      </div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {statItems.map((item, idx) => {
+          const Icon = item.icon;
+          return (
+            <div key={idx} className="bg-white rounded-lg p-4 flex items-center gap-4">
+              <div className={`w-10 h-10 flex items-center justify-center rounded-full ${item.color}`}>
+                <Icon className="w-5 h-5" />
+              </div>
               <div>
-                <div className="text-gray-500 text-sm font-semibold">
-                  {item.title}
-                </div>
-                <div className="text-2xl font-bold">{item.value}</div>
+                <div className="text-xs text-gray-500 font-medium">{item.title}</div>
+                <div className="text-xl font-bold text-gray-900">{item.value}</div>
               </div>
             </div>
-          ))}
-        </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -54,7 +54,7 @@ const FaqManagementPage = () => {
       deleteModalRef.current?.close();
     } catch (err) {
       toast.error("Gagal menghapus FAQ.");
-      console.error("Failed to delete FAQ:", err);
+      console.error(err);
     }
   };
 

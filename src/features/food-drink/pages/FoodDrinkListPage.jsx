@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   useGetFoodDrinkItemsQuery,
   useDeleteFoodDrinkItemMutation,
@@ -6,22 +6,9 @@ import {
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
 
-import {
-  DndContext,
-  closestCenter,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
-import {
-  SortableContext,
-  verticalListSortingStrategy,
-  arrayMove,
-} from "@dnd-kit/sortable";
-
 import TableControls from "../../../components/common/TableControls";
-import Pagination from "../../../components/common/Pagination";
 import FoodDrinkTable from "../components/FoodDrinkTable";
+import Pagination from "../../../components/common/Pagination";
 import AddEditFoodDrinkModal from "../components/AddEditFoodDrinkModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
@@ -29,59 +16,38 @@ const FoodDrinkListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [itemToDelete, setItemToDelete] = useState(null);
   const deleteModalRef = useRef(null);
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const [orderedItems, setOrderedItems] = useState([]);
 
   const { data, isLoading, isFetching } = useGetFoodDrinkItemsQuery({
     page: currentPage,
     limit,
     search: debouncedSearchTerm,
   });
-
   const [deleteItem, { isLoading: isDeleting }] =
     useDeleteFoodDrinkItemMutation();
-
-  useEffect(() => {
-    if (data?.items) {
-      setOrderedItems(data.items);
-    }
-  }, [data?.items]);
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
-  );
-
-  const handleDragEnd = (event) => {
-    const { active, over } = event;
-    if (active.id !== over.id) {
-      setOrderedItems((items) => {
-        const oldIndex = items.findIndex((item) => item.id === active.id);
-        const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
-      });
-    }
-  };
 
   const handleOpenAddModal = () => {
     setEditingData(null);
     setIsModalOpen(true);
   };
-  const handleOpenEditModal = (itemData) => {
-    setEditingData(itemData);
+  const handleOpenEditModal = (item) => {
+    setEditingData(item);
     setIsModalOpen(true);
   };
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingData(null);
   };
-  const handleOpenDeleteModal = (itemData) => {
-    setItemToDelete(itemData);
+  const handleOpenDeleteModal = (item) => {
+    setItemToDelete(item);
     deleteModalRef.current?.showModal();
   };
+
   const handleConfirmDelete = async () => {
     try {
       await deleteItem(itemToDelete.id).unwrap();
@@ -89,7 +55,7 @@ const FoodDrinkListPage = () => {
       deleteModalRef.current?.close();
     } catch (err) {
       toast.error("Gagal menghapus item.");
-      console.error("Failed to delete item:", err);
+      console.error("Delete error:", err);
     }
   };
 
@@ -107,25 +73,14 @@ const FoodDrinkListPage = () => {
             addButtonText="Add Item"
             showMonthFilter={false}
           />
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={orderedItems}
-              strategy={verticalListSortingStrategy}
-            >
-              <FoodDrinkTable
-                items={orderedItems}
-                isLoading={isLoading || isFetching}
-                page={currentPage}
-                limit={limit}
-                onEdit={handleOpenEditModal}
-                onDelete={handleOpenDeleteModal}
-              />
-            </SortableContext>
-          </DndContext>
+          <FoodDrinkTable
+            items={data?.items}
+            isLoading={isLoading || isFetching}
+            page={currentPage}
+            limit={limit}
+            onEdit={handleOpenEditModal}
+            onDelete={handleOpenDeleteModal}
+          />
           <Pagination
             currentPage={data?.currentPage}
             totalPages={data?.totalPages}
@@ -133,7 +88,6 @@ const FoodDrinkListPage = () => {
           />
         </div>
       </div>
-
       <AddEditFoodDrinkModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
@@ -153,5 +107,4 @@ const FoodDrinkListPage = () => {
     </>
   );
 };
-
 export default FoodDrinkListPage;

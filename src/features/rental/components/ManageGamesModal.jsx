@@ -7,60 +7,63 @@ import { toast } from "react-hot-toast";
 import { XCircleIcon, PlusCircleIcon } from "@heroicons/react/24/solid";
 
 const ManageGamesModal = ({ isOpen, onClose, unitData }) => {
-  // 1. Mengambil daftar master semua game yang tersedia
   const { data: masterGames, isLoading: isLoadingGames } =
     useGetAllGamesQuery();
-
-  // 2. Hook mutation untuk menyimpan perubahan pada unit
   const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
 
-  // 3. State lokal untuk menyimpan daftar game yang sedang diedit
   const [currentGames, setCurrentGames] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // 4. Sinkronkan state lokal dengan data unit saat modal dibuka
   useEffect(() => {
-    if (isOpen && unitData?.games) {
+    if (unitData?.games) {
       setCurrentGames(unitData.games);
     } else {
-      // Bersihkan jika tidak ada data atau modal ditutup
       setCurrentGames([]);
     }
-    // Reset pencarian setiap kali modal dibuka
     setSearchTerm("");
   }, [unitData, isOpen]);
 
-  // Handler untuk menambah game ke state lokal
   const handleAddGame = (gameName) => {
     if (!currentGames.includes(gameName)) {
-      setCurrentGames([...currentGames, gameName].sort()); // Langsung diurutkan agar rapi
+      setCurrentGames([...currentGames, gameName].sort());
     }
   };
 
-  // Handler untuk menghapus game dari state lokal
   const handleRemoveGame = (gameName) => {
     setCurrentGames(currentGames.filter((g) => g !== gameName));
   };
 
-  // Handler untuk menyimpan semua perubahan ke "backend"
   const handleSaveChanges = async () => {
     try {
-      // Kirim seluruh data unit dengan properti 'games' yang sudah diperbarui
-      await updateUnit({ ...unitData, games: currentGames }).unwrap();
+      // Siapkan data unit lengkap untuk dikirim
+      const unitPayload = {
+        name: unitData.name,
+        room_id: unitData.room_id,
+        description: unitData.description,
+        status: unitData.status,
+        max_visitors: unitData.max_visitors,
+        price: unitData.rentPrice,
+        console_ids: unitData.console_ids,
+        game_ids:
+          masterGames
+            ?.filter((g) => currentGames.includes(g.title))
+            .map((g) => g.id) || [],
+      };
+
+      await updateUnit({ id: unitData.id, ...unitPayload }).unwrap();
       toast.success(`Daftar game untuk ${unitData.name} berhasil diperbarui!`);
-      onClose(); // Tutup modal setelah berhasil
+      onClose();
     } catch (err) {
       toast.error("Gagal menyimpan perubahan.");
-      console.error("Failed to save game list:", err);
+      console.error("Update unit error:", err);
     }
   };
 
-  // Filter daftar game di perpustakaan untuk menampilkan yang belum ada di unit & sesuai pencarian
   const availableGames =
     masterGames?.filter(
       (masterGame) =>
-        !currentGames.includes(masterGame.name) &&
-        masterGame.name.toLowerCase().includes(searchTerm.toLowerCase())
+        !currentGames.includes(masterGame.title) &&
+        masterGame.title.toLowerCase().includes(searchTerm.toLowerCase())
     ) || [];
 
   return (
@@ -78,7 +81,6 @@ const ManageGamesModal = ({ isOpen, onClose, unitData }) => {
         </h3>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-          {/* Kolom Kiri: Game yang sudah ada di unit */}
           <div className="bg-base-200 p-4 rounded-lg">
             <h4 className="font-semibold mb-2">
               Games on this Unit ({currentGames.length})
@@ -107,8 +109,6 @@ const ManageGamesModal = ({ isOpen, onClose, unitData }) => {
               )}
             </div>
           </div>
-
-          {/* Kolom Kanan: Perpustakaan Game untuk ditambahkan */}
           <div className="bg-base-200 p-4 rounded-lg">
             <h4 className="font-semibold mb-2">Add Game from Library</h4>
             <input
@@ -126,11 +126,11 @@ const ManageGamesModal = ({ isOpen, onClose, unitData }) => {
                     key={game.id}
                     className="flex justify-between items-center bg-base-100 p-2 rounded shadow-sm"
                   >
-                    <span className="text-sm">{game.name}</span>
+                    <span className="text-sm">{game.title}</span>
                     <button
-                      onClick={() => handleAddGame(game.name)}
+                      onClick={() => handleAddGame(game.title)}
                       className="btn btn-xs btn-ghost text-success"
-                      aria-label={`Add ${game.name}`}
+                      aria-label={`Add ${game.title}`}
                     >
                       <PlusCircleIcon className="h-5 w-5" />
                     </button>

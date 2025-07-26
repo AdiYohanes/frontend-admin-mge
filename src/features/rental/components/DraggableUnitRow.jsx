@@ -26,23 +26,20 @@ const DraggableUnitRow = ({
     transition,
     isDragging,
   } = useSortable({ id: unit.id });
-
-  // Style untuk memberikan efek visual saat baris di-drag
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
     zIndex: isDragging ? 10 : "auto",
   };
 
-  // Fungsi helper untuk menentukan warna badge status
   const getStatusBadge = (status) => {
-    const base = "badge badge-sm font-semibold";
+    const base = "badge badge-sm font-semibold capitalize"; // Tambahkan 'capitalize'
     switch (status) {
-      case "Available":
+      case "available":
         return `${base} badge-success`;
-      case "Under Maintenance":
+      case "maintenance":
         return `${base} badge-warning`;
-      case "Booked":
+      case "booked":
         return `${base} badge-error`;
       default:
         return `${base} badge-ghost`;
@@ -56,7 +53,6 @@ const DraggableUnitRow = ({
       {...attributes}
       className={isDragging ? "bg-base-300 shadow-lg" : "hover"}
     >
-      {/* Kolom untuk Drag Handle */}
       <td className="w-12 text-center">
         <button
           {...listeners}
@@ -65,23 +61,10 @@ const DraggableUnitRow = ({
           <Bars3Icon className="h-5 w-5 text-gray-400" />
         </button>
       </td>
-
-      {/* Kolom Nomor Urut */}
       <th>{(page - 1) * limit + index + 1}</th>
-
-      {/* Kolom Data Unit */}
       <td className="font-bold">{unit.name}</td>
-      <td>{unit.room}</td>
-      <td>{unit.console}</td>
-      <td>
-        <div className="flex flex-wrap gap-1">
-          {unit.addons?.map((addon) => (
-            <div key={addon} className="badge badge-neutral badge-sm">
-              {addon}
-            </div>
-          ))}
-        </div>
-      </td>
+      <td>{unit.roomName}</td>
+      <td>{unit.consoleNames}</td>
       <td className="font-semibold">{formatCurrency(unit.rentPrice)}/jam</td>
       <td className="text-center">
         <div className="tooltip" data-tip="Manage Games">
@@ -96,8 +79,6 @@ const DraggableUnitRow = ({
       <td>
         <span className={getStatusBadge(unit.status)}>{unit.status}</span>
       </td>
-
-      {/* Kolom Aksi */}
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
           <div className="tooltip" data-tip="Edit">

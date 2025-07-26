@@ -3,17 +3,17 @@ import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { useUpdateFaqMutation } from "../api/settingsApiSlice";
 import { toast } from "react-hot-toast";
 
-const FaqTable = ({ faqs, isLoading, page, limit, onEdit, onDelete }) => {
+const FaqTable = ({ faqs, isLoading, onEdit, onDelete }) => {
   const [updateFaq, { isLoading: isUpdatingStatus }] = useUpdateFaqMutation();
 
+  // Fungsi untuk menangani klik pada toggle
   const handleToggleStatus = async (faq) => {
     try {
-      await updateFaq({ ...faq, isPublished: !faq.isPublished }).unwrap();
-      toast.success(
-        `FAQ ${!faq.isPublished ? "dipublikasikan" : "disembunyikan"}.`
-      );
+      // Kirim data lengkap dengan status yang sudah dibalik
+      await updateFaq({ ...faq, is_published: !faq.is_published }).unwrap();
+      toast.success(`Status FAQ berhasil diperbarui.`);
     } catch {
-      toast.error("Gagal mengubah status FAQ.");
+      toast.error("Gagal memperbarui status FAQ.");
     }
   };
 
@@ -43,7 +43,7 @@ const FaqTable = ({ faqs, isLoading, page, limit, onEdit, onDelete }) => {
         <tbody>
           {faqs.map((faq, index) => (
             <tr key={faq.id} className="hover">
-              <th>{(page - 1) * limit + index + 1}</th>
+              <th>{index + 1}</th>
               <td className="font-semibold whitespace-normal">
                 {faq.question}
               </td>
@@ -54,7 +54,7 @@ const FaqTable = ({ faqs, isLoading, page, limit, onEdit, onDelete }) => {
                 <input
                   type="checkbox"
                   className="toggle toggle-success"
-                  checked={faq.isPublished}
+                  checked={faq.is_published}
                   onChange={() => handleToggleStatus(faq)}
                   disabled={isUpdatingStatus}
                 />

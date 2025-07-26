@@ -6,6 +6,8 @@ import {
   PencilSquareIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
+import { useUpdateRoomMutation } from "../api/rentalApiSlice";
+import { toast } from "react-hot-toast";
 
 const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
   const {
@@ -16,12 +18,26 @@ const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
     transition,
     isDragging,
   } = useSortable({ id: room.id });
-
-  // Style ini penting untuk memberikan efek visual saat baris di-drag
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
-    zIndex: isDragging ? 10 : "auto", // Memastikan baris yang di-drag tampil di atas
+    zIndex: isDragging ? 10 : "auto",
+  };
+
+  // 1. Inisialisasi hook mutation untuk update
+  const [updateRoom, { isLoading: isUpdatingStatus }] = useUpdateRoomMutation();
+
+  // 2. Buat fungsi handler untuk menangani klik pada toggle
+  const handleToggleStatus = async () => {
+    try {
+      // Kirim hanya ID dan status baru untuk diupdate
+      // Backend mengharapkan semua data, jadi kita kirim data room lengkap
+      await updateRoom({ ...room, is_available: !room.is_available }).unwrap();
+      toast.success(`Status untuk ${room.name} berhasil diperbarui.`);
+    } catch (err) {
+      toast.error("Gagal memperbarui status ruangan.");
+      console.error("Failed to toggle status:", err);
+    }
   };
 
   return (
@@ -31,7 +47,6 @@ const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
       {...attributes}
       className={isDragging ? "bg-base-300 shadow-lg" : "hover"}
     >
-      {/* Kolom untuk Drag Handle */}
       <td className="w-12 text-center">
         <button
           {...listeners}
@@ -40,11 +55,7 @@ const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
           <Bars3Icon className="h-5 w-5 text-gray-400" />
         </button>
       </td>
-
-      {/* Kolom Nomor Urut */}
       <th>{(page - 1) * limit + index + 1}</th>
-
-      {/* Kolom Gambar */}
       <td>
         <div className="avatar">
           <div className="mask mask-squircle w-12 h-12">
@@ -52,14 +63,26 @@ const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
           </div>
         </div>
       </td>
-
-      {/* Kolom Nama & Deskripsi */}
       <td className="font-semibold">{room.name}</td>
       <td className="text-sm opacity-80 max-w-md truncate">
         {room.description}
       </td>
+      <td className="font-medium">{room.max_visitors || "-"} orang</td>
+      <td>
+        <div
+          className="tooltip"
+          data-tip={room.is_available ? "Available" : "Not Available"}
+        >
+          <input
+            type="checkbox"
+            className="toggle toggle-success"
+            checked={room.is_available}
+            onChange={handleToggleStatus}
+            disabled={isUpdatingStatus}
+          />
+        </div>
+      </td>
 
-      {/* Kolom Aksi */}
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
           <div className="tooltip" data-tip="Edit">

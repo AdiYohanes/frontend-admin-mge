@@ -26,16 +26,22 @@ import AddEditGameModal from "../components/AddEditGameModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const GameListPage = () => {
+  // State untuk filter dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // State untuk mengontrol modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [gameToDelete, setGameToDelete] = useState(null);
   const deleteModalRef = useRef(null);
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // State untuk urutan data (untuk drag-and-drop)
   const [orderedGames, setOrderedGames] = useState([]);
 
+  // Panggilan API
   const { data, isLoading, isFetching } = useGetGameListQuery({
     page: currentPage,
     limit,
@@ -44,19 +50,26 @@ const GameListPage = () => {
 
   const [deleteGame, { isLoading: isDeleting }] = useDeleteGameMutation();
 
+  // Sinkronkan urutan lokal dengan data dari API
   useEffect(() => {
     if (data?.games) {
       setOrderedGames(data.games);
     }
   }, [data?.games]);
 
+  // Konfigurasi sensor untuk dnd-kit
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    })
   );
 
+  // Handler saat aksi drag selesai
   const handleDragEnd = (event) => {
     const { active, over } = event;
-    if (active.id !== over.id) {
+    if (active && over && active.id !== over.id) {
       setOrderedGames((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
@@ -65,6 +78,7 @@ const GameListPage = () => {
     }
   };
 
+  // Kumpulan fungsi handler untuk aksi CRUD
   const handleOpenAddModal = () => {
     setEditingData(null);
     setIsModalOpen(true);
@@ -91,8 +105,16 @@ const GameListPage = () => {
       toast.success("Game berhasil dihapus!");
       deleteModalRef.current?.close();
     } catch (err) {
-      toast.error("Gagal menghapus game.");
+      if (
+        err.data?.message &&
+        err.data.message.includes("foreign key constraint")
+      ) {
+        toast.error("Gagal: Game ini masih digunakan di data booking lain.");
+      } else {
+        toast.error("Gagal menghapus game.");
+      }
       console.error("Delete game error:", err);
+      deleteModalRef.current?.close(); // Tutup modal meskipun gagal
     }
   };
 
@@ -110,6 +132,7 @@ const GameListPage = () => {
             addButtonText="Add Game"
             showMonthFilter={false}
           />
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -129,6 +152,7 @@ const GameListPage = () => {
               />
             </SortableContext>
           </DndContext>
+
           <Pagination
             currentPage={data?.currentPage}
             totalPages={data?.totalPages}
@@ -142,6 +166,7 @@ const GameListPage = () => {
         onClose={handleCloseModal}
         editingData={editingData}
       />
+
       <ConfirmationModal
         ref={deleteModalRef}
         title="Konfirmasi Hapus Game"

@@ -8,7 +8,7 @@ import TransactionTable from "../components/TransactionTable";
 
 const TransactionListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
@@ -22,14 +22,16 @@ const TransactionListPage = () => {
     <div className="card bg-base-100 shadow-xl">
       <div className="card-body">
         <h2 className="card-title text-2xl mb-4">Transaction History</h2>
+        <p className="text-sm opacity-70 mb-4">
+          Menampilkan transaksi dengan status Finished dan Refunded
+        </p>
 
         <TableControls
           limit={limit}
           setLimit={setLimit}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          showMonthFilter={false} // Tidak ada filter bulan untuk halaman ini
-          // Kita tidak memberikan prop onAddClick agar tombolnya tidak muncul
+          showMonthFilter={false}
         />
 
         <TransactionTable

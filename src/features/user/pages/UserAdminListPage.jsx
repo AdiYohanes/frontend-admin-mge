@@ -3,6 +3,7 @@ import { useGetUsersQuery, useDeleteUserMutation } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
 
+// Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
@@ -10,27 +11,31 @@ import UserAdminTable from "../components/UserAdminTable";
 import AddEditAdminModal from "../components/AddEditAdminModal";
 
 const UserAdminListPage = () => {
+  // --- STATE MANAGEMENT ---
+  // State untuk filter dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10);
+  const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // State untuk modal
+  // State untuk mengontrol modal Tambah/Edit dan Hapus
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [userToDelete, setUserToDelete] = useState(null);
   const deleteModalRef = useRef(null);
 
+  // --- RTK QUERY HOOKS ---
+  // Panggil hook dengan 'role' ADMN untuk mendapatkan data admin
   const { data, isLoading, isFetching } = useGetUsersQuery({
-    type: "admin",
     page: currentPage,
-    limit,
+    per_page: limit,
     search: debouncedSearchTerm,
+    role: "ADMN",
   });
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  // Handlers untuk modal
+  // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
     setEditingData(null);
     setIsModalOpen(true);
@@ -90,12 +95,14 @@ const UserAdminListPage = () => {
         </div>
       </div>
 
+      {/* Modal untuk Tambah dan Edit Admin */}
       <AddEditAdminModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         editingData={editingData}
       />
 
+      {/* Modal untuk Konfirmasi Hapus */}
       <ConfirmationModal
         ref={deleteModalRef}
         title="Konfirmasi Hapus Admin"

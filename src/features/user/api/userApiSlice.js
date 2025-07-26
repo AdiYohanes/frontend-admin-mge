@@ -1,119 +1,97 @@
+/* eslint-disable no-unused-vars */
 import { apiSlice } from "../../../store/api/apiSlice";
-
-const createMockUser = (i) => ({
-  id: i + 1,
-  name: `Customer Name ${i + 1}`,
-  username: `customer${i + 1}`,
-  phoneNumber: `081234567${String(i + 1).padStart(3, "0")}`,
-  email: `customer${i + 1}@example.com`,
-  totalSpending: 1500000 - i * 75000,
-  type: "customer",
-});
-const createMockAdmin = (i, name, email, role) => ({
-  id: 50 + i,
-  name: name,
-  username: name.toLowerCase().replace(" ", ""),
-  phoneNumber: `081111111${String(i).padStart(3, "0")}`,
-  email: email,
-  totalSpending: 0,
-  type: "admin",
-  role: role,
-});
-let mockUsers = Array.from({ length: 40 }, (_, i) => createMockUser(i));
-
-const adminData = [
-  createMockAdmin(1, "Admin Utama", "super@rental.com", "Superadmin"),
-  createMockAdmin(2, "Kasir Siang", "kasir.siang@rental.com", "Admin"),
-  createMockAdmin(3, "Kasir Malam", "kasir.malam@rental.com", "Admin"),
-];
-mockUsers.push(...adminData);
 
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "", type = "customer" } = arg;
-
-        // 1. Filter data berdasarkan tipe (customer/admin)
-        const typeFilteredData = mockUsers.filter((user) => user.type === type);
-
-        // 2. Ambil 3 user teratas berdasarkan total spending
-        const topUsers = [...typeFilteredData]
-          .sort((a, b) => b.totalSpending - a.totalSpending)
-          .slice(0, 3);
-
-        // 3. Terapkan search pada data utama
-        let searchFilteredData = typeFilteredData;
-        if (search) {
-          searchFilteredData = typeFilteredData.filter(
-            (user) =>
-              user.name.toLowerCase().includes(search.toLowerCase()) ||
-              user.username.toLowerCase().includes(search.toLowerCase()) ||
-              user.email.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        // 4. Terapkan paginasi
-        const totalItems = searchFilteredData.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const paginatedData = searchFilteredData.slice(
-          (page - 1) * limit,
-          page * limit
-        );
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        // 5. Kembalikan data dalam format yang kita butuhkan
+      query: ({ search = "", page = 1, per_page = 15, role = "CUST" }) => ({
+        url: "/api/admin/user",
+        params: {
+          page,
+          per_page,
+          search,
+          role,
+        },
+      }),
+      transformResponse: (response, meta, arg) => {
+        const { page = 1, per_page = 15 } = arg;
         return {
-          data: {
-            users: paginatedData,
-            topUsers,
-            totalPages,
-            currentPage: page,
-          },
+          users: response.data || [],
+          totalPages: response.last_page || 1,
+          currentPage: response.current_page || 1,
+          total: response.total || 0,
         };
       },
-      providesTags: ["User"],
+      providesTags: (result) =>
+        result
+          ? [
+              { type: "User", id: "LIST" },
+              ...result.users.map(({ id }) => ({ type: "User", id })),
+            ]
+          : [{ type: "User", id: "LIST" }],
     }),
-    addUser: builder.mutation({
-      queryFn: async (newUser) => {
-        // totalSpending untuk user baru (baik customer/admin) adalah 0
-        const completeUser = { ...newUser, id: Date.now(), totalSpending: 0 };
-        mockUsers.unshift(completeUser);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: completeUser };
+
+    getTopSpenders: builder.query({
+      query: () => ({
+        url: "/api/admin/user",
+        params: {
+          role: "CUST",
+          per_page: 9999,
+        },
+      }),
+      transformResponse: (response) => {
+        const allUsers = response.data || [];
+        const sortedCustomers = [...allUsers].sort(
+          (a, b) => parseFloat(b.total_spend) - parseFloat(a.total_spend)
+        );
+        return sortedCustomers.slice(0, 3);
       },
-      invalidatesTags: ["User"],
+      providesTags: [{ type: "User", id: "TOP_SPENDERS" }],
+    }),
+
+    addUser: builder.mutation({
+      query: (newUser) => {
+        const { confirmPassword, ...dataToSend } = newUser;
+        // Pastikan role yang dikirim adalah ADMN
+        const body = { ...dataToSend, role: "ADMN" };
+        return {
+          url: "/api/admin/user",
+          method: "POST",
+          body: body,
+        };
+      },
+      invalidatesTags: [{ type: "User", id: "LIST" }],
     }),
 
     updateUser: builder.mutation({
-      queryFn: async (updatedUser) => {
-        const index = mockUsers.findIndex((u) => u.id === updatedUser.id);
-        if (index !== -1) {
-          mockUsers[index] = { ...mockUsers[index], ...updatedUser };
-        }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: updatedUser };
+      query: ({ id, ...patch }) => {
+        const { confirmPassword, ...dataToSend } = patch;
+
+        return {
+          url: `/api/admin/user/${id}`,
+          method: "POST",
+          body: dataToSend, // <-- Tidak ada lagi '_method: "PUT"'
+        };
       },
       invalidatesTags: (result, error, arg) => [
-        { type: "User", id: arg.id },
         { type: "User", id: "LIST" },
+        { type: "User", id: arg.id },
       ],
     }),
 
     deleteUser: builder.mutation({
-      queryFn: async (userId) => {
-        mockUsers = mockUsers.filter((u) => u.id !== userId);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: userId };
-      },
-      invalidatesTags: ["User"],
+      query: (userId) => ({
+        url: `/api/admin/user/${userId}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "User", id: "LIST" }],
     }),
   }),
 });
 
 export const {
   useGetUsersQuery,
+  useGetTopSpendersQuery,
   useAddUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,

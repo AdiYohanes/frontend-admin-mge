@@ -1,8 +1,9 @@
+/* eslint-disable no-unused-vars */
 import React from "react";
 import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../../../utils/formatters";
 
-const CustomerTable = ({ users, isLoading, page, limit, onEdit, onDelete }) => {
+const CustomerTable = ({ users, isLoading, page, limit, onEdit, onDelete, onRedeemPoint }) => {
   if (isLoading)
     return (
       <div className="flex justify-center p-10">
@@ -23,8 +24,11 @@ const CustomerTable = ({ users, isLoading, page, limit, onEdit, onDelete }) => {
           <tr>
             <th>No</th>
             <th>Name</th>
-            <th>Contact</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Phone</th>
             <th>Total Spending</th>
+            <th>Points</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -32,16 +36,15 @@ const CustomerTable = ({ users, isLoading, page, limit, onEdit, onDelete }) => {
           {users.map((user, index) => (
             <tr key={user.id} className="hover">
               <th>{(page - 1) * limit + index + 1}</th>
-              <td>
-                <div className="font-bold">{user.name}</div>
-                <div className="text-xs opacity-60">@{user.username}</div>
-              </td>
-              <td>
-                <div>{user.phoneNumber}</div>
-                <div className="text-xs opacity-60">{user.email}</div>
-              </td>
+              <td className="font-bold">{user.name}</td>
+              <td className="text-sm opacity-70">@{user.username}</td>
+              <td>{user.email}</td>
+              <td>{user.phone}</td>
               <td className="font-bold text-success">
-                {formatCurrency(user.totalSpending)}
+                {formatCurrency(user.total_spend)}
+              </td>
+              <td className="font-bold text-info">
+                {user.total_points || 0}
               </td>
               <td className="text-center">
                 <div className="flex items-center justify-center gap-1">

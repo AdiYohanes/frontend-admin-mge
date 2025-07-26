@@ -7,9 +7,12 @@ import {
   useUpdateCategoryMutation,
 } from "../api/foodDrinkApiSlice";
 import { toast } from "react-hot-toast";
+import { FiTag } from "react-icons/fi";
 
+// Skema validasi untuk form
 const categorySchema = z.object({
-  name: z.string().min(3, "Nama kategori minimal 3 karakter"),
+  category: z.string().min(3, "Nama kategori minimal 3 karakter"),
+  type: z.string().nonempty("Tipe harus dipilih"),
 });
 
 const AddEditCategoryModal = ({ isOpen, onClose, editingData }) => {
@@ -31,9 +34,10 @@ const AddEditCategoryModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
-        reset(editingData);
+        // Map 'name' dari data kita ke 'category' yang diharapkan form
+        reset({ category: editingData.name, type: editingData.type });
       } else {
-        reset({ name: "" });
+        reset({ category: "", type: "Food" });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -41,7 +45,7 @@ const AddEditCategoryModal = ({ isOpen, onClose, editingData }) => {
   const onSubmit = async (formData) => {
     try {
       if (isEditMode) {
-        await updateCategory({ ...editingData, ...formData }).unwrap();
+        await updateCategory({ id: editingData.id, ...formData }).unwrap();
         toast.success("Kategori berhasil diperbarui!");
       } else {
         await addCategory(formData).unwrap();
@@ -49,8 +53,7 @@ const AddEditCategoryModal = ({ isOpen, onClose, editingData }) => {
       }
       onClose();
     } catch (err) {
-      toast.error("Gagal memproses data.");
-      console.error("Error processing category data:", err);
+      toast.error(err.data?.message || "Gagal memproses data.");
     }
   };
 
@@ -63,29 +66,47 @@ const AddEditCategoryModal = ({ isOpen, onClose, editingData }) => {
         >
           ✕
         </button>
-        <h3 className="font-bold text-lg">
-          {isEditMode ? "Edit Category" : "Add New Category"}
-        </h3>
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
+        <div className="flex items-center gap-2 mb-2">
+          <FiTag className="h-6 w-6 text-brand-gold" />
+          <h3 className="font-bold text-lg text-brand-gold">
+            {isEditMode ? "Edit Category" : "Add New Category"}
+          </h3>
+        </div>
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
           <div className="form-control">
             <label className="label">
-              <span className="label-text">Category Name</span>
+              <span className="label-text font-medium text-brand-gold">Category Name</span>
             </label>
             <input
               type="text"
-              {...register("name")}
-              placeholder="e.g. Minuman Dingin"
-              className={`input input-bordered ${
-                errors.name ? "input-error" : ""
-              }`}
+              {...register("category")}
+              placeholder="e.g. Makanan Berat"
+              className={`input input-bordered focus:border-brand-gold focus:ring-brand-gold ${errors.category ? "input-error" : ""}`}
             />
-            {errors.name && (
+            {errors.category && (
               <span className="text-xs text-error mt-1">
-                {errors.name.message}
+                {errors.category.message}
               </span>
             )}
           </div>
-          <div className="modal-action pt-4">
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium text-brand-gold">Type</span>
+            </label>
+            <select
+              {...register("type")}
+              className={`select select-bordered focus:border-brand-gold focus:ring-brand-gold ${errors.type ? "select-error" : ""}`}
+            >
+              <option value="Food">Food</option>
+              <option value="Drink">Drink</option>
+            </select>
+            {errors.type && (
+              <span className="text-xs text-error mt-1">
+                {errors.type.message}
+              </span>
+            )}
+          </div>
+          <div className="modal-action pt-4 border-t border-base-300">
             <button type="button" className="btn btn-ghost" onClick={onClose}>
               Batal
             </button>

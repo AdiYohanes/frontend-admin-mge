@@ -28,7 +28,9 @@ const UserAdminTable = ({ users, isLoading, onEdit, onDelete }) => {
           <tr>
             <th>No</th>
             <th>Name</th>
-            <th>Contact</th>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Phone</th>
             <th>Role</th>
             <th className="text-center">Actions</th>
           </tr>
@@ -39,14 +41,10 @@ const UserAdminTable = ({ users, isLoading, onEdit, onDelete }) => {
           {users.map((user, index) => (
             <tr key={user.id} className="hover">
               <th>{index + 1}</th>
-              <td>
-                <div className="font-bold">{user.name}</div>
-                <div className="text-xs opacity-60">@{user.username}</div>
-              </td>
-              <td>
-                <div>{user.phoneNumber}</div>
-                <div className="text-xs opacity-60">{user.email}</div>
-              </td>
+              <td className="font-bold">{user.name}</td>
+              <td className="text-sm opacity-70">@{user.username}</td>
+              <td>{user.email}</td>
+              <td>{user.phone}</td>
               <td>
                 {/* Logika kondisional untuk warna badge berdasarkan role */}
                 {user.role === "Superadmin" ? (

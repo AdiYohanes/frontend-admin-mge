@@ -1,100 +1,187 @@
-import { apiSlice } from "../../../store/api/apiSlice";
+import { apiSlice } from '../../../store/api/apiSlice';
+import { format, parseISO } from 'date-fns';
 
-const createMockOrder = (i) => {
-  const statuses = ["Complete", "Waiting for Payment"];
-  const types = ["Food", "Drink"];
-  const orderNames = [
-    ["Nasi Goreng", "Mie Ayam", "Soto"],
-    ["Es Teh Manis", "Kopi Hitam", "Jus Jeruk"],
-  ];
-  const typeIndex = i % 2;
-  const bookingDate = i % 3 === 0 ? null : new Date(2025, i % 3, 20 - i);
+// Helper function to transform booking detail
+const transformBookingDetail = (response) => {
+  if (!response) {
+    return null;
+  }
+
+  const createdDate = response.created_at ? parseISO(response.created_at) : new Date();
+  const transaction = response.transactions?.[0]; // Ambil transaksi pertama
+
+  // Transform F&B items
+  const fnbItems = response.fnbs?.map(fnb => ({
+    id: fnb.id,
+    name: fnb.name,
+    category: fnb.fnb_category_id,
+    price: parseFloat(fnb.price) || 0,
+    quantity: fnb.pivot?.quantity || 1,
+    totalPrice: parseFloat(fnb.pivot?.price) || 0,
+    description: fnb.description || '-',
+  })) || [];
 
   return {
-    id: i + 1,
-    noTransaction: `FNB-202503${String(i + 1).padStart(3, "0")}`,
-    tanggalTransaksi: new Date(2025, 2, 20 - i).toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }),
-    admin: "Admin",
-    name: `Customer ${i + 1}`,
-    phoneNumber: `081234567${String(i + 1).padStart(3, "0")}`,
-    type: types[typeIndex],
-    orderName: orderNames[typeIndex][i % 3],
-    quantity: (i % 5) + 1,
-    tanggalBooking: bookingDate
-      ? bookingDate.toLocaleDateString("id-ID", {
-          day: "2-digit",
-          month: "long",
-          year: "numeric",
-        })
-      : "-",
-    metodePembayaran: "QRIS",
-    totalPembayaran: ((i % 5) + 1) * 15000,
-    statusBooking: statuses[i % statuses.length],
+    id: response.id,
+    noTransaction: response.invoice_number,
+    name: response.bookable?.name || 'N/A',
+    phoneNumber: response.bookable?.phone || '-',
+    email: response.bookable?.email || '-',
+    orderName: response.notes || 'F&B Order',
+    quantity: response.total_visitors || 1,
+    totalPembayaran: parseFloat(response.total_price) || 0,
+    metodePembayaran: transaction?.payment_method?.toUpperCase() || 'QRIS',
+    statusBooking: response.status ? (response.status.charAt(0).toUpperCase() + response.status.slice(1)) : 'Unknown',
+    tanggalTransaksi: format(createdDate, 'dd/MM/yyyy'),
+    tanggalBooking: format(createdDate, 'dd/MM/yyyy'),
+    admin: 'Asep', // Default admin name
+    fnbItems: fnbItems,
+    transaction: transaction,
+    rawBooking: response,
   };
 };
 
-let mockFoodDrinkOrders = Array.from({ length: 25 }, (_, i) =>
-  createMockOrder(i)
-);
-
+// Slice ini khusus untuk mengambil data booking yang relevan dengan F&B
 export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
-  endpoints: (builder) => ({
+  endpoints: builder => ({
     getFoodDrinkBookings: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "", status = "" } = arg;
+      // Gunakan endpoint baru untuk F&B bookings
+      query: ({ page = 1, limit = 15, status = '' }) => {
+        const params = {
+          page,
+          per_page: limit,
+        };
 
-        let processedData = mockFoodDrinkOrders;
-
-        // Terapkan filter status
-        if (status && status !== "All") {
-          processedData = processedData.filter(
-            (order) => order.statusBooking === status
-          );
+        // Hanya kirim parameter status jika tidak 'All'
+        if (status && status !== 'All') {
+          params.status = status.toLowerCase();
         }
 
-        // Terapkan filter search pada hasil sebelumnya
-        if (search) {
-          processedData = processedData.filter(
-            (order) =>
-              order.name.toLowerCase().includes(search.toLowerCase()) ||
-              order.noTransaction.toLowerCase().includes(search.toLowerCase())
-          );
-        }
-
-        const totalItems = processedData.length;
-        const totalPages = Math.ceil(totalItems / limit);
-        const paginatedData = processedData.slice(
-          (page - 1) * limit,
-          page * limit
-        );
-
-        await new Promise((resolve) => setTimeout(resolve, 500));
         return {
-          data: { bookings: paginatedData, totalPages, currentPage: page },
+          url: '/api/admin/bookings-fnb',
+          params: params,
         };
       },
-      providesTags: ["FoodDrinkBooking"],
+      // Transformasi data sesuai dengan response API baru
+      transformResponse: (response) => {
+        console.log('Raw F&B API Response:', response);
+
+        if (!response || !response.data) {
+          console.log('No response data found');
+          return {
+            bookings: [],
+            pagination: {
+              currentPage: 1,
+              totalPages: 1,
+              total: 0,
+              perPage: 15
+            }
+          };
+        }
+
+        // Transform data booking sesuai dengan struktur baru
+        const transformedBookings = response.data.map(booking => {
+          const createdDate = booking.created_at ? parseISO(booking.created_at) : new Date();
+
+          // Extract FnB items information
+          const fnbItems = booking.fnbs?.map(fnb => ({
+            id: fnb.id,
+            name: fnb.name,
+            price: parseFloat(fnb.price) || 0,
+            quantity: fnb.pivot?.quantity || 1,
+            totalPrice: parseFloat(fnb.pivot?.price) || 0,
+          })) || [];
+
+          // Create order summary with just names
+          const orderSummary = fnbItems.length > 0
+            ? fnbItems.map(item => `${item.name} (${item.quantity}x)`).join(', ')
+            : 'F&B Order';
+
+          return {
+            id: booking.id,
+            noTransaction: booking.invoice_number,
+            name: booking.bookable?.name || 'N/A',
+            phoneNumber: booking.bookable?.phone || '-',
+            email: booking.bookable?.email || '-',
+            orderName: orderSummary,
+            quantity: booking.total_visitors || 1,
+            totalPembayaran: parseFloat(booking.total_price) || 0,
+            metodePembayaran: 'QRIS', // Default payment method
+            statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : 'Unknown',
+            tanggalTransaksi: format(createdDate, 'dd/MM/yyyy'),
+            tanggalBooking: format(createdDate, 'dd/MM/yyyy'),
+            admin: 'Asep', // Default admin name
+            bookableType: booking.bookable_type || 'N/A',
+            bookableId: booking.bookable_id || null,
+            unitId: booking.unit_id || null,
+            gameId: booking.game_id || null,
+            startTime: booking.start_time || null,
+            endTime: booking.end_time || null,
+            eventId: booking.event_id || null,
+            promoId: booking.promo_id || null,
+            reminderSent: booking.reminder_sent || false,
+            fnbItems: fnbItems, // Include full FnB items data
+            rawBooking: booking, // Simpan data mentah untuk referensi
+          };
+        });
+
+        return {
+          bookings: transformedBookings,
+          pagination: {
+            currentPage: response.current_page || 1,
+            totalPages: response.last_page || 1,
+            total: response.total || 0,
+            perPage: response.per_page || 15
+          }
+        };
+      },
+      providesTags: (result) =>
+        result ? [
+          { type: 'FoodDrinkBooking', id: 'LIST' },
+          ...result.bookings.map(({ id }) => ({ type: 'FoodDrinkBooking', id }))
+        ] : [{ type: 'FoodDrinkBooking', id: 'LIST' }],
     }),
 
-    deleteFoodDrinkBooking: builder.mutation({
-      queryFn: async (orderId) => {
-        console.log("Simulating DELETE request for F&B order id:", orderId);
-        mockFoodDrinkOrders = mockFoodDrinkOrders.filter(
-          (o) => o.id !== orderId
-        );
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: orderId };
+    // Endpoint baru untuk mendapatkan detail booking F&B
+    getFoodDrinkBookingDetail: builder.query({
+      query: (bookingIdOrIds) => {
+        // Handle both single ID and array of IDs
+        if (Array.isArray(bookingIdOrIds)) {
+          // Batch loading - return array of promises
+          return {
+            url: `/api/admin/bookings/batch`,
+            method: 'POST',
+            body: { booking_ids: bookingIdOrIds },
+          };
+        } else {
+          // Single booking detail
+          return {
+            url: `/api/admin/bookings/${bookingIdOrIds}`,
+          };
+        }
       },
-      invalidatesTags: ["FoodDrinkBooking"],
+      transformResponse: (response) => {
+        console.log('Raw F&B Detail API Response:', response);
+
+        if (!response) {
+          return [];
+        }
+
+        // Handle batch response
+        if (Array.isArray(response)) {
+          return response.map(booking => transformBookingDetail(booking)).filter(Boolean);
+        }
+
+        // Handle single response - wrap in array for consistency
+        const singleResult = transformBookingDetail(response);
+        return singleResult ? [singleResult] : [];
+      },
+      providesTags: (result, error, id) => [{ type: 'FoodDrinkBooking', id }],
     }),
   }),
 });
 
 export const {
   useGetFoodDrinkBookingsQuery,
-  useDeleteFoodDrinkBookingMutation,
+  useGetFoodDrinkBookingDetailQuery,
 } = foodDrinkBookingApiSlice;

@@ -1,30 +1,26 @@
-/* eslint-disable no-unused-vars */
-import React, { useState, useEffect, useRef } from "react";
-import {
-  useGetBookingsQuery,
-  useDeleteBookingMutation,
-  useUpdateBookingMutation,
-} from "../api/bookingApiSlice";
-import useDebounce from "../../../hooks/useDebounce";
-import { toast } from "react-hot-toast";
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useGetBookingsQuery, useDeleteBookingMutation, useUpdateBookingMutation } from '../api/bookingApiSlice';
+import useDebounce from '../../../hooks/useDebounce';
+import { toast } from 'react-hot-toast';
+import { format, parseISO } from 'date-fns';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
-import TableControls from "../../../components/common/TableControls";
-import Pagination from "../../../components/common/Pagination";
-import BookingTable from "../components/BookingTable";
-import AddBookingModal from "../components/AddBookingModal";
-import ConfirmationModal from "../../../components/common/ConfirmationModal";
-import RescheduleModal from "../components/RescheduleModal";
-import RefundModal from "../components/RefundModal";
+import TableControls from '../../../components/common/TableControls';
+import Pagination from '../../../components/common/Pagination';
+import BookingTable from '../components/BookingTable';
+import AddBookingModal from '../components/AddBookingModal';
+import ConfirmationModal from '../../../components/common/ConfirmationModal';
+import RescheduleModal from '../components/RescheduleModal';
+import RefundModal from '../components/RefundModal';
 
 const BookingRoomPage = () => {
   // --- STATE MANAGEMENT ---
   // State untuk filter dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [monthFilter, setMonthFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState("All");
+  const [searchTerm, setSearchTerm] = useState('');
+  const [monthFilter, setMonthFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('All');
 
   // State untuk mengontrol semua modal
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
@@ -41,27 +37,64 @@ const BookingRoomPage = () => {
   const cancelModalRef = useRef(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const statusTabs = [
-    "All",
-    "Ongoing",
-    "Booking Success",
-    "Finished",
-    "Cancelled",
-    "Rescheduled",
-    "Refunded",
-  ];
+  const statusTabs = ['All', 'Confirmed', 'Rescheduled', 'Finished', 'Cancelled'];
 
   // --- RTK QUERY HOOKS ---
-  const { data, isLoading, isFetching, isError, error } = useGetBookingsQuery({
-    page: currentPage,
-    limit,
-    search: debouncedSearchTerm,
+  const {
+    data: allBookings, // Ini berisi SEMUA booking yang cocok dengan filter backend
+    isLoading,
+    isFetching
+  } = useGetBookingsQuery({
     month: monthFilter,
     status: statusFilter,
   });
 
   const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
   const [updateBooking, { isLoading: isUpdating }] = useUpdateBookingMutation();
+
+  // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
+  const { paginatedBookings, totalPages } = useMemo(() => {
+    if (!allBookings) {
+      return { paginatedBookings: [], totalPages: 1 };
+    }
+
+    // Filter berdasarkan search term
+    let filtered = allBookings;
+
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = allBookings.filter(booking =>
+        booking.name.toLowerCase().includes(searchLower) ||
+        booking.noTransaction.toLowerCase().includes(searchLower) ||
+        booking.phoneNumber.toLowerCase().includes(searchLower) ||
+        booking.room.toLowerCase().includes(searchLower) ||
+        booking.unit.toLowerCase().includes(searchLower) ||
+        booking.console.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Filter berdasarkan month (jika ada)
+    if (monthFilter) {
+      filtered = filtered.filter(booking => {
+        if (!booking.rawBooking?.start_time) return false;
+
+        try {
+          const bookingDate = parseISO(booking.rawBooking.start_time);
+          const bookingMonth = format(bookingDate, 'yyyy-MM');
+          return bookingMonth === monthFilter;
+        } catch (error) {
+          console.error('Error parsing date:', error);
+          return false;
+        }
+      });
+    }
+
+    // Hitung pagination
+    const total = Math.ceil(filtered.length / limit);
+    const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
+
+    return { paginatedBookings: paginated, totalPages: total };
+  }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit]);
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
@@ -76,16 +109,14 @@ const BookingRoomPage = () => {
 
   const handleCloseAddEditModal = () => {
     setIsAddEditModalOpen(false);
-    setTimeout(() => {
-      setEditingData(null);
-    }, 300);
+    setTimeout(() => { setEditingData(null); }, 300);
   };
 
   const handleSuccessSubmit = () => {
     handleCloseAddEditModal();
-    setSearchTerm("");
-    setMonthFilter("");
-    setStatusFilter("All");
+    setSearchTerm('');
+    setMonthFilter('');
+    setStatusFilter('All');
     setCurrentPage(1);
   };
 
@@ -95,13 +126,14 @@ const BookingRoomPage = () => {
   };
 
   const handleConfirmDelete = async () => {
+    if (!bookingToDelete) return;
     try {
       await deleteBooking(bookingToDelete.id).unwrap();
-      toast.success("Booking berhasil dihapus!");
+      toast.success('Booking berhasil dihapus!');
       deleteModalRef.current?.close();
     } catch (err) {
-      toast.error("Gagal menghapus booking.");
-      console.error("Delete booking error:", err);
+      toast.error('Gagal menghapus booking.');
+      console.error('Gagal menghapus booking:', err);
     }
   };
 
@@ -132,18 +164,16 @@ const BookingRoomPage = () => {
   const handleConfirmCancel = async () => {
     if (!bookingToCancel) return;
     try {
-      const updatedBookingData = {
-        ...bookingToCancel,
-        statusBooking: "Cancelled",
-      };
-      await updateBooking(updatedBookingData).unwrap();
-      toast.success("Booking berhasil dibatalkan!");
+      const payload = { id: bookingToCancel.id, status: 'cancelled' };
+      await updateBooking(payload).unwrap();
+      toast.success('Booking berhasil dibatalkan!');
       cancelModalRef.current?.close();
     } catch (err) {
-      toast.error("Gagal membatalkan booking.");
+      toast.error(err.data?.message || 'Gagal membatalkan booking.');
     }
   };
 
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [limit, debouncedSearchTerm, monthFilter, statusFilter]);
@@ -155,32 +185,19 @@ const BookingRoomPage = () => {
           <h2 className="card-title text-2xl mb-4">Room Booking List</h2>
 
           <div className="tabs tabs-boxed mb-4 bg-base-200 self-start">
-            {statusTabs.map((tab) => (
-              <a
-                key={tab}
-                className={`tab tab-sm sm:tab-md ${
-                  statusFilter === tab ? "tab-active" : ""
-                }`}
-                onClick={() => setStatusFilter(tab)}
-              >
-                {tab}
-              </a>
+            {statusTabs.map(tab => (
+              <a key={tab} className={`tab tab-sm sm:tab-md ${statusFilter === tab ? 'tab-active' : ''}`} onClick={() => setStatusFilter(tab)}>{tab}</a>
             ))}
           </div>
 
           <TableControls
-            limit={limit}
-            setLimit={setLimit}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            monthFilter={monthFilter}
-            setMonthFilter={setMonthFilter}
-            onAddClick={handleOpenAddModal}
-            addButtonText="Add OTS Booking"
+            limit={limit} setLimit={setLimit} searchTerm={searchTerm} setSearchTerm={setSearchTerm}
+            monthFilter={monthFilter} setMonthFilter={setMonthFilter}
+            onAddClick={handleOpenAddModal} addButtonText="Add OTS Booking"
           />
 
           <BookingTable
-            bookings={data?.bookings}
+            bookings={paginatedBookings}
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}
@@ -192,52 +209,21 @@ const BookingRoomPage = () => {
           />
 
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={currentPage}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>
       </div>
 
-      <AddBookingModal
-        isOpen={isAddEditModalOpen}
-        onClose={handleCloseAddEditModal}
-        editingData={editingData}
-        onFormSubmit={handleSuccessSubmit}
-      />
-      <RescheduleModal
-        isOpen={isRescheduleModalOpen}
-        onClose={handleCloseRescheduleModal}
-        bookingData={bookingToReschedule}
-      />
-      <RefundModal
-        isOpen={isRefundModalOpen}
-        onClose={handleCloseRefundModal}
-        bookingData={bookingToRefund}
-      />
-
-      <ConfirmationModal
-        ref={deleteModalRef}
-        title="Konfirmasi Hapus"
-        onConfirm={handleConfirmDelete}
-        isLoading={isDeleting}
-      >
-        <p>
-          Apakah Anda yakin ingin menghapus booking No.{" "}
-          <span className="font-bold">{bookingToDelete?.noTransaction}</span>?
-        </p>
+      <AddBookingModal isOpen={isAddEditModalOpen} onClose={handleCloseAddEditModal} editingData={editingData} onFormSubmit={handleSuccessSubmit} />
+      <RescheduleModal isOpen={isRescheduleModalOpen} onClose={handleCloseRescheduleModal} bookingData={bookingToReschedule} />
+      <RefundModal isOpen={isRefundModalOpen} onClose={handleCloseRefundModal} bookingData={bookingToRefund} />
+      <ConfirmationModal ref={deleteModalRef} title="Konfirmasi Hapus" onConfirm={handleConfirmDelete} isLoading={isDeleting}>
+        <p>Apakah Anda yakin ingin menghapus booking No. <span className="font-bold">{bookingToDelete?.noTransaction}</span>?</p>
       </ConfirmationModal>
-
-      <ConfirmationModal
-        ref={cancelModalRef}
-        title="Konfirmasi Pembatalan"
-        onConfirm={handleConfirmCancel}
-        isLoading={isUpdating}
-      >
-        <p>
-          Apakah Anda yakin ingin membatalkan booking No.{" "}
-          <span className="font-bold">{bookingToCancel?.noTransaction}</span>?
-        </p>
+      <ConfirmationModal ref={cancelModalRef} title="Konfirmasi Pembatalan" onConfirm={handleConfirmCancel} isLoading={isUpdating}>
+        <p>Apakah Anda yakin ingin membatalkan booking No. <span className="font-bold">{bookingToCancel?.noTransaction}</span>?</p>
       </ConfirmationModal>
     </>
   );

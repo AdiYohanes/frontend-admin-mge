@@ -1,70 +1,84 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
 import {
-  CurrencyDollarIcon,
-  ShoppingCartIcon,
-  UsersIcon,
-  BookmarkIcon,
-} from "@heroicons/react/24/outline";
-import { useGetDashboardDataQuery } from "../features/dashboard/api/dashboardApiSlice";
+  useGetDashboardDataQuery,
+  useGetOrderSummaryDataQuery,
+  useGetConsoleStatsDataQuery,
+  useGetTodaysBookingDataQuery,
+} from "../features/dashboard/api/dashboardApiSlice";
 
-import OrderStats from "../features/dashboard/components/OrderStats.jsx";
-import RevenueChart from "../features/dashboard/components/RevenueChart.jsx";
-import TodaysBooking from "../features/dashboard/components/TodaysBooking.jsx";
-import PopularityStats from "../features/dashboard/components/PopularityStats.jsx";
-import PeakTimeChart from "../features/dashboard/components/PeakTimeChart.jsx";
-import OrderSummaryChart from "../features/dashboard/components/OrderSummaryChart.jsx";
-import WebsiteTrafficChart from "../features/dashboard/components/WebsiteTrafficChart.jsx";
+// Impor semua komponen dasbor yang kita gunakan
+import OrderStats from "../features/dashboard/components/OrderStats";
+import RevenueChart from "../features/dashboard/components/RevenueChart";
+import PeakTimeChart from "../features/dashboard/components/PeakTimeChart";
+import OrderSummaryChart from "../features/dashboard/components/OrderSummaryChart";
+import TodaysBooking from "../features/dashboard/components/TodaysBooking";
+import WebsiteTrafficChart from "../features/dashboard/components/WebsiteTrafficChart";
+import StatsSection from "../features/dashboard/components/StatsSection";
 
 const DashboardPage = () => {
-  const { data, isLoading, isError, error } = useGetDashboardDataQuery();
+  // Panggil semua hook yang diperlukan untuk setiap komponen
+  const {
+    data: dashboardData,
+    isLoading: isLoadingStats,
+    isError,
+  } = useGetDashboardDataQuery();
+  const { data: orderSummaryData } = useGetOrderSummaryDataQuery();
+  const { data: consoleStatsData } = useGetConsoleStatsDataQuery();
 
-  const formatCurrency = (number) =>
-    new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(number || 0);
-
-  if (isLoading) {
+  // Tampilkan skeleton loading untuk seluruh halaman saat data statistik utama dimuat
+  if (isLoadingStats) {
     return (
-      <div className="w-full flex justify-center p-10">
-        <span className="loading loading-lg"></span>
+      <div className="space-y-6">
+        <h1 className="text-3xl font-bold">Dashboard</h1>
+        <div className="skeleton h-32 w-full"></div>
+        <div className="skeleton h-96 w-full"></div>
+        <div className="skeleton h-96 w-full"></div>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="skeleton h-96"></div>
+          <div className="skeleton h-96"></div>
+        </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 skeleton h-96"></div>
+          <div className="skeleton h-96"></div>
+        </div>
       </div>
     );
   }
 
   if (isError) {
-    return <div className="alert alert-error">Error: {error.toString()}</div>;
+    return (
+      <div className="alert alert-error">
+        Gagal memuat data dasbor. Silakan coba lagi nanti.
+      </div>
+    );
   }
 
-  const stats = data?.totalStats || {};
-
   return (
-    <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+    <div className="space-y-6">
+      <h1 className="text-3xl font-bold">Dashboard</h1>
 
-      <div className="mb-6">
-        <OrderStats stats={data?.totalStats} />
+      {/* Baris 1: Kartu Statistik Utama */}
+      <OrderStats stats={dashboardData?.totalStats} />
+
+      {/* Baris 2: Revenue Chart (Full Width) */}
+      <RevenueChart />
+
+      {/* Baris 3: Today's Booking (Full Width) */}
+      <TodaysBooking />
+
+      {/* Baris 4: Statistik Populer & Konsol dengan shared period filter */}
+      <div className="card bg-base-100 shadow-md p-6">
+        <StatsSection />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          <RevenueChart />
-        </div>
-        <div>
-          <TodaysBooking data={data?.todaysBooking} />
-        </div>
-        <div className="lg:col-span-3">
-          <PopularityStats />
-        </div>
-        <div className="lg:col-span-2">
-          <PeakTimeChart />
-        </div>
-        <div>
+      {/* Baris 5: Peak Time (Full Width) */}
+      <PeakTimeChart />
+
+      {/* Baris 6: Order Summary & Website Traffic dalam satu card besar */}
+      <div className="card bg-base-100 shadow-md p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <OrderSummaryChart />
-        </div>
-        <div className="lg:col-span-3">
           <WebsiteTrafficChart />
         </div>
       </div>

@@ -1,70 +1,102 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { ChevronDownIcon } from "@heroicons/react/24/solid";
+import { useGetTodaysBookingDataQuery } from "../api/dashboardApiSlice";
 
-const TodaysBooking = ({ data }) => {
-  const [activeTab, setActiveTab] = useState("rental");
+const TodaysBooking = () => {
+  const [filter, setFilter] = useState("daily");
 
-  const rentalBookings = data?.units || [];
-  const foodDrinkOrders = data?.foodDrinks || [];
+  // Komponen ini memanggil API-nya sendiri
+  const { data, isLoading, isError } = useGetTodaysBookingDataQuery({
+    period: filter,
+  });
 
-  const renderList = () => {
-    const items = activeTab === "rental" ? rentalBookings : foodDrinkOrders;
-
-    if (items.length === 0) {
-      return (
-        <div className="flex-grow flex justify-center items-center text-gray-500">
-          Tidak ada data {activeTab === "rental" ? "rental" : "pesanan"} hari
-          ini.
-        </div>
-      );
-    }
-
-    return (
-      <ul className="space-y-4">
-        {items.map((item) => (
-          <li key={item.id} className="flex items-center gap-4">
-            <div className="avatar">
-              <div className="w-12 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
-                <img src={item.avatar} alt={item.customerName} />
-              </div>
-            </div>
-            <div className="flex-grow">
-              {/* PERUBAHAN 1: Font nama item diperbesar dan ditebalkan */}
-              <p className="font-bold text-base truncate">{item.itemName}</p>
-              <p className="text-sm text-gray-500">{item.customerName}</p>
-            </div>
-            {/* PERUBAHAN 2: Ukuran font diperbesar dan warna diubah menjadi brand-gold */}
-            <div className="text-sm text-right text-brand-gold font-semibold whitespace-nowrap">
-              {activeTab === "rental" ? item.time : item.status}
-            </div>
-          </li>
-        ))}
-      </ul>
+  // Ekstrak data dari respons API dengan aman
+  const bookings = useMemo(() => {
+    if (!data || !data.booking_counts_by_unit) return [];
+    // Urutkan data berdasarkan jumlah booking terbanyak
+    return [...data.booking_counts_by_unit].sort(
+      (a, b) => b.booking_count - a.booking_count
     );
-  };
+  }, [data]);
 
   return (
-    <div className="card bg-base-100 shadow-md h-96">
-      <div className="card-body">
-        <h2 className="card-title">Today's Bookings</h2>
-        <div className="tabs tabs-boxed self-start">
-          <a
-            className={`tab ${activeTab === "rental" ? "tab-active" : ""}`}
-            onClick={() => setActiveTab("rental")}
-          >
-            Rental
-          </a>
-          <a
-            className={`tab ${
-              activeTab === "food & drink" ? "tab-active" : ""
-            }`}
-            onClick={() => setActiveTab("food & drink")}
-          >
-            Food & Drink
-          </a>
+    <div className="card bg-base-100 shadow-md h-full">
+      <div className="card-body flex flex-col">
+        <div className="flex justify-between items-center mb-4 flex-shrink-0">
+          <h2 className="card-title">Today's Booking</h2>
+
+          {/* Filter Dropdown */}
+          <div className="dropdown dropdown-end">
+            <label tabIndex={0} className="btn btn-ghost btn-sm">
+              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              <ChevronDownIcon className="h-4 w-4 ml-1" />
+            </label>
+            <ul
+              tabIndex={0}
+              className="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32"
+            >
+              <li>
+                <a
+                  onClick={() => setFilter("daily")}
+                  className={filter === "daily" ? "active" : ""}
+                >
+                  Daily
+                </a>
+              </li>
+              <li>
+                <a
+                  onClick={() => setFilter("weekly")}
+                  className={filter === "weekly" ? "active" : ""}
+                >
+                  Weekly
+                </a>
+              </li>
+              <li>
+                <a
+                  onClick={() => setFilter("monthly")}
+                  className={filter === "monthly" ? "active" : ""}
+                >
+                  Monthly
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
-        <div className="flex-grow overflow-y-auto mt-4 -mr-4 pr-4">
-          {renderList()}
+        {/* Daftar Booking */}
+        <div className="flex-grow overflow-y-auto pr-2 space-y-3">
+          {isLoading ? (
+            <div className="h-full flex items-center justify-center">
+              <span className="loading loading-spinner"></span>
+            </div>
+          ) : isError ? (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-error text-sm">Gagal memuat data.</p>
+            </div>
+          ) : bookings.length > 0 ? (
+            bookings.map((item, index) => (
+              <div key={index} className="flex justify-between items-center">
+                <div className="flex items-center gap-3">
+                  <span className="font-bold text-lg text-base-content/30 w-6">
+                    {index + 1}
+                  </span>
+                  <p className="font-semibold text-base-content">{item.name}</p>
+                </div>
+                <div className="font-bold text-brand-gold">
+                  {item.booking_count}{" "}
+                  <span className="text-sm font-normal text-base-content/60">
+                    bookings
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div className="h-full flex items-center justify-center">
+              <p className="text-gray-500">
+                Tidak ada booking untuk periode ini.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -13,15 +13,19 @@ import AddEditCategoryModal from "../components/AddEditCategoryModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const CategoryListPage = () => {
+  // State untuk filter dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // State untuk mengontrol modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const deleteModalRef = useRef(null);
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  // Panggilan API
   const { data, isLoading, isFetching } = useGetCategoriesQuery({
     page: currentPage,
     limit,
@@ -31,6 +35,7 @@ const CategoryListPage = () => {
   const [deleteCategory, { isLoading: isDeleting }] =
     useDeleteCategoryMutation();
 
+  // Handlers untuk semua aksi CRUD
   const handleOpenAddModal = () => {
     setEditingData(null);
     setIsModalOpen(true);
@@ -58,7 +63,7 @@ const CategoryListPage = () => {
       deleteModalRef.current?.close();
     } catch (err) {
       toast.error("Gagal menghapus kategori.");
-      console.error("Failed to delete category:", err);
+      console.error("Delete error:", err);
     }
   };
 
@@ -97,6 +102,7 @@ const CategoryListPage = () => {
         onClose={handleCloseModal}
         editingData={editingData}
       />
+
       <ConfirmationModal
         ref={deleteModalRef}
         title="Konfirmasi Hapus Kategori"

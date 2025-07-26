@@ -16,6 +16,7 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
     transition,
     isDragging,
   } = useSortable({ id: game.id });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
@@ -50,18 +51,25 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
       <td>
         <div className="badge badge-ghost">{game.genre}</div>
       </td>
-      <td>{game.availableAt} Units</td>
+      <td>{game.availableAt || 0} Units</td>
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
-          <button onClick={() => onEdit(game)} className="btn btn-ghost btn-sm">
-            <PencilSquareIcon className="h-5 w-5" />
-          </button>
-          <button
-            onClick={() => onDelete(game)}
-            className="btn btn-ghost btn-sm text-error"
-          >
-            <TrashIcon className="h-5 w-5" />
-          </button>
+          <div className="tooltip" data-tip="Edit">
+            <button
+              onClick={() => onEdit(game)}
+              className="btn btn-ghost btn-sm"
+            >
+              <PencilSquareIcon className="h-5 w-5" />
+            </button>
+          </div>
+          <div className="tooltip tooltip-error" data-tip="Hapus">
+            <button
+              onClick={() => onDelete(game)}
+              className="btn btn-ghost btn-sm text-error"
+            >
+              <TrashIcon className="h-5 w-5" />
+            </button>
+          </div>
         </div>
       </td>
     </tr>

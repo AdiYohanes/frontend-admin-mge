@@ -1,176 +1,157 @@
 import { apiSlice } from "../../../store/api/apiSlice";
 
-// --- BAGIAN MOCK DATA (Tidak ada perubahan) ---
-let mockPromos = [
-  {
-    id: 1,
-    code: "RAMADAN25",
-    description: "Diskon spesial bulan Ramadan",
-    nominal: 25,
-    isActive: true,
-  },
-];
-let mockFaqs = [
-  {
-    id: 1,
-    question: "Bagaimana cara booking?",
-    answer: "Anda bisa booking melalui halaman Booking > Room.",
-    isPublished: true,
-  },
-];
-let mockBanners = [
-  {
-    id: 1,
-    title: "Promo Ramadan Besar!",
-    description: "Diskon hingga 25%...",
-    imageUrl:
-      "https://images.unsplash.com/photo-1555529771-788878a17634?w=800&q=80",
-    isActive: true,
-  },
-];
-let mockFeaturedConsoles = [
-  {
-    id: 1,
-    title: "PlayStation 5",
-    imageUrl:
-      "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=500&q=80",
-  },
-];
-let mockFeaturedGames = [
-  {
-    id: 1,
-    description: "Game Paling Populer Bulan Ini",
-    highlightedGames: ["EA FC 24", "GTA V"],
-    isActive: true,
-  },
-];
-let mockFeaturedRooms = [
-  {
-    id: 1,
-    title: "Ruangan VIP Eksklusif",
-    description: "Pengalaman bermain premium.",
-    images: [
-      "https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=500&q=80",
-    ],
-    isActive: true,
-  },
-];
-let mockCustomerReviews = [
-  {
-    id: 1,
-    name: "Budi Hartono",
-    description: "Tempatnya nyaman!",
-    rating: 5,
-    avatarUrl: "https://i.pravatar.cc/150?u=budi",
-    isActive: true,
-  },
-];
+// --- TIDAK ADA LAGI MOCK DATA DI SINI ---
+// Semua data sekarang 100% diambil dari backend.
 
 export const settingsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     // === Promo Endpoints ===
     getPromos: builder.query({
-      queryFn: async () => ({ data: { promos: mockPromos } }),
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/public/promos",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => ({
+        promos: response.data.map((promo) => ({
+          id: promo.id,
+          code: promo.name,
+          description: promo.description,
+          nominal: promo.percentage,
+          isActive: promo.is_active,
+        })),
+        totalPages: response.last_page,
+        currentPage: response.current_page,
+      }),
       providesTags: (result) =>
         result
           ? [
-              { type: "Promo", id: "LIST" },
-              ...result.promos.map(({ id }) => ({ type: "Promo", id })),
-            ]
+            { type: "Promo", id: "LIST" },
+            ...result.promos.map(({ id }) => ({ type: "Promo", id })),
+          ]
           : [{ type: "Promo", id: "LIST" }],
     }),
     addPromo: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isActive: true };
-        mockPromos = [newItem, ...mockPromos];
-        return { data: newItem };
-      },
+      query: (newPromo) => ({
+        url: "/api/admin/promos",
+        method: "POST",
+        body: {
+          name: newPromo.code,
+          description: newPromo.description,
+          percentage: newPromo.nominal,
+          is_active: true,
+        },
+      }),
       invalidatesTags: [{ type: "Promo", id: "LIST" }],
     }),
     updatePromo: builder.mutation({
-      queryFn: async (item) => {
-        mockPromos = mockPromos.map((p) =>
-          p.id === item.id ? { ...p, ...item } : p
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/promos/${id}`,
+        method: "POST",
+        body: {
+          name: patch.code,
+          description: patch.description,
+          percentage: patch.nominal,
+          is_active: patch.isActive,
+          _method: "POST",
+        },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "Promo", id: "LIST" },
         { type: "Promo", id: arg.id },
       ],
     }),
     deletePromo: builder.mutation({
-      queryFn: async (id) => {
-        mockPromos = mockPromos.filter((p) => p.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({ url: `/api/admin/promos/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Promo", id: "LIST" }],
     }),
 
     // === FAQ Endpoints ===
     getFaqs: builder.query({
-      queryFn: async () => ({ data: { faqs: mockFaqs } }),
+      query: () => "/api/public/faqs",
+      transformResponse: (response) => ({ faqs: response }),
       providesTags: (result) =>
         result
           ? [
-              { type: "Faq", id: "LIST" },
-              ...result.faqs.map(({ id }) => ({ type: "Faq", id })),
-            ]
+            { type: "Faq", id: "LIST" },
+            ...result.faqs.map(({ id }) => ({ type: "Faq", id })),
+          ]
           : [{ type: "Faq", id: "LIST" }],
     }),
     addFaq: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isPublished: false };
-        mockFaqs = [newItem, ...mockFaqs];
-        return { data: newItem };
-      },
+      query: (newFaq) => ({
+        url: "/api/admin/faqs",
+        method: "POST",
+        body: newFaq,
+      }),
       invalidatesTags: [{ type: "Faq", id: "LIST" }],
     }),
     updateFaq: builder.mutation({
-      queryFn: async (item) => {
-        mockFaqs = mockFaqs.map((f) =>
-          f.id === item.id ? { ...f, ...item } : f
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/faqs/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "Faq", id: "LIST" },
         { type: "Faq", id: arg.id },
       ],
     }),
     deleteFaq: builder.mutation({
-      queryFn: async (id) => {
-        mockFaqs = mockFaqs.filter((f) => f.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({ url: `/api/admin/faqs/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Faq", id: "LIST" }],
     }),
 
     // === Banner Endpoints ===
     getBanners: builder.query({
-      queryFn: async () => ({ data: { banners: mockBanners } }),
+      query: () => ({ url: "/api/admin/banners" }),
+      transformResponse: (response) => ({
+        banners: response.data.map((banner) => ({
+          ...banner,
+          isActive: banner.is_active,
+          imageUrl: banner.image
+            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${banner.image}`
+            : `https://placehold.co/150x75/EEE/31343C?text=No+Image`,
+        })),
+        totalPages: response.last_page,
+        currentPage: response.current_page,
+      }),
       providesTags: (result) =>
         result
           ? [
-              { type: "Banner", id: "LIST" },
-              ...result.banners.map(({ id }) => ({ type: "Banner", id })),
-            ]
+            { type: "Banner", id: "LIST" },
+            ...result.banners.map(({ id }) => ({ type: "Banner", id })),
+          ]
           : [{ type: "Banner", id: "LIST" }],
     }),
     addBanner: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isActive: true };
-        mockBanners = [newItem, ...mockBanners];
-        return { data: newItem };
+      query: (item) => {
+        const formData = new FormData();
+        formData.append("title", item.title);
+        formData.append("description", item.description);
+        if (item.image && item.image.length > 0)
+          formData.append("image", item.image[0]);
+        return { url: "/api/admin/banners", method: "POST", body: formData };
       },
       invalidatesTags: [{ type: "Banner", id: "LIST" }],
     }),
     updateBanner: builder.mutation({
-      queryFn: async (item) => {
-        mockBanners = mockBanners.map((b) =>
-          b.id === item.id ? { ...b, ...item } : b
-        );
-        return { data: item };
+      query: ({ id, ...patch }) => {
+        const formData = new FormData();
+        // Hanya kirim data yang ada di patch (yang diubah)
+        if (patch.title) formData.append("title", patch.title);
+        if (patch.description)
+          formData.append("description", patch.description);
+        if (patch.image && patch.image.length > 0)
+          formData.append("image", patch.image[0]);
+        if (patch.isActive !== undefined)
+          formData.append("is_active", patch.isActive ? 1 : 0);
+
+        formData.append("_method", "POST"); // Method spoofing
+        return {
+          url: `/api/admin/banners/${id}`,
+          method: "POST",
+          body: formData,
+        };
       },
       invalidatesTags: (r, e, arg) => [
         { type: "Banner", id: "LIST" },
@@ -178,176 +159,151 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       ],
     }),
     deleteBanner: builder.mutation({
-      queryFn: async (id) => {
-        mockBanners = mockBanners.filter((b) => b.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({ url: `/api/admin/banners/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Banner", id: "LIST" }],
     }),
 
-    // ... Pola yang sama diterapkan untuk semua endpoint lainnya ...
+    // === Featured Consoles Endpoints ===
     getFeaturedConsoles: builder.query({
-      queryFn: async () => ({ data: { consoles: mockFeaturedConsoles } }),
-      providesTags: (result) =>
-        result
-          ? [
-              { type: "FeaturedConsole", id: "LIST" },
-              ...result.consoles.map(({ id }) => ({
-                type: "FeaturedConsole",
-                id,
-              })),
-            ]
-          : [{ type: "FeaturedConsole", id: "LIST" }],
+      query: () => "/api/admin/featured-consoles", // Asumsi endpoint
+      providesTags: [{ type: "FeaturedConsole", id: "LIST" }],
     }),
     addFeaturedConsole: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now() };
-        mockFeaturedConsoles = [newItem, ...mockFeaturedConsoles];
-        return { data: newItem };
-      },
+      query: (item) => ({
+        url: "/api/admin/featured-consoles",
+        method: "POST",
+        body: item,
+      }),
       invalidatesTags: [{ type: "FeaturedConsole", id: "LIST" }],
     }),
     updateFeaturedConsole: builder.mutation({
-      queryFn: async (item) => {
-        mockFeaturedConsoles = mockFeaturedConsoles.map((c) =>
-          c.id === item.id ? { ...c, ...item } : c
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/featured-consoles/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "FeaturedConsole", id: "LIST" },
         { type: "FeaturedConsole", id: arg.id },
       ],
     }),
     deleteFeaturedConsole: builder.mutation({
-      queryFn: async (id) => {
-        mockFeaturedConsoles = mockFeaturedConsoles.filter((c) => c.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({
+        url: `/api/admin/featured-consoles/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: [{ type: "FeaturedConsole", id: "LIST" }],
     }),
 
+    // === Featured Games Endpoints ===
     getFeaturedGames: builder.query({
-      queryFn: async () => ({ data: { games: mockFeaturedGames } }),
-      providesTags: (result) =>
-        result
-          ? [
-              { type: "FeaturedGame", id: "LIST" },
-              ...result.games.map(({ id }) => ({ type: "FeaturedGame", id })),
-            ]
-          : [{ type: "FeaturedGame", id: "LIST" }],
+      query: () => "/api/admin/featured-games", // Asumsi endpoint
+      providesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
     addFeaturedGame: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isActive: true };
-        mockFeaturedGames = [newItem, ...mockFeaturedGames];
-        return { data: newItem };
-      },
+      query: (item) => ({
+        url: "/api/admin/featured-games",
+        method: "POST",
+        body: item,
+      }),
       invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
     updateFeaturedGame: builder.mutation({
-      queryFn: async (item) => {
-        mockFeaturedGames = mockFeaturedGames.map((g) =>
-          g.id === item.id ? { ...g, ...item } : g
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/featured-games/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "FeaturedGame", id: "LIST" },
         { type: "FeaturedGame", id: arg.id },
       ],
     }),
     deleteFeaturedGame: builder.mutation({
-      queryFn: async (id) => {
-        mockFeaturedGames = mockFeaturedGames.filter((g) => g.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({
+        url: `/api/admin/featured-games/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
 
+    // === Featured Rooms Endpoints ===
     getFeaturedRooms: builder.query({
-      queryFn: async () => ({ data: { rooms: mockFeaturedRooms } }),
-      providesTags: (result) =>
-        result
-          ? [
-              { type: "FeaturedRoom", id: "LIST" },
-              ...result.rooms.map(({ id }) => ({ type: "FeaturedRoom", id })),
-            ]
-          : [{ type: "FeaturedRoom", id: "LIST" }],
+      query: () => "/api/public/rooms",
+      transformResponse: (response) => ({
+        rooms: response.data.map((room) => ({
+          id: room.id,
+          name: room.name,
+          imageUrl: room.image
+            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${room.image}`
+            : `https://placehold.co/150x75/EEE/31343C?text=No+Image`,
+          isActive: room.is_featured || false, // Default to false if not featured
+          description: room.description || "",
+        })),
+      }),
+      providesTags: [{ type: "FeaturedRoom", id: "LIST" }],
+    }),
+    updateRoomFeaturedStatus: builder.mutation({
+      query: ({ id, isActive }) => ({
+        url: `/api/admin/rooms/${id}`,
+        method: "PUT",
+        body: { is_featured: isActive },
+      }),
+      invalidatesTags: [{ type: "FeaturedRoom", id: "LIST" }],
     }),
     addFeaturedRoom: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isActive: true };
-        mockFeaturedRooms = [newItem, ...mockFeaturedRooms];
-        return { data: newItem };
-      },
+      query: (item) => ({
+        url: "/api/admin/featured-rooms",
+        method: "POST",
+        body: item,
+      }),
       invalidatesTags: [{ type: "FeaturedRoom", id: "LIST" }],
     }),
     updateFeaturedRoom: builder.mutation({
-      queryFn: async (item) => {
-        mockFeaturedRooms = mockFeaturedRooms.map((r) =>
-          r.id === item.id ? { ...r, ...item } : r
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/featured-rooms/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "FeaturedRoom", id: "LIST" },
         { type: "FeaturedRoom", id: arg.id },
       ],
     }),
     deleteFeaturedRoom: builder.mutation({
-      queryFn: async (id) => {
-        mockFeaturedRooms = mockFeaturedRooms.filter((r) => r.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({
+        url: `/api/admin/featured-rooms/${id}`,
+        method: "DELETE",
+      }),
       invalidatesTags: [{ type: "FeaturedRoom", id: "LIST" }],
     }),
 
+    // === Customer Reviews Endpoints ===
     getCustomerReviews: builder.query({
-      queryFn: async () => ({ data: { reviews: mockCustomerReviews } }),
-      providesTags: (result) =>
-        result
-          ? [
-              { type: "CustomerReview", id: "LIST" },
-              ...result.reviews.map(({ id }) => ({
-                type: "CustomerReview",
-                id,
-              })),
-            ]
-          : [{ type: "CustomerReview", id: "LIST" }],
+      query: () => "/api/admin/reviews", // Asumsi endpoint
+      providesTags: [{ type: "CustomerReview", id: "LIST" }],
     }),
     addCustomerReview: builder.mutation({
-      queryFn: async (item) => {
-        const newItem = { ...item, id: Date.now(), isActive: true };
-        // BENAR: Membuat array baru, bukan .push()
-        mockCustomerReviews = [newItem, ...mockCustomerReviews];
-        console.log(
-          "Data review baru ditambahkan ke mock:",
-          mockCustomerReviews
-        );
-        return { data: newItem };
-      },
+      query: (item) => ({
+        url: "/api/admin/reviews",
+        method: "POST",
+        body: item,
+      }),
       invalidatesTags: [{ type: "CustomerReview", id: "LIST" }],
     }),
     updateCustomerReview: builder.mutation({
-      queryFn: async (item) => {
-        // BENAR: Membuat array baru dengan .map()
-        mockCustomerReviews = mockCustomerReviews.map((r) =>
-          r.id === item.id ? { ...r, ...item } : r
-        );
-        return { data: item };
-      },
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/reviews/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
       invalidatesTags: (r, e, arg) => [
         { type: "CustomerReview", id: "LIST" },
         { type: "CustomerReview", id: arg.id },
       ],
     }),
     deleteCustomerReview: builder.mutation({
-      queryFn: async (id) => {
-        // BENAR: .filter() sudah menghasilkan array baru
-        mockCustomerReviews = mockCustomerReviews.filter((r) => r.id !== id);
-        return { data: id };
-      },
+      query: (id) => ({ url: `/api/admin/reviews/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "CustomerReview", id: "LIST" }],
     }),
   }),
@@ -375,6 +331,7 @@ export const {
   useUpdateFeaturedGameMutation,
   useDeleteFeaturedGameMutation,
   useGetFeaturedRoomsQuery,
+  useUpdateRoomFeaturedStatusMutation,
   useAddFeaturedRoomMutation,
   useUpdateFeaturedRoomMutation,
   useDeleteFeaturedRoomMutation,

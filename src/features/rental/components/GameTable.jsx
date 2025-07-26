@@ -47,4 +47,5 @@ const GameTable = ({ games, isLoading, page, limit, onEdit, onDelete }) => {
     </div>
   );
 };
+
 export default GameTable;

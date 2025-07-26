@@ -9,18 +9,23 @@ const CategoryTable = ({
   onEdit,
   onDelete,
 }) => {
-  if (isLoading)
+  // Menampilkan state loading saat data pertama kali diambil
+  if (isLoading) {
     return (
       <div className="flex justify-center p-10">
         <span className="loading loading-lg"></span>
       </div>
     );
-  if (!categories || categories.length === 0)
+  }
+
+  // Menampilkan pesan jika tidak ada data sama sekali
+  if (!categories || categories.length === 0) {
     return (
       <div className="text-center p-10">
         Tidak ada data kategori yang ditemukan.
       </div>
     );
+  }
 
   return (
     <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow">
@@ -29,6 +34,8 @@ const CategoryTable = ({
           <tr>
             <th>No</th>
             <th>Category Name</th>
+            <th>Type</th>
+            <th>Total Items</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -37,6 +44,16 @@ const CategoryTable = ({
             <tr key={category.id} className="hover">
               <th>{(page - 1) * limit + index + 1}</th>
               <td className="font-semibold">{category.name}</td>
+              <td>
+                <span
+                  className={`badge ${
+                    category.type === "Food" ? "badge-warning" : "badge-info"
+                  }`}
+                >
+                  {category.type}
+                </span>
+              </td>
+              <td>{category.totalItems} items</td>
               <td className="text-center">
                 <div className="flex items-center justify-center gap-1">
                   <div className="tooltip" data-tip="Edit">
@@ -64,4 +81,5 @@ const CategoryTable = ({
     </div>
   );
 };
+
 export default CategoryTable;

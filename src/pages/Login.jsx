@@ -11,7 +11,7 @@ import { useLoginMutation } from "../store/api/authApiSlice";
 import { setCredentials, selectCurrentToken } from "../store/slices/authSlice";
 
 const loginSchema = z.object({
-  username: z.string().min(3, { message: "Username minimal harus 3 karakter" }),
+  identifier: z.string().min(3, { message: "Username atau email harus diisi" }),
   password: z.string().min(6, { message: "Password minimal harus 6 karakter" }),
 });
 
@@ -199,12 +199,12 @@ const LoginPage = () => {
                   {/* Username */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Username
+                      Username / Email
                     </label>
                     <input
                       type="text"
                       placeholder="Masukkan username"
-                      {...register("username")}
+                      {...register("identifier")}
                       className={`w-full px-4 py-3.5 lg:py-3 rounded-xl border-2 transition-all duration-200 text-base lg:text-sm ${
                         errors.username
                           ? "border-red-300 focus:border-red-500 bg-red-50/50"

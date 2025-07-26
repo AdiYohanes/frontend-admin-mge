@@ -1,164 +1,140 @@
 import { apiSlice } from "../../../store/api/apiSlice";
 
-const createMockFoodDrink = (id, name, category, price, status, imageUrl) => ({
-  id,
-  name,
-  category,
-  price,
-  status,
-  imageUrl,
-});
+// --- TIDAK ADA LAGI MOCK DATA DI SINI ---
+// Semua data sekarang 100% diambil dari backend.
 
-let mockFoodDrinks = [
-  createMockFoodDrink(
-    1,
-    "Nasi Goreng Spesial",
-    "Makanan Berat",
-    25000,
-    "Available",
-    "https://images.unsplash.com/photo-1512058564366-185109023959?w=500&q=80"
-  ),
-  createMockFoodDrink(
-    2,
-    "Indomie Goreng Telor",
-    "Makanan Berat",
-    15000,
-    "Available",
-    "https://images.unsplash.com/photo-1626723223297-b9e8a5a0d6f6?w=500&q=80"
-  ),
-  createMockFoodDrink(
-    3,
-    "Es Teh Manis",
-    "Minuman Dingin",
-    5000,
-    "Available",
-    "https://images.unsplash.com/photo-1597402682482-274a2d961e29?w=500&q=80"
-  ),
-  createMockFoodDrink(
-    4,
-    "Kopi Hitam",
-    "Minuman Panas",
-    7000,
-    "Sold Out",
-    "https://images.unsplash.com/photo-1511920183353-3c9c9b0a1d5a?w=500&q=80"
-  ),
-  createMockFoodDrink(
-    5,
-    "Kentang Goreng",
-    "Snack",
-    12000,
-    "Available",
-    "https://images.unsplash.com/photo-1541592106381-b58e75a27709?w=500&q=80"
-  ),
-];
-const createMockCategory = (id, name) => ({ id, name });
-let mockCategories = [
-  createMockCategory(1, "Makanan Berat"),
-  createMockCategory(2, "Snack"),
-  createMockCategory(3, "Minuman Dingin"),
-  createMockCategory(4, "Minuman Panas"),
-  createMockCategory(5, "Dessert"),
-];
 export const foodDrinkApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // === Food & Drink Items Endpoints (Terhubung ke Backend) ===
     getFoodDrinkItems: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "" } = arg;
-        let data = mockFoodDrinks.filter((item) =>
-          item.name.toLowerCase().includes(search.toLowerCase())
-        );
-        const paginatedData = data.slice((page - 1) * limit, page * limit);
-        await new Promise((resolve) => setTimeout(resolve, 500));
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/public/fnbs",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => {
         return {
-          data: {
-            items: paginatedData,
-            totalPages: Math.ceil(data.length / limit),
-            currentPage: page,
-          },
+          items: response.data.map((item) => ({
+            ...item,
+            category: item.fnb_category?.category || "Uncategorized",
+            imageUrl: item.image
+              ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${item.image}`
+              : `https://placehold.co/60x60/EEE/31343C?text=${item.name.charAt(
+                  0
+                )}`,
+          })),
+          totalPages: response.last_page,
+          currentPage: response.current_page,
         };
       },
-      providesTags: ["FoodDrink"],
+      providesTags: (result) =>
+        result
+          ? [
+              { type: "FoodDrink", id: "LIST" },
+              ...result.items.map(({ id }) => ({ type: "FoodDrink", id })),
+            ]
+          : [{ type: "FoodDrink", id: "LIST" }],
     }),
     addFoodDrinkItem: builder.mutation({
-      queryFn: async (newItem) => {
-        const completeItem = { ...newItem, id: Date.now() };
-        mockFoodDrinks.unshift(completeItem);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: completeItem };
+      query: (newItem) => {
+        const formData = new FormData();
+        formData.append("name", newItem.name);
+        formData.append("fnb_category_id", newItem.fnb_category_id);
+        formData.append("price", newItem.price);
+        formData.append("description", newItem.description || "");
+        if (newItem.image && newItem.image.length > 0) {
+          formData.append("image", newItem.image[0]);
+        }
+        return { url: "/api/admin/fnb", method: "POST", body: formData };
       },
-      invalidatesTags: ["FoodDrink"],
+      invalidatesTags: [{ type: "FoodDrink", id: "LIST" }],
     }),
     updateFoodDrinkItem: builder.mutation({
-      queryFn: async (updatedItem) => {
-        const index = mockFoodDrinks.findIndex(
-          (item) => item.id === updatedItem.id
-        );
-        if (index !== -1) {
-          mockFoodDrinks[index] = { ...mockFoodDrinks[index], ...updatedItem };
+      query: ({ id, ...patch }) => {
+        const formData = new FormData();
+
+        // --- PERBAIKAN UTAMA DI SINI ---
+        // Hanya tambahkan field ke FormData jika ada nilainya di 'patch'
+        if (patch.name) formData.append("name", patch.name);
+        if (patch.fnb_category_id)
+          formData.append("fnb_category_id", patch.fnb_category_id);
+        if (patch.price) formData.append("price", patch.price);
+        if (patch.description)
+          formData.append("description", patch.description);
+        if (patch.is_available !== undefined) {
+          formData.append("is_available", patch.is_available ? 1 : 0);
         }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: updatedItem };
+        // Hanya tambahkan gambar jika file baru benar-benar dipilih
+        if (patch.image && patch.image[0] instanceof File) {
+          formData.append("image", patch.image[0]);
+        }
+
+        formData.append("_method", "POST");
+        return { url: `/api/admin/fnb/${id}`, method: "POST", body: formData };
       },
-      invalidatesTags: ["FoodDrink"],
+      invalidatesTags: (r, e, arg) => [
+        { type: "FoodDrink", id: "LIST" },
+        { type: "FoodDrink", id: arg.id },
+      ],
     }),
     deleteFoodDrinkItem: builder.mutation({
-      queryFn: async (itemId) => {
-        mockFoodDrinks = mockFoodDrinks.filter((item) => item.id !== itemId);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: itemId };
-      },
-      invalidatesTags: ["FoodDrink"],
+      query: (id) => ({ url: `/api/admin/fnb/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "FoodDrink", id: "LIST" }],
     }),
+
+    // === Category Endpoints (Terhubung ke Backend) ===
     getCategories: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "" } = arg;
-        let data = mockCategories.filter((cat) =>
-          cat.name.toLowerCase().includes(search.toLowerCase())
-        );
-        const paginatedData = data.slice((page - 1) * limit, page * limit);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return {
-          data: {
-            categories: paginatedData,
-            totalPages: Math.ceil(data.length / limit),
-            currentPage: page,
-          },
-        };
-      },
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/public/fnb-category",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => ({
+        categories: response.data.map((category) => ({
+          id: category.id,
+          name: category.category,
+          type: category.type,
+          totalItems: category.fnbs.length,
+        })),
+        totalPages: response.last_page,
+        currentPage: response.current_page,
+      }),
+      providesTags: (result) =>
+        result
+          ? [
+              { type: "Category", id: "LIST" },
+              ...result.categories.map(({ id }) => ({ type: "Category", id })),
+            ]
+          : [{ type: "Category", id: "LIST" }],
+    }),
+    getAllCategories: builder.query({
+      query: () => "/api/public/fnb-category?per_page=9999",
+      transformResponse: (response) => response.data,
       providesTags: ["Category"],
     }),
     addCategory: builder.mutation({
-      queryFn: async (newCategory) => {
-        const completeCategory = { ...newCategory, id: Date.now() };
-        mockCategories.unshift(completeCategory);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: completeCategory };
-      },
-      invalidatesTags: ["Category"],
+      query: (newCategory) => ({
+        url: "/api/admin/fnb-category",
+        method: "POST",
+        body: newCategory,
+      }),
+      invalidatesTags: [{ type: "Category", id: "LIST" }],
     }),
     updateCategory: builder.mutation({
-      queryFn: async (updatedCategory) => {
-        const index = mockCategories.findIndex(
-          (cat) => cat.id === updatedCategory.id
-        );
-        if (index !== -1) {
-          mockCategories[index] = {
-            ...mockCategories[index],
-            ...updatedCategory,
-          };
-        }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: updatedCategory };
-      },
-      invalidatesTags: ["Category"],
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/fnb-category/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: "Category", id: "LIST" },
+        { type: "Category", id: arg.id },
+      ],
     }),
     deleteCategory: builder.mutation({
-      queryFn: async (categoryId) => {
-        mockCategories = mockCategories.filter((cat) => cat.id !== categoryId);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: categoryId };
-      },
-      invalidatesTags: ["Category"],
+      query: (id) => ({
+        url: `/api/admin/fnb-category/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Category", id: "LIST" }],
     }),
   }),
 });
@@ -172,4 +148,5 @@ export const {
   useAddCategoryMutation,
   useUpdateCategoryMutation,
   useDeleteCategoryMutation,
+  useGetAllCategoriesQuery,
 } = foodDrinkApiSlice;

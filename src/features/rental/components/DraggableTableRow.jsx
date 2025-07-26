@@ -54,7 +54,6 @@ const DraggableTableRow = ({
         </div>
       </td>
       <td className="font-semibold">{console.name}</td>
-      <td>{console.amount} Units</td>
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
           <div className="tooltip" data-tip="Edit">

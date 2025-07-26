@@ -22,7 +22,10 @@ const TopUserCard = ({ user, rank }) => {
         <h2 className="card-title text-base">{user.name}</h2>
         <p className="text-xs -mt-1 text-gray-500">@{user.username}</p>
         <div className="badge badge-lg badge-success badge-outline mt-2 font-bold">
-          {formatCurrency(user.totalSpending)}
+          {formatCurrency(user.total_spend)}
+        </div>
+        <div className="badge badge-info badge-outline mt-1">
+          {user.total_points || 0} Points
         </div>
       </div>
     </div>

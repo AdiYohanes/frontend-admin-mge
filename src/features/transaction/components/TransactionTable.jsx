@@ -9,6 +9,13 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
       : `${baseClasses} badge-accent`;
   };
 
+  const getTypeBadge = (type) => {
+    const baseClasses = "badge badge-sm";
+    return type === "Food & Drink"
+      ? `${baseClasses} badge-primary`
+      : `${baseClasses} badge-secondary`;
+  };
+
   if (isLoading)
     return (
       <div className="flex justify-center p-10">
@@ -30,10 +37,11 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
             <th>No</th>
             <th>Transaction</th>
             <th>Customer</th>
+            <th>Type</th>
             <th>Details</th>
             <th>Total Payment</th>
             <th>Status</th>
-            <th>Total Refund</th>
+            <th>Refund</th>
           </tr>
         </thead>
         <tbody>
@@ -41,21 +49,24 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
             <tr key={tx.id} className="hover">
               <th>{(page - 1) * limit + index + 1}</th>
               <td>
-                <div className="font-mono text-xs">{tx.noTransaction}</div>
+                <div className="font-mono text-xs font-bold">{tx.noTransaction}</div>
                 <div className="text-xs opacity-60">{tx.tanggalBooking}</div>
               </td>
               <td>
-                <div className="font-bold">{tx.name}</div>
+                <div className="font-bold text-sm">{tx.name}</div>
                 <div className="text-xs opacity-60">{tx.phoneNumber}</div>
               </td>
               <td>
-                <div className="font-semibold">{tx.details}</div>
+                <span className={getTypeBadge(tx.type)}>{tx.type}</span>
+              </td>
+              <td>
+                <div className="font-semibold text-sm">{tx.details}</div>
                 <div className="text-xs opacity-70">
                   {tx.quantity} {tx.quantityUnit}
                 </div>
               </td>
               <td>
-                <div className="font-bold text-success">
+                <div className="font-bold text-success text-sm">
                   {formatCurrency(tx.totalPembayaran)}
                 </div>
                 <div className="text-xs opacity-60">{tx.metodePembayaran}</div>
@@ -63,8 +74,14 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
               <td>
                 <span className={getStatusBadge(tx.status)}>{tx.status}</span>
               </td>
-              <td className="font-semibold">
-                {tx.totalRefund ? formatCurrency(tx.totalRefund) : "-"}
+              <td>
+                {tx.totalRefund ? (
+                  <div className="font-semibold text-error text-sm">
+                    {formatCurrency(tx.totalRefund)}
+                  </div>
+                ) : (
+                  <span className="text-xs opacity-50">-</span>
+                )}
               </td>
             </tr>
           ))}

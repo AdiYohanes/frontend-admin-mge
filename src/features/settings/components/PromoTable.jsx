@@ -9,14 +9,11 @@ const PromoTable = ({ promos, isLoading, page, limit, onEdit, onDelete }) => {
 
   const handleToggleStatus = async (promo) => {
     try {
+      // Kirim data lengkap dengan status yang sudah dibalik
       await updatePromo({ ...promo, isActive: !promo.isActive }).unwrap();
-      toast.success(
-        `Promo ${promo.code} ${
-          !promo.isActive ? "diaktifkan" : "dinonaktifkan"
-        }.`
-      );
+      toast.success(`Status promo ${promo.code} berhasil diperbarui.`);
     } catch {
-      toast.error("Gagal mengubah status promo.");
+      toast.error("Gagal memperbarui status promo.");
     }
   };
 
@@ -53,7 +50,9 @@ const PromoTable = ({ promos, isLoading, page, limit, onEdit, onDelete }) => {
               <td>
                 <div className="font-bold font-mono">{promo.code}</div>
               </td>
-              <td className="text-sm opacity-80">{promo.description}</td>
+              <td className="text-sm opacity-80 max-w-md truncate">
+                {promo.description}
+              </td>
               <td className="font-semibold">{promo.nominal}%</td>
               <td>
                 <input

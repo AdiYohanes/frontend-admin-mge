@@ -1,5 +1,4 @@
 import React from "react";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 import DraggableRoomRow from "./DraggableRoomRow";
 
 const RoomTable = ({ rooms, isLoading, page, limit, onEdit, onDelete }) => {
@@ -21,17 +20,18 @@ const RoomTable = ({ rooms, isLoading, page, limit, onEdit, onDelete }) => {
       <table className="table">
         <thead className="bg-base-200">
           <tr>
-            <th className="w-12"></th> {/* Kolom kosong untuk drag handle */}
+            <th className="w-12"></th>
             <th>No</th>
             <th>Image</th>
             <th>Name</th>
             <th>Description</th>
+            <th>Max Visitors</th>
+            <th>Status</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
         <tbody>
           {rooms.map((room, index) => (
-            // Gunakan komponen DraggableRoomRow di sini
             <DraggableRoomRow
               key={room.id}
               room={room}

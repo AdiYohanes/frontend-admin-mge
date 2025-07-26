@@ -21,7 +21,7 @@ const customerSchema = z.object({
       "Username hanya boleh berisi huruf kecil, angka, titik, dan underscore"
     ),
   email: z.string().email("Format email tidak valid"),
-  phoneNumber: z.string().min(10, "Nomor telepon tidak valid"),
+  phone: z.string().min(10, "Nomor telepon tidak valid"),
 });
 
 const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
@@ -44,7 +44,7 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
       if (isEditMode && editingData) {
         reset(editingData);
       } else {
-        reset({ name: "", username: "", email: "", phoneNumber: "" });
+        reset({ name: "", username: "", email: "", phone: "" });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -95,9 +95,8 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
                   type="text"
                   {...register("name")}
                   placeholder="e.g. Budi Hartono"
-                  className={`input input-bordered w-full pl-10 ${
-                    errors.name ? "input-error" : ""
-                  }`}
+                  className={`input input-bordered w-full pl-10 ${errors.name ? "input-error" : ""
+                    }`}
                 />
               </div>
               {errors.name && (
@@ -118,9 +117,8 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
                   type="text"
                   {...register("username")}
                   placeholder="e.g. budi_h"
-                  className={`input input-bordered w-full pl-10 ${
-                    errors.username ? "input-error" : ""
-                  }`}
+                  className={`input input-bordered w-full pl-10 ${errors.username ? "input-error" : ""
+                    }`}
                 />
               </div>
               <label className="label">
@@ -151,9 +149,8 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
                   type="email"
                   {...register("email")}
                   placeholder="e.g. budi@example.com"
-                  className={`input input-bordered w-full pl-10 ${
-                    errors.email ? "input-error" : ""
-                  }`}
+                  className={`input input-bordered w-full pl-10 ${errors.email ? "input-error" : ""
+                    }`}
                 />
               </div>
               {errors.email && (
@@ -172,16 +169,15 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
                 </span>
                 <input
                   type="tel"
-                  {...register("phoneNumber")}
+                  {...register("phone")}
                   placeholder="e.g. 081234567890"
-                  className={`input input-bordered w-full pl-10 ${
-                    errors.phoneNumber ? "input-error" : ""
-                  }`}
+                  className={`input input-bordered w-full pl-10 ${errors.phone ? "input-error" : ""
+                    }`}
                 />
               </div>
-              {errors.phoneNumber && (
+              {errors.phone && (
                 <span className="text-xs text-error mt-1">
-                  {errors.phoneNumber.message}
+                  {errors.phone.message}
                 </span>
               )}
             </div>

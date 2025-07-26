@@ -26,15 +26,25 @@ import AddEditConsoleModal from "../components/AddEditConsoleModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const ConsoleListPage = () => {
+  // --- STATE MANAGEMENT ---
+  // State untuk paginasi dan filter
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingData, setEditingData] = useState(null);
-  const [consoleToDelete, setConsoleToDelete] = useState(null);
-  const deleteModalRef = useRef(null);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  // State untuk mengontrol modal Tambah/Edit
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingData, setEditingData] = useState(null);
+
+  // State dan Ref untuk mengontrol modal konfirmasi Hapus
+  const [consoleToDelete, setConsoleToDelete] = useState(null);
+  const deleteModalRef = useRef(null);
+
+  // State untuk urutan data (untuk drag-and-drop)
+  const [orderedConsoles, setOrderedConsoles] = useState([]);
+
+  // --- RTK QUERY HOOKS ---
   const { data, isLoading, isFetching } = useGetConsolesQuery({
     page: currentPage,
     limit,
@@ -42,18 +52,19 @@ const ConsoleListPage = () => {
   });
 
   const [deleteConsole, { isLoading: isDeleting }] = useDeleteConsoleMutation();
-  const [orderedConsoles, setOrderedConsoles] = useState([]);
 
+  // Sinkronkan urutan lokal dengan data dari API
   useEffect(() => {
     if (data?.consoles) {
       setOrderedConsoles(data.consoles);
     }
   }, [data?.consoles]);
 
+  // --- DRAG & DROP LOGIC ---
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 8, // Mulai drag setelah mouse bergerak 8px
       },
     })
   );
@@ -69,6 +80,7 @@ const ConsoleListPage = () => {
     }
   };
 
+  // --- HANDLER FUNCTIONS ---
   const handleAddConsole = () => {
     setEditingData(null);
     setIsModalOpen(true);
@@ -96,7 +108,7 @@ const ConsoleListPage = () => {
       deleteModalRef.current?.close();
     } catch (err) {
       toast.error("Gagal menghapus konsol.");
-      console.error("Failed to delete console:", err);
+      console.error("Delete console error:", err);
     }
   };
 
@@ -105,6 +117,7 @@ const ConsoleListPage = () => {
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-2xl mb-4">Console Management</h2>
+
           <TableControls
             limit={limit}
             setLimit={setLimit}
@@ -114,6 +127,7 @@ const ConsoleListPage = () => {
             addButtonText="Add Console"
             showMonthFilter={false}
           />
+
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
@@ -133,6 +147,7 @@ const ConsoleListPage = () => {
               />
             </SortableContext>
           </DndContext>
+
           <Pagination
             currentPage={data?.currentPage}
             totalPages={data?.totalPages}
@@ -146,6 +161,7 @@ const ConsoleListPage = () => {
         onClose={handleCloseModal}
         editingData={editingData}
       />
+
       <ConfirmationModal
         ref={deleteModalRef}
         title="Konfirmasi Hapus Konsol"

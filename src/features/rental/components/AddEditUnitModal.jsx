@@ -1,114 +1,179 @@
-import React, { useEffect } from "react";
-import { useForm, Controller } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
+import React, { useEffect } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   useAddUnitMutation,
   useUpdateUnitMutation,
-  useGetAllGamesQuery,
-} from "../api/rentalApiSlice";
-import { toast } from "react-hot-toast";
-import { ChevronDownIcon, XMarkIcon } from "@heroicons/react/24/solid";
+  useGetAllRoomsQuery,
+  useGetAllConsolesQuery
+} from '../api/rentalApiSlice';
+import { toast } from 'react-hot-toast';
+import {
+  ChevronDownIcon,
+  XMarkIcon,
+  BuildingOfficeIcon,
+  CurrencyDollarIcon,
+  UsersIcon,
+  CpuChipIcon
+} from '@heroicons/react/24/outline';
 
-// Skema validasi untuk memastikan data yang diinput benar
+// Skema validasi disederhanakan, 'game_ids' dihapus
 const unitSchema = z.object({
-  name: z.string().min(3, "Nama unit minimal 3 karakter"),
-  room: z.string().nonempty("Ruangan harus dipilih"),
-  console: z.string().nonempty("Konsol harus dipilih"),
-  rentPrice: z.number().min(1000, "Harga sewa minimal 1000"),
-  addons: z.array(z.string()).optional(),
+  name: z.string().min(3, 'Nama unit minimal 3 karakter'),
+  room_id: z.coerce.number().min(1, "Ruangan harus dipilih"),
+  description: z.string().optional(),
   status: z.string().nonempty("Status harus dipilih"),
-  games: z.array(z.string()).optional(),
+  max_visitors: z.coerce.number().min(1, "Kapasitas minimal 1 orang"),
+  price: z.coerce.number().min(1000, "Harga sewa minimal 1000"),
+  console_ids: z.array(z.number()).nonempty("Pilih minimal satu konsol"),
 });
-
-// Opsi untuk dropdown, di aplikasi nyata ini bisa dari API
-const roomOptions = ["Ruang VIP 1", "Area Reguler Depan", "Area Smoking"];
-const consoleOptions = ["PlayStation 5 Disc Edition", "PlayStation 4 Pro"];
-const addonOptions = ["Extra Stik", "VR Headset", "Kamera"];
 
 const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
 
-  // Mengambil daftar master game untuk pilihan dropdown
-  const { data: masterGames, isLoading: isLoadingGames } =
-    useGetAllGamesQuery();
+  const { data: roomsData } = useGetAllRoomsQuery();
+  const { data: consolesData } = useGetAllConsolesQuery();
 
-  // Hooks untuk menambah dan memperbarui data
   const [addUnit, { isLoading: isAdding }] = useAddUnitMutation();
   const [updateUnit, { isLoading: isUpdating }] = useUpdateUnitMutation();
   const isLoading = isAdding || isUpdating;
 
   const {
-    control, // Diperlukan untuk komponen kustom seperti dropdown game
+    control,
     register,
     handleSubmit,
     reset,
-    formState: { errors },
+    formState: { errors }
   } = useForm({
     resolver: zodResolver(unitSchema),
   });
 
-  // Efek untuk mengisi form saat modal dibuka
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
-        // Mode Edit: isi form dengan data yang ada
-        reset(editingData);
-      } else {
-        // Mode Tambah: reset ke form kosong dengan nilai default
+        // Reset form tanpa data game
         reset({
-          name: "",
-          room: "",
-          console: "",
-          rentPrice: 15000,
-          addons: [],
-          status: "Available",
-          games: [],
+          name: editingData.name,
+          room_id: editingData.room_id,
+          description: editingData.description,
+          status: editingData.status,
+          max_visitors: editingData.max_visitors,
+          price: editingData.rentPrice,
+          console_ids: editingData.console_ids || [],
         });
+      } else {
+        // Reset form tambah baru tanpa data game
+        reset({ name: '', room_id: '', description: '', status: 'available', max_visitors: 4, price: 25000, console_ids: [] });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
 
-  // Fungsi yang dijalankan saat form di-submit
   const onSubmit = async (formData) => {
     try {
       if (isEditMode) {
-        await updateUnit({ ...editingData, ...formData }).unwrap();
-        toast.success("Unit berhasil diperbarui!");
+        await updateUnit({ id: editingData.id, ...formData }).unwrap();
+        toast.success('Unit berhasil diperbarui!');
       } else {
-        await addUnit(formData).unwrap();
-        toast.success("Unit baru berhasil ditambahkan!");
+        // Saat menambah, 'game_ids' dikirim sebagai array kosong
+        await addUnit({ ...formData, game_ids: [] }).unwrap();
+        toast.success('Unit baru berhasil ditambahkan!');
       }
-      onClose(); // Tutup modal setelah sukses
+      onClose();
     } catch (err) {
-      toast.error("Gagal memproses data unit.");
-      console.error("Error processing unit data:", err);
+      toast.error(err.data?.message || 'Gagal memproses data unit.');
     }
   };
 
+  const renderMultiSelect = (name, field, options, placeholder, isLoading, key = 'id', labelKey = 'name') => (
+    <>
+      <div className="dropdown w-full">
+        <label tabIndex={0} className="btn btn-outline justify-between w-full font-normal border-base-300 hover:border-brand-gold hover:bg-brand-gold/5">
+          <span className="flex items-center gap-2">
+            <CpuChipIcon className="h-4 w-4 text-brand-gold" />
+            {placeholder} ({field.value?.length || 0} terpilih)
+          </span>
+          <ChevronDownIcon className="h-5 w-5" />
+        </label>
+        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-60 overflow-y-auto border border-base-300">
+          {isLoading ? (
+            <li className="p-4 text-center">
+              <span className="loading loading-spinner text-brand-gold"></span>
+            </li>
+          ) : (
+            options?.map(option => (
+              <li key={option[key]}>
+                <label className="label cursor-pointer hover:bg-base-200 rounded-lg p-2">
+                  <span className="font-medium">{option[labelKey]}</span>
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-primary checked:bg-brand-gold checked:border-brand-gold"
+                    checked={field.value?.includes(option[key])}
+                    onChange={e => {
+                      const sel = field.value || [];
+                      const newSel = e.target.checked ? [...sel, option[key]] : sel.filter(id => id !== option[key]);
+                      field.onChange(newSel);
+                    }}
+                  />
+                </label>
+              </li>
+            ))
+          )}
+        </ul>
+      </div>
+      <div className="mt-2 flex flex-wrap gap-1 min-h-[1.5rem]">
+        {field.value?.map(id => {
+          const selectedItem = options?.find(opt => opt[key] === id);
+          return selectedItem ? (
+            <div key={id} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
+              <CpuChipIcon className="h-3 w-3" />
+              {selectedItem[labelKey]}
+              <button
+                type="button"
+                className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
+                onClick={() => {
+                  const newSel = field.value.filter(val => val !== id);
+                  field.onChange(newSel);
+                }}
+              >
+                <XMarkIcon className="h-3 w-3" />
+              </button>
+            </div>
+          ) : null;
+        })}
+      </div>
+    </>
+  );
+
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-2xl">
-        <button
-          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-        <h3 className="font-bold text-lg">
-          {isEditMode ? "Edit Unit" : "Add New Unit"}
-        </h3>
+      <div className="modal-box w-11/12 max-w-lg">
+        <div className="flex items-center justify-between pb-3 border-b border-base-300">
+          <div className="flex items-center gap-2">
+            <BuildingOfficeIcon className="h-5 w-5 text-brand-gold" />
+            <h3 className="text-lg font-bold">
+              {isEditMode ? 'Edit Unit' : 'Add Unit'}
+            </h3>
+          </div>
+          <button className="btn btn-sm btn-circle btn-ghost" onClick={onClose}>
+            ✕
+          </button>
+        </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
+          {/* Basic Info */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Unit Name</span>
+                <span className="label-text font-medium">
+                  Name <span className="text-error">*</span>
+                </span>
               </label>
               <input
                 type="text"
-                {...register("name")}
-                className="input input-bordered"
+                {...register('name')}
+                placeholder="Unit name"
+                className={`input input-bordered input-sm ${errors.name ? 'input-error' : ''}`}
               />
               {errors.name && (
                 <span className="text-xs text-error mt-1">
@@ -116,187 +181,146 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
                 </span>
               )}
             </div>
+
             <div className="form-control">
               <label className="label">
-                <span className="label-text">Rent Price (per hour)</span>
-              </label>
-              <input
-                type="number"
-                {...register("rentPrice", { valueAsNumber: true })}
-                className="input input-bordered"
-              />
-              {errors.rentPrice && (
-                <span className="text-xs text-error mt-1">
-                  {errors.rentPrice.message}
+                <span className="label-text font-medium">
+                  Room <span className="text-error">*</span>
                 </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Room</span>
-              </label>
-              <select {...register("room")} className="select select-bordered">
-                <option value="">Pilih Ruangan...</option>
-                {roomOptions.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
-                ))}
-              </select>
-              {errors.room && (
-                <span className="text-xs text-error mt-1">
-                  {errors.room.message}
-                </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Console</span>
               </label>
               <select
-                {...register("console")}
-                className="select select-bordered"
+                {...register('room_id')}
+                className={`select select-bordered select-sm ${errors.room_id ? 'select-error' : ''}`}
               >
-                <option value="">Pilih Konsol...</option>
-                {consoleOptions.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
-                  </option>
+                <option value="">Select room...</option>
+                {roomsData?.map(r => (
+                  <option key={r.id} value={r.id}>{r.name}</option>
                 ))}
               </select>
-              {errors.console && (
+              {errors.room_id && (
                 <span className="text-xs text-error mt-1">
-                  {errors.console.message}
+                  {errors.room_id.message}
                 </span>
               )}
-            </div>
-            <div className="form-control col-span-1 md:col-span-2">
-              <label className="label">
-                <span className="label-text">Add-ons</span>
-              </label>
-              <div className="flex flex-wrap gap-4">
-                {addonOptions.map((addon) => (
-                  <label key={addon} className="label cursor-pointer">
-                    <input
-                      type="checkbox"
-                      {...register("addons")}
-                      value={addon}
-                      className="checkbox checkbox-primary"
-                    />{" "}
-                    <span className="label-text ml-2">{addon}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div className="form-control col-span-1 md:col-span-2">
-              <label className="label">
-                <span className="label-text">Status</span>
-              </label>
-              <select
-                {...register("status")}
-                className="select select-bordered"
-              >
-                <option>Available</option>
-                <option>Booked</option>
-                <option>Under Maintenance</option>
-              </select>
             </div>
           </div>
 
+          {/* Capacity & Price */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">
+                  Max Visitors <span className="text-error">*</span>
+                </span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <UsersIcon className="h-4 w-4 text-gray-400" />
+                </span>
+                <input
+                  type="number"
+                  {...register('max_visitors')}
+                  placeholder="4"
+                  className={`input input-bordered input-sm w-full pl-10 ${errors.max_visitors ? 'input-error' : ''}`}
+                />
+              </div>
+              {errors.max_visitors && (
+                <span className="text-xs text-error mt-1">
+                  {errors.max_visitors.message}
+                </span>
+              )}
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">
+                  Price/Hour <span className="text-error">*</span>
+                </span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                  <CurrencyDollarIcon className="h-4 w-4 text-gray-400" />
+                </span>
+                <input
+                  type="number"
+                  {...register('price')}
+                  placeholder="25000"
+                  className={`input input-bordered input-sm w-full pl-10 ${errors.price ? 'input-error' : ''}`}
+                />
+              </div>
+              {errors.price && (
+                <span className="text-xs text-error mt-1">
+                  {errors.price.message}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Status */}
           <div className="form-control">
             <label className="label">
-              <span className="label-text">Game List</span>
+              <span className="label-text font-medium">
+                Status <span className="text-error">*</span>
+              </span>
             </label>
-            <Controller
-              name="games"
-              control={control}
-              defaultValue={[]}
-              render={({ field }) => (
-                <div className="dropdown w-full">
-                  <label
-                    tabIndex={0}
-                    className="btn btn-outline justify-between w-full font-normal"
-                  >
-                    <span>
-                      Pilih Game ({field.value?.length || 0} terpilih)
-                    </span>
-                    <ChevronDownIcon className="h-5 w-5" />
-                  </label>
-                  <ul
-                    tabIndex={0}
-                    className="dropdown-content z-[1] menu p-2 shadow bg-base-200 rounded-box w-full max-h-60 overflow-y-auto"
-                  >
-                    {isLoadingGames ? (
-                      <li className="p-4 text-center">
-                        <span className="loading loading-spinner"></span>
-                      </li>
-                    ) : (
-                      masterGames?.map((game) => (
-                        <li key={game.id}>
-                          <label className="label cursor-pointer">
-                            <span>{game.name}</span>
-                            <input
-                              type="checkbox"
-                              className="checkbox"
-                              checked={field.value?.includes(game.name)}
-                              onChange={(e) => {
-                                const newSelection = e.target.checked
-                                  ? [...(field.value || []), game.name]
-                                  : field.value.filter(
-                                      (name) => name !== game.name
-                                    );
-                                field.onChange(newSelection);
-                              }}
-                            />
-                          </label>
-                        </li>
-                      ))
-                    )}
-                  </ul>
-                </div>
-              )}
-            />
-            <div className="mt-2 flex flex-wrap gap-2 min-h-[2rem]">
-              <Controller
-                name="games"
-                control={control}
-                render={({ field }) =>
-                  field.value?.map((gameName) => (
-                    <div
-                      key={gameName}
-                      className="badge badge-lg badge-outline gap-2"
-                    >
-                      <button
-                        type="button"
-                        className="btn btn-xs btn-circle btn-ghost -ml-1 mr-1"
-                        onClick={() => {
-                          const newSelection = field.value.filter(
-                            (name) => name !== gameName
-                          );
-                          field.onChange(newSelection);
-                        }}
-                      >
-                        <XMarkIcon className="h-3 w-3" />
-                      </button>
-                      {gameName}
-                    </div>
-                  ))
-                }
-              />
-            </div>
+            <select
+              {...register('status')}
+              className={`select select-bordered select-sm ${errors.status ? 'select-error' : ''}`}
+            >
+              <option value="available">Available</option>
+              <option value="booked">Booked</option>
+              <option value="maintenance">Maintenance</option>
+            </select>
+            {errors.status && (
+              <span className="text-xs text-error mt-1">
+                {errors.status.message}
+              </span>
+            )}
           </div>
 
-          <div className="modal-action pt-4">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
-              Batal
+          {/* Description */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">Description</span>
+            </label>
+            <textarea
+              {...register('description')}
+              placeholder="Unit description..."
+              className="textarea textarea-bordered textarea-sm h-16"
+            ></textarea>
+          </div>
+
+          {/* Consoles */}
+          <div className="form-control">
+            <label className="label">
+              <span className="label-text font-medium">
+                Consoles <span className="text-error">*</span>
+              </span>
+            </label>
+            <Controller
+              name="console_ids"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => renderMultiSelect(field.name, field, consolesData, "Select Consoles")}
+            />
+            {errors.console_ids && (
+              <span className="text-xs text-error mt-1">
+                {errors.console_ids.message}
+              </span>
+            )}
+          </div>
+
+          <div className="modal-action pt-3 border-t border-base-300">
+            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+              Cancel
             </button>
             <button
               type="submit"
-              className="btn bg-brand-gold hover:bg-amber-600 text-white"
+              className="btn btn-sm bg-brand-gold hover:bg-amber-600 text-white"
               disabled={isLoading}
             >
-              {isLoading && <span className="loading loading-spinner"></span>}
-              {isEditMode ? "Save Changes" : "Add Unit"}
+              {isLoading && <span className="loading loading-spinner loading-xs"></span>}
+              {isEditMode ? 'Save' : 'Add'}
             </button>
           </div>
         </form>

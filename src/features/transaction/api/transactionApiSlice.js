@@ -1,55 +1,72 @@
 import { apiSlice } from "../../../store/api/apiSlice";
 
-// Kita simulasikan data transaksi yang sudah selesai dari berbagai sumber
-const createMockTransaction = (i) => {
-  const isRoomBooking = i % 2 === 0;
-  const hasRefund = i % 5 === 0;
-
-  return {
-    id: i + 1,
-    noTransaction: isRoomBooking
-      ? `TRX-202503${String(i + 1).padStart(3, "0")}`
-      : `FNB-202503${String(i + 1).padStart(3, "0")}`,
-    type: isRoomBooking ? "Room Booking" : "Food & Drink",
-    name: `Customer ${i + 1}`,
-    phoneNumber: `081234567${String(i + 1).padStart(3, "0")}`,
-    details: isRoomBooking ? `PS5 / VIP 1 / Unit A` : "Nasi Goreng x2",
-    quantity: isRoomBooking ? 3 : 2,
-    quantityUnit: isRoomBooking ? "hours" : "pcs",
-    tanggalBooking: new Date(2025, 1, 25 - i).toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }),
-    totalPembayaran: isRoomBooking ? 150000 : 30000,
-    metodePembayaran: "QRIS",
-    status: hasRefund ? "Refunded" : "Finished",
-    totalRefund: hasRefund ? 50000 : null,
-  };
-};
-
-let mockTransactions = Array.from({ length: 30 }, (_, i) =>
-  createMockTransaction(i)
-);
-
 export const transactionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query({
-      queryFn: async (arg) => {
-        const { page = 1, limit = 10, search = "" } = arg;
-        let data = mockTransactions.filter(
-          (tx) =>
-            tx.name.toLowerCase().includes(search.toLowerCase()) ||
-            tx.noTransaction.toLowerCase().includes(search.toLowerCase())
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/admin/bookings",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => {
+        // Filter hanya status finished dan refunded
+        const filteredData = response.data.filter(
+          (booking) => booking.status === "finished" || booking.status === "refunded"
         );
-        const paginatedData = data.slice((page - 1) * limit, page * limit);
-        await new Promise((resolve) => setTimeout(resolve, 500));
+
+        // Transform data untuk table
+        const transactions = filteredData.map((booking) => {
+          const isFnb = booking.invoice_number.startsWith("FNB");
+          const customerName = booking.bookable?.name || "Guest";
+          const customerPhone = booking.bookable?.phone || "-";
+
+          // Determine booking details
+          let details = "";
+          let quantity = "";
+          let quantityUnit = "";
+
+          if (isFnb) {
+            details = booking.notes || "Food & Drink Order";
+            quantity = booking.total_visitors || 1;
+            quantityUnit = "items";
+          } else {
+            details = booking.unit?.name || "Room Booking";
+            if (booking.start_time && booking.end_time) {
+              const start = new Date(booking.start_time);
+              const end = new Date(booking.end_time);
+              const hours = Math.ceil((end - start) / (1000 * 60 * 60));
+              quantity = hours;
+              quantityUnit = "hours";
+            } else {
+              quantity = booking.total_visitors || 1;
+              quantityUnit = "visitors";
+            }
+          }
+
+          return {
+            id: booking.id,
+            noTransaction: booking.invoice_number,
+            type: isFnb ? "Food & Drink" : "Room Booking",
+            name: customerName,
+            phoneNumber: customerPhone,
+            details: details,
+            quantity: quantity,
+            quantityUnit: quantityUnit,
+            tanggalBooking: new Date(booking.created_at).toLocaleDateString("id-ID", {
+              day: "2-digit",
+              month: "long",
+              year: "numeric",
+            }),
+            totalPembayaran: parseFloat(booking.total_price),
+            metodePembayaran: "QRIS", // Default value
+            status: booking.status === "finished" ? "Finished" : "Refunded",
+            totalRefund: booking.status === "refunded" ? parseFloat(booking.total_price) * 0.5 : null, // Simulate 50% refund
+          };
+        });
+
         return {
-          data: {
-            transactions: paginatedData,
-            totalPages: Math.ceil(data.length / limit),
-            currentPage: page,
-          },
+          transactions,
+          totalPages: response.last_page,
+          currentPage: response.current_page,
         };
       },
       providesTags: ["Transaction"],

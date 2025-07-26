@@ -16,11 +16,13 @@ const PromoManagementPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
+
+  // State untuk mengontrol modal
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
   const [promoToDelete, setPromoToDelete] = useState(null);
   const deleteModalRef = useRef(null);
-  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const { data, isLoading, isFetching } = useGetPromosQuery({
     page: currentPage,
@@ -30,6 +32,7 @@ const PromoManagementPage = () => {
 
   const [deletePromo, { isLoading: isDeleting }] = useDeletePromoMutation();
 
+  // Handlers untuk semua aksi CRUD
   const handleOpenAddModal = () => {
     setEditingData(null);
     setIsModalOpen(true);
@@ -57,7 +60,7 @@ const PromoManagementPage = () => {
       deleteModalRef.current?.close();
     } catch (err) {
       toast.error("Gagal menghapus promo.");
-      console.error("Failed to delete promo:", err);
+      console.error("Delete promo error:", err);
     }
   };
 
