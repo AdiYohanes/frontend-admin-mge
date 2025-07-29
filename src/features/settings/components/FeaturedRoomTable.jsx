@@ -25,8 +25,6 @@ const FeaturedRoomTable = ({ rooms, isLoading, onEdit, onDelete }) => {
         <span className="loading loading-lg"></span>
       </div>
     );
-  if (!rooms || rooms.length === 0)
-    return <div className="text-center p-10">Tidak ada data room yang tersedia.</div>;
 
   return (
     <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow">
@@ -40,39 +38,47 @@ const FeaturedRoomTable = ({ rooms, isLoading, onEdit, onDelete }) => {
           </tr>
         </thead>
         <tbody>
-          {rooms.map((room, index) => (
-            <tr key={room.id} className="hover">
-              <th>{index + 1}</th>
-              <td>
-                <div className="avatar">
-                  <div className="mask mask-squircle w-16 h-16">
-                    <img
-                      src={room.imageUrl}
-                      alt={room.name}
-                      className="object-cover"
-                    />
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div className="font-bold text-base-content">{room.name}</div>
-                {room.description && (
-                  <div className="text-xs opacity-70 max-w-md truncate">
-                    {room.description}
-                  </div>
-                )}
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-success"
-                  checked={room.isActive}
-                  onChange={() => handleToggleStatus(room)}
-                  disabled={isUpdatingStatus}
-                />
+          {(!rooms || rooms.length === 0) ? (
+            <tr>
+              <td colSpan="4" className="text-center py-8 text-base-content/60">
+                Tidak ada data room yang tersedia.
               </td>
             </tr>
-          ))}
+          ) : (
+            rooms.map((room, index) => (
+              <tr key={room.id} className="hover">
+                <th>{index + 1}</th>
+                <td>
+                  <div className="avatar">
+                    <div className="mask mask-squircle w-16 h-16">
+                      <img
+                        src={room.imageUrl}
+                        alt={room.name}
+                        className="object-cover"
+                      />
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="font-bold text-base-content">{room.name}</div>
+                  {room.description && (
+                    <div className="text-xs opacity-70 max-w-md truncate">
+                      {room.description}
+                    </div>
+                  )}
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-success"
+                    checked={room.isActive}
+                    onChange={() => handleToggleStatus(room)}
+                    disabled={isUpdatingStatus}
+                  />
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

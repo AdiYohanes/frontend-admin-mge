@@ -28,13 +28,6 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
       </div>
     );
   }
-  if (!banners || banners.length === 0) {
-    return (
-      <div className="text-center p-10">
-        Tidak ada data banner yang ditemukan.
-      </div>
-    );
-  }
 
   return (
     <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow">
@@ -48,48 +41,56 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
           </tr>
         </thead>
         <tbody>
-          {banners.map((banner) => (
-            <tr key={banner.id} className="hover">
-              <td>
-                <div className="avatar">
-                  <div className="mask mask-squircle w-24 h-12">
-                    <img src={banner.imageUrl} alt={banner.title} />
-                  </div>
-                </div>
-              </td>
-              <td>
-                <div className="font-bold">{banner.title}</div>
-                <div className="text-xs opacity-70 max-w-md truncate">
-                  {banner.description}
-                </div>
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-success"
-                  checked={banner.isActive}
-                  onChange={() => handleToggleStatus(banner)}
-                  disabled={isUpdatingStatus}
-                />
-              </td>
-              <td className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <button
-                    onClick={() => onEdit(banner)}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    <PencilSquareIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(banner)}
-                    className="btn btn-ghost btn-sm text-error"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
+          {(!banners || banners.length === 0) ? (
+            <tr>
+              <td colSpan="4" className="text-center py-8 text-base-content/60">
+                Tidak ada data banner yang ditemukan.
               </td>
             </tr>
-          ))}
+          ) : (
+            banners.map((banner) => (
+              <tr key={banner.id} className="hover">
+                <td>
+                  <div className="avatar">
+                    <div className="mask mask-squircle w-24 h-12">
+                      <img src={banner.imageUrl} alt={banner.title} />
+                    </div>
+                  </div>
+                </td>
+                <td>
+                  <div className="font-bold">{banner.title}</div>
+                  <div className="text-xs opacity-70 max-w-md truncate">
+                    {banner.description}
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-success"
+                    checked={banner.isActive}
+                    onChange={() => handleToggleStatus(banner)}
+                    disabled={isUpdatingStatus}
+                  />
+                </td>
+                <td className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onEdit(banner)}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(banner)}
+                      className="btn btn-ghost btn-sm text-error"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

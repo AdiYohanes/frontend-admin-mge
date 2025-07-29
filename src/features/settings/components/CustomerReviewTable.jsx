@@ -26,8 +26,6 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
         <span className="loading loading-lg"></span>
       </div>
     );
-  if (!reviews || reviews.length === 0)
-    return <div className="text-center p-10">Tidak ada data.</div>;
 
   return (
     <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow">
@@ -43,65 +41,74 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
           </tr>
         </thead>
         <tbody>
-          {reviews.map((review, index) => (
-            <tr key={review.id} className="hover">
-              <th>{index + 1}</th>
-              <td>
-                <div className="flex items-center space-x-3">
-                  <div className="avatar">
-                    <div className="mask mask-squircle w-12 h-12">
-                      <img
-                        src={
-                          review.avatarUrl ||
-                          `https://i.pravatar.cc/150?u=${review.name}`
-                        }
-                        alt={review.name}
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <div className="font-bold">{review.name}</div>
-                  </div>
-                </div>
-              </td>
-              <td className="text-sm max-w-sm whitespace-normal">
-                {review.description}
-              </td>
-              <td>
-                <div className="flex items-center gap-1 font-bold text-amber-500">
-                  {review.rating} <StarIcon className="w-4 h-4" />
-                </div>
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-success"
-                  checked={review.isActive}
-                  onChange={() => handleToggleStatus(review)}
-                  disabled={isUpdatingStatus}
-                />
-              </td>
-              <td className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <button
-                    onClick={() => onEdit(review)}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    <PencilSquareIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(review)}
-                    className="btn btn-ghost btn-sm text-error"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
+          {(!reviews || reviews.length === 0) ? (
+            <tr>
+              <td colSpan="6" className="text-center py-8 text-base-content/60">
+                Tidak ada data review yang ditemukan.
               </td>
             </tr>
-          ))}
+          ) : (
+            reviews.map((review, index) => (
+              <tr key={review.id} className="hover">
+                <th>{index + 1}</th>
+                <td>
+                  <div className="flex items-center space-x-3">
+                    <div className="avatar">
+                      <div className="mask mask-squircle w-12 h-12">
+                        <img
+                          src={
+                            review.avatarUrl ||
+                            `https://i.pravatar.cc/150?u=${review.name}`
+                          }
+                          alt={review.name}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <div className="font-bold">{review.name}</div>
+                    </div>
+                  </div>
+                </td>
+                <td className="text-sm max-w-sm whitespace-normal">
+                  {review.description}
+                </td>
+                <td>
+                  <div className="flex items-center gap-1 font-bold text-amber-500">
+                    {review.rating} <StarIcon className="w-4 h-4" />
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-success"
+                    checked={review.isActive}
+                    onChange={() => handleToggleStatus(review)}
+                    disabled={isUpdatingStatus}
+                  />
+                </td>
+                <td className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onEdit(review)}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(review)}
+                      className="btn btn-ghost btn-sm text-error"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>
   );
 };
+
 export default CustomerReviewTable;

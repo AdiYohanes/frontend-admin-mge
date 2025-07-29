@@ -3,6 +3,7 @@ import { useGetBookingsQuery, useDeleteBookingMutation, useUpdateBookingMutation
 import useDebounce from '../../../hooks/useDebounce';
 import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from '../../../components/common/TableControls';
@@ -21,6 +22,7 @@ const BookingRoomPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
 
   // State untuk mengontrol semua modal
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
@@ -59,11 +61,11 @@ const BookingRoomPage = () => {
     }
 
     // Filter berdasarkan search term
-    let filtered = allBookings;
+    let filtered = [...allBookings]; // Create a new array to avoid read-only issues
 
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
-      filtered = allBookings.filter(booking =>
+      filtered = filtered.filter(booking =>
         booking.name.toLowerCase().includes(searchLower) ||
         booking.noTransaction.toLowerCase().includes(searchLower) ||
         booking.phoneNumber.toLowerCase().includes(searchLower) ||
@@ -89,12 +91,29 @@ const BookingRoomPage = () => {
       });
     }
 
+    // Sort berdasarkan tanggal
+    filtered.sort((a, b) => {
+      try {
+        const dateA = parseISO(a.rawBooking?.start_time || a.tanggalBooking);
+        const dateB = parseISO(b.rawBooking?.start_time || b.tanggalBooking);
+
+        if (sortOrder === 'newest') {
+          return dateB - dateA; // Newest first
+        } else {
+          return dateA - dateB; // Oldest first
+        }
+      } catch (error) {
+        console.error('Error sorting dates:', error);
+        return 0;
+      }
+    });
+
     // Hitung pagination
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
 
     return { paginatedBookings: paginated, totalPages: total };
-  }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit]);
+  }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit, sortOrder]);
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
@@ -173,16 +192,39 @@ const BookingRoomPage = () => {
     }
   };
 
+  const handleSortToggle = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+  };
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, monthFilter, statusFilter]);
+  }, [limit, debouncedSearchTerm, monthFilter, statusFilter, sortOrder]);
 
   return (
     <>
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title text-2xl mb-4">Room Booking List</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="card-title text-2xl">Room Booking List</h2>
+            <button
+              onClick={handleSortToggle}
+              className="btn btn-outline btn-sm gap-2"
+              title={sortOrder === 'newest' ? 'Sort by Oldest First' : 'Sort by Newest First'}
+            >
+              {sortOrder === 'newest' ? (
+                <>
+                  <ChevronDownIcon className="h-4 w-4" />
+                  Newest First
+                </>
+              ) : (
+                <>
+                  <ChevronUpIcon className="h-4 w-4" />
+                  Oldest First
+                </>
+              )}
+            </button>
+          </div>
 
           <div className="tabs tabs-boxed mb-4 bg-base-200 self-start">
             {statusTabs.map(tab => (

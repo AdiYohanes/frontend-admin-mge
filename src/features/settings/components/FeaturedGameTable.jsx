@@ -22,8 +22,6 @@ const FeaturedGameTable = ({ games, isLoading, onEdit, onDelete }) => {
         <span className="loading loading-lg"></span>
       </div>
     );
-  if (!games || games.length === 0)
-    return <div className="text-center p-10">Tidak ada data.</div>;
 
   return (
     <div className="overflow-x-auto w-full bg-base-100 rounded-lg shadow">
@@ -38,46 +36,54 @@ const FeaturedGameTable = ({ games, isLoading, onEdit, onDelete }) => {
           </tr>
         </thead>
         <tbody>
-          {games.map((game, index) => (
-            <tr key={game.id} className="hover">
-              <th>{index + 1}</th>
-              <td className="text-sm max-w-sm">{game.description}</td>
-              <td>
-                <div className="flex flex-wrap gap-1">
-                  {game.highlightedGames.map((g) => (
-                    <div key={g} className="badge badge-primary badge-outline">
-                      {g}
-                    </div>
-                  ))}
-                </div>
-              </td>
-              <td>
-                <input
-                  type="checkbox"
-                  className="toggle toggle-success"
-                  checked={game.isActive}
-                  onChange={() => handleToggleStatus(game)}
-                  disabled={isUpdatingStatus}
-                />
-              </td>
-              <td className="text-center">
-                <div className="flex items-center justify-center gap-1">
-                  <button
-                    onClick={() => onEdit(game)}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    <PencilSquareIcon className="h-5 w-5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(game)}
-                    className="btn btn-ghost btn-sm text-error"
-                  >
-                    <TrashIcon className="h-5 w-5" />
-                  </button>
-                </div>
+          {(!games || games.length === 0) ? (
+            <tr>
+              <td colSpan="5" className="text-center py-8 text-base-content/60">
+                Tidak ada data game yang ditemukan.
               </td>
             </tr>
-          ))}
+          ) : (
+            games.map((game, index) => (
+              <tr key={game.id} className="hover">
+                <th>{index + 1}</th>
+                <td className="text-sm max-w-sm">{game.description}</td>
+                <td>
+                  <div className="flex flex-wrap gap-1">
+                    {game.highlightedGames.map((g) => (
+                      <div key={g} className="badge badge-primary badge-outline">
+                        {g}
+                      </div>
+                    ))}
+                  </div>
+                </td>
+                <td>
+                  <input
+                    type="checkbox"
+                    className="toggle toggle-success"
+                    checked={game.isActive}
+                    onChange={() => handleToggleStatus(game)}
+                    disabled={isUpdatingStatus}
+                  />
+                </td>
+                <td className="text-center">
+                  <div className="flex items-center justify-center gap-1">
+                    <button
+                      onClick={() => onEdit(game)}
+                      className="btn btn-ghost btn-sm"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(game)}
+                      className="btn btn-ghost btn-sm text-error"
+                    >
+                      <TrashIcon className="h-5 w-5" />
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
     </div>

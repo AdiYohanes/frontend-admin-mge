@@ -5,11 +5,14 @@ import {
   ArrowLeftStartOnRectangleIcon,
   BellIcon,
   UserCircleIcon,
+  SunIcon,
+  MoonIcon,
 } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
 import { selectCurrentUser, logOut } from "../store/slices/authSlice";
+import useTheme from "../hooks/useTheme";
 import {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
@@ -19,6 +22,7 @@ const Header = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const user = useSelector(selectCurrentUser);
+  const { theme, toggleTheme } = useTheme();
 
   // --- LOGIKA NOTIFIKASI ---
   const { data: notificationsData } = useGetNotificationsQuery(undefined, {
@@ -56,6 +60,10 @@ const Header = () => {
     return initials.slice(0, 2).toUpperCase();
   };
 
+  const handleThemeToggle = () => {
+    toggleTheme();
+  };
+
   return (
     <div className="navbar bg-base-100 shadow-sm sticky top-0 z-30">
       {/* Tombol untuk membuka sidebar di mode mobile */}
@@ -81,6 +89,19 @@ const Header = () => {
       </div>
 
       <div className="navbar-end">
+        {/* Theme Toggle Button */}
+        <button
+          onClick={handleThemeToggle}
+          className="btn btn-ghost btn-circle"
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? (
+            <MoonIcon className="h-6 w-6" />
+          ) : (
+            <SunIcon className="h-6 w-6" />
+          )}
+        </button>
+
         {/* Dropdown Notifikasi */}
         <div className="dropdown dropdown-end">
           <label tabIndex={0} className="btn btn-ghost btn-circle">
@@ -108,13 +129,12 @@ const Header = () => {
               </div>
               <ul className="space-y-2 max-h-96 overflow-y-auto p-1">
                 {notificationsData?.notifications &&
-                notificationsData.notifications.length > 0 ? (
+                  notificationsData.notifications.length > 0 ? (
                   notificationsData.notifications.map((notif) => (
                     <li
                       key={notif.id}
-                      className={`p-2 rounded-lg ${
-                        !notif.read ? "bg-blue-50" : ""
-                      }`}
+                      className={`p-2 rounded-lg ${!notif.read ? "bg-blue-50" : ""
+                        }`}
                     >
                       <p className="text-sm font-medium text-gray-800">
                         {notif.text}

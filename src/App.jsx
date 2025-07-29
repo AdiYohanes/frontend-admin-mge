@@ -4,6 +4,7 @@ import { Toaster } from "react-hot-toast";
 
 // Layouts & Pages
 import ProtectedRoute from "./components/common/ProtectedRoute";
+import ThemeProvider from "./components/common/ThemeProvider";
 import DashboardLayout from "./layouts/DashboardLayout";
 import LoginPage from "./pages/Login";
 import DashboardPage from "./pages/Dashboard";
@@ -22,6 +23,7 @@ import TransactionListPage from "./features/transaction/pages/TransactionListPag
 import PromoManagementPage from "./features/settings/pages/PromoManagementPage";
 import FaqManagementPage from "./features/settings/pages/FaqManagementPage";
 import LandingPageManagement from "./features/settings/pages/LandingPageManagement";
+import AppSettingsPage from "./features/settings/pages/AppSettingsPage";
 
 const router = createBrowserRouter([
   {
@@ -51,6 +53,7 @@ const router = createBrowserRouter([
           { path: "settings/promo", element: <PromoManagementPage /> },
           { path: "settings/faq", element: <FaqManagementPage /> },
           { path: "settings/landing-page", element: <LandingPageManagement /> },
+          { path: "settings/app", element: <AppSettingsPage /> },
           // Rute terproteksi lainnya akan ditambahkan di sini
         ],
       },
@@ -64,10 +67,10 @@ const router = createBrowserRouter([
 
 function App() {
   return (
-    <>
+    <ThemeProvider>
       <RouterProvider router={router} />
       <Toaster position="top-center" reverseOrder={false} />
-    </>
+    </ThemeProvider>
   );
 }
 

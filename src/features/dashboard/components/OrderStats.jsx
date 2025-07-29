@@ -31,7 +31,7 @@ const OrderStats = ({ stats, loading = false }) => {
       color: "bg-purple-100 text-purple-600",
     },
     {
-      title: "New Customers",
+      title: "Total Customers",
       value: formatNumber(stats?.customer),
       icon: Users,
       color: "bg-orange-100 text-orange-600",
@@ -51,7 +51,7 @@ const OrderStats = ({ stats, loading = false }) => {
   return (
     <div className="w-full">
       <div className="mb-4 flex items-center gap-2">
-        <span className="font-bold text-lg text-gray-900">Order Stats</span>
+        <span className="font-bold text-lg text-gray-900">Order Statistic</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statItems.map((item, idx) => {

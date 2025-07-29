@@ -9,6 +9,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 
 import { useLoginMutation } from "../store/api/authApiSlice";
 import { setCredentials, selectCurrentToken } from "../store/slices/authSlice";
+import useTheme from "../hooks/useTheme";
+import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 
 const loginSchema = z.object({
   identifier: z.string().min(3, { message: "Username atau email harus diisi" }),
@@ -26,6 +28,7 @@ const LoginPage = () => {
   });
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const { theme, toggleTheme } = useTheme();
 
   const [login, { isLoading }] = useLoginMutation();
   const token = useSelector(selectCurrentToken);
@@ -50,7 +53,22 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="relative min-h-screen bg-slate-50 overflow-hidden">
+    <div className="relative min-h-screen bg-base-100 overflow-hidden">
+      {/* Theme Toggle Button - Top Right */}
+      <div className="absolute top-4 right-4 z-50">
+        <button
+          onClick={toggleTheme}
+          className="btn btn-circle btn-ghost bg-base-100/80 backdrop-blur-sm border border-base-300 shadow-lg"
+          aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
+        >
+          {theme === 'light' ? (
+            <MoonIcon className="h-5 w-5" />
+          ) : (
+            <SunIcon className="h-5 w-5" />
+          )}
+        </button>
+      </div>
+
       {/* Mobile Background with Enhanced Overlay */}
       <div className="lg:hidden absolute inset-0 z-0">
         <img
@@ -62,7 +80,7 @@ const LoginPage = () => {
 
         {/* Mobile Floating Elements */}
         <div className="absolute top-16 right-8 w-12 h-12 bg-brand-gold/20 rounded-full animate-bounce"></div>
-        <div className="absolute top-32 left-6 w-8 h-8 bg-white/20 rounded-full animate-pulse"></div>
+        <div className="absolute top-32 left-6 w-8 h-8 bg-base-content/20 rounded-full animate-pulse"></div>
         <div
           className="absolute top-20 left-1/2 w-6 h-6 bg-yellow-400/30 rounded-full animate-bounce"
           style={{ animationDelay: "1s" }}
@@ -80,7 +98,7 @@ const LoginPage = () => {
 
           {/* Desktop Floating Elements */}
           <div className="absolute top-20 left-10 w-16 h-16 bg-brand-gold/20 rounded-full animate-bounce"></div>
-          <div className="absolute top-40 right-16 w-8 h-8 bg-white/30 rounded-full animate-pulse"></div>
+          <div className="absolute top-40 right-16 w-8 h-8 bg-base-content/30 rounded-full animate-pulse"></div>
           <div
             className="absolute bottom-32 left-20 w-12 h-12 bg-blue-400/20 rounded-full animate-bounce"
             style={{ animationDelay: "1s" }}
@@ -124,15 +142,15 @@ const LoginPage = () => {
             </div>
 
             <div className="flex space-x-6 text-white">
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
+              <div className="bg-base-300/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
                 <div className="text-xl font-bold text-brand-gold">500+</div>
                 <div className="text-xs text-white/90">Transaksi</div>
               </div>
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
+              <div className="bg-base-300/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
                 <div className="text-xl font-bold text-brand-gold">24/7</div>
                 <div className="text-xs text-white/90">Support</div>
               </div>
-              <div className="bg-black/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
+              <div className="bg-base-300/30 backdrop-blur-sm rounded-lg px-4 py-3 text-center">
                 <div className="text-xl font-bold text-brand-gold">100%</div>
                 <div className="text-xs text-white/90">Secure</div>
               </div>
@@ -172,10 +190,10 @@ const LoginPage = () => {
             <div className="w-full max-w-md">
               {/* Desktop Header */}
               <div className="hidden lg:block text-center mb-8">
-                <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                <h1 className="text-3xl font-bold text-base-content mb-2">
                   Welcome Back!
                 </h1>
-                <p className="text-gray-600">
+                <p className="text-base-content/70">
                   Silakan masuk untuk melanjutkan ke dashboard
                 </p>
               </div>
@@ -191,31 +209,30 @@ const LoginPage = () => {
               </div>
 
               {/* Login Form */}
-              <div className="bg-white/95 lg:bg-white rounded-2xl lg:rounded-2xl p-6 lg:p-8 shadow-xl lg:shadow-lg border backdrop-blur-md">
+              <div className="bg-base-100/95 lg:bg-base-100 rounded-2xl lg:rounded-2xl p-6 lg:p-8 shadow-xl lg:shadow-lg border-2 border-base-300 backdrop-blur-md">
                 <form
                   onSubmit={handleSubmit(onSubmit)}
                   className="space-y-5 lg:space-y-6"
                 >
                   {/* Username */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-base-content mb-2">
                       Username / Email
                     </label>
                     <input
                       type="text"
                       placeholder="Masukkan username"
                       {...register("identifier")}
-                      className={`w-full px-4 py-3.5 lg:py-3 rounded-xl border-2 transition-all duration-200 text-base lg:text-sm ${
-                        errors.username
-                          ? "border-red-300 focus:border-red-500 bg-red-50/50"
-                          : "border-gray-200 focus:border-brand-gold focus:bg-amber-50/30"
-                      } focus:outline-none focus:ring-2 focus:ring-brand-gold/20`}
+                      className={`w-full px-4 py-3.5 lg:py-3 rounded-xl border-2 transition-all duration-200 text-base lg:text-sm bg-base-100 text-base-content ${errors.username
+                        ? "border-error focus:border-error bg-error/10"
+                        : "border-base-300 focus:border-brand-gold focus:bg-brand-gold/5"
+                        } focus:outline-none focus:ring-2 focus:ring-brand-gold/20`}
                       disabled={isLoading}
                       autoComplete="username"
                       autoCapitalize="none"
                     />
                     {errors.username && (
-                      <p className="text-red-500 text-sm mt-1.5 flex items-center">
+                      <p className="text-error text-sm mt-1.5 flex items-center">
                         <svg
                           className="w-4 h-4 mr-1 flex-shrink-0"
                           fill="currentColor"
@@ -234,7 +251,7 @@ const LoginPage = () => {
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-medium text-base-content mb-2">
                       Password
                     </label>
                     <div className="relative">
@@ -242,29 +259,28 @@ const LoginPage = () => {
                         type={showPassword ? "text" : "password"}
                         placeholder="Masukkan password"
                         {...register("password")}
-                        className={`w-full px-4 py-3.5 lg:py-3 pr-12 rounded-xl border-2 transition-all duration-200 text-base lg:text-sm ${
-                          errors.password
-                            ? "border-red-300 focus:border-red-500 bg-red-50/50"
-                            : "border-gray-200 focus:border-brand-gold focus:bg-amber-50/30"
-                        } focus:outline-none focus:ring-2 focus:ring-brand-gold/20`}
+                        className={`w-full px-4 py-3.5 lg:py-3 pr-12 rounded-xl border-2 transition-all duration-200 text-base lg:text-sm bg-base-100 text-base-content ${errors.password
+                          ? "border-error focus:border-error bg-error/10"
+                          : "border-base-300 focus:border-brand-gold focus:bg-brand-gold/5"
+                          } focus:outline-none focus:ring-2 focus:ring-brand-gold/20`}
                         disabled={isLoading}
                         autoComplete="current-password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-gray-100 rounded-lg transition-colors touch-manipulation"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 p-2 hover:bg-base-200 rounded-lg transition-colors touch-manipulation"
                         disabled={isLoading}
                       >
                         {showPassword ? (
-                          <EyeSlashIcon className="h-5 w-5 text-gray-500" />
+                          <EyeSlashIcon className="h-5 w-5 text-base-content/60" />
                         ) : (
-                          <EyeIcon className="h-5 w-5 text-gray-500" />
+                          <EyeIcon className="h-5 w-5 text-base-content/60" />
                         )}
                       </button>
                     </div>
                     {errors.password && (
-                      <p className="text-red-500 text-sm mt-1.5 flex items-center">
+                      <p className="text-error text-sm mt-1.5 flex items-center">
                         <svg
                           className="w-4 h-4 mr-1 flex-shrink-0"
                           fill="currentColor"
@@ -322,15 +338,15 @@ const LoginPage = () => {
           {/* Mobile Footer Stats */}
           <div className="lg:hidden px-4 pb-safe-bottom py-6">
             <div className="flex justify-center space-x-4 text-white">
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
+              <div className="bg-base-300/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
                 <div className="text-lg font-bold text-brand-gold">500+</div>
                 <div className="text-xs text-white/90">Transaksi</div>
               </div>
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
+              <div className="bg-base-300/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
                 <div className="text-lg font-bold text-brand-gold">24/7</div>
                 <div className="text-xs text-white/90">Support</div>
               </div>
-              <div className="bg-black/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
+              <div className="bg-base-300/20 backdrop-blur-sm rounded-lg px-3 py-2 text-center border border-white/10">
                 <div className="text-lg font-bold text-brand-gold">100%</div>
                 <div className="text-xs text-white/90">Secure</div>
               </div>

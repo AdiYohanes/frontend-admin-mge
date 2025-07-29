@@ -13,3 +13,12 @@
   --font-mincraft: Minecraft, sans-serif;
   --font-funnel: Archivo, sans-serif;
 }
+
+/* Dark mode support */
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="light"] {
+  color-scheme: light;
+}
