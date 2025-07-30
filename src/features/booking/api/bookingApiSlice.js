@@ -6,11 +6,16 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBookings: builder.query({
       // --- PERBAIKAN UTAMA DI SINI ---
-      query: ({ month = '', status = '' }) => {
-        const params = {};
+      query: ({ month = '', status = '', page = 1, per_page = 10 }) => {
+        const params = {
+          page,
+          per_page
+        };
         // Hanya kirim parameter yang relevan ke backend
         if (month) params.month = month;
         if (status && status !== 'All') params.status = status.toLowerCase();
+
+        console.log('🔍 DEBUG - API Query params:', params);
 
         return {
           url: '/api/admin/bookings',
@@ -19,9 +24,24 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
       },
       // Transformasi data mentah dari backend
       transformResponse: (response) => {
-        return response.data
-          // Filter hanya booking dengan invoice number yang berawalan "BOOK"
-          .filter(booking => booking.invoice_number && booking.invoice_number.startsWith('BOOK'))
+        console.log('🔍 DEBUG - Raw response dari backend:', response);
+
+        // Handle paginated response structure
+        const bookingsData = response.data || [];
+        const paginationInfo = {
+          current_page: response.current_page || 1,
+          total: response.total || 0,
+          per_page: response.per_page || 10,
+          last_page: response.last_page || 1,
+          next_page_url: response.next_page_url,
+          prev_page_url: response.prev_page_url
+        };
+
+        const transformedData = bookingsData
+          // PERBAIKAN: Hapus filter strict BOOK prefix karena data bisa EVT-, BOOK-, dll
+          // .filter(booking => booking.invoice_number && booking.invoice_number.startsWith('BOOK'))
+          // Filter: Exclude FNB invoice numbers
+          .filter(booking => !booking.invoice_number?.startsWith('FNB'))
           .map(booking => {
             const hasValidTimes = booking.start_time && booking.end_time;
             const startTime = hasValidTimes ? parseISO(booking.start_time) : null;
@@ -30,7 +50,7 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
             return {
               id: booking.id,
               noTransaction: booking.invoice_number,
-              bookingType: booking.bookable_type.includes('Guest') ? 'OTS' : 'Online',
+              bookingType: booking.bookable_type?.includes('Guest') ? 'OTS' : 'Online',
               name: booking.bookable?.name || 'N/A',
               phoneNumber: booking.bookable?.phone || '-',
               console: booking.unit?.consoles?.[0]?.name || 'N/A',
@@ -47,8 +67,38 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
               rawBooking: booking,
             }
           });
+
+        // PERBAIKAN: Update pagination info dengan count yang sudah difilter
+        const filteredPaginationInfo = {
+          ...paginationInfo,
+          total: transformedData.length, // Gunakan count yang sudah difilter
+          original_total: paginationInfo.total // Simpan total asli untuk debugging
+        };
+
+        console.log('🔍 DEBUG - Transformed data:', {
+          originalCount: bookingsData.length,
+          transformedCount: transformedData.length,
+          originalTotal: paginationInfo.total,
+          filteredTotal: filteredPaginationInfo.total,
+          paginationInfo: filteredPaginationInfo,
+          sampleData: transformedData.slice(0, 3)
+        });
+
+        // Return both transformed data and pagination info
+        return {
+          bookings: transformedData,
+          pagination: filteredPaginationInfo
+        };
       },
-      providesTags: (result) => result ? [{ type: 'Booking', id: 'LIST' }, ...result.map(({ id }) => ({ type: 'Booking', id }))] : [{ type: 'Booking', id: 'LIST' }],
+      providesTags: (result) => {
+        if (!result) return [{ type: 'Booking', id: 'LIST' }];
+
+        const tags = [{ type: 'Booking', id: 'LIST' }];
+        if (result.bookings) {
+          tags.push(...result.bookings.map(({ id }) => ({ type: 'Booking', id })));
+        }
+        return tags;
+      },
     }),
 
     addBooking: builder.mutation({
