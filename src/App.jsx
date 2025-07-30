@@ -17,6 +17,7 @@ import ConsoleListPage from "./features/rental/pages/ConsoleListPage";
 import RoomListPage from "./features/rental/pages/RoomListPage";
 import UnitListPage from "./features/rental/pages/UnitListPage";
 import GameListPage from "./features/rental/pages/GameListPage";
+import GenreListPage from "./features/rental/pages/GenreListPage";
 import FoodDrinkListPage from "./features/food-drink/pages/FoodDrinkListPage";
 import CategoryListPage from "./features/food-drink/pages/CategoryListPage";
 import TransactionListPage from "./features/transaction/pages/TransactionListPage";
@@ -47,6 +48,7 @@ const router = createBrowserRouter([
           { path: "rental/rooms", element: <RoomListPage /> },
           { path: "rental/units", element: <UnitListPage /> },
           { path: "rental/games", element: <GameListPage /> },
+          { path: "rental/genres", element: <GenreListPage /> },
           { path: "food-drink/items", element: <FoodDrinkListPage /> },
           { path: "food-drink/categories", element: <CategoryListPage /> },
           { path: "transaction", element: <TransactionListPage /> },

@@ -110,6 +110,45 @@ const RevenueChart = () => {
     });
   }, [apiResponse, period]);
 
+  // Calculate yesterday's total revenue for daily period
+  const yesterdayTotalRevenue = useMemo(() => {
+    // Cek apakah ada data yesterday dalam response
+    if (period === "daily" && apiResponse) {
+      // Data yesterday sudah disimpan dalam apiResponse.yesterday
+      if (apiResponse.yesterday?.revenue_by_hour) {
+        const total = apiResponse.yesterday.revenue_by_hour.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+        return total;
+      }
+    }
+    return 0;
+  }, [apiResponse, period]);
+
+  // Calculate previous week's total revenue for weekly period
+  const previousWeekTotalRevenue = useMemo(() => {
+    // Cek apakah ada data previous_week dalam response
+    if (period === "weekly" && apiResponse) {
+      // Data previous_week sudah disimpan dalam apiResponse.previous_week
+      if (apiResponse.previous_week?.daily_breakdown) {
+        const total = apiResponse.previous_week.daily_breakdown.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+        return total;
+      }
+    }
+    return 0;
+  }, [apiResponse, period]);
+
+  // Calculate previous month's total revenue for monthly period
+  const previousMonthTotalRevenue = useMemo(() => {
+    // Cek apakah ada data previous_month dalam response
+    if (period === "monthly" && apiResponse) {
+      // Data previous_month sudah disimpan dalam apiResponse.previous_month
+      if (apiResponse.previous_month?.weekly_breakdown) {
+        const total = apiResponse.previous_month.weekly_breakdown.reduce((sum, item) => sum + (item.total_revenue || 0), 0);
+        return total;
+      }
+    }
+    return 0;
+  }, [apiResponse, period]);
+
   const filterOptions = [
     { value: "daily", label: "Daily" },
     { value: "weekly", label: "Weekly" },
@@ -195,34 +234,220 @@ const RevenueChart = () => {
     const yTicks = calculateYTicks(chartData);
     const yDomain = calculateYDomain(chartData);
 
+    // Calculate percentage change and trend indicators
+    const getRevenueComparison = (currentRevenue, previousRevenue) => {
+      if (previousRevenue === 0) {
+        if (currentRevenue > 0) {
+          // Jika sebelumnya 0 dan sekarang ada revenue, hitung persentase dari current revenue
+          return { type: 'up', percentage: 100, text: '+100%' };
+        } else {
+          return { type: 'neutral', percentage: 0, text: 'No change' };
+        }
+      }
+
+      const percentage = ((currentRevenue - previousRevenue) / previousRevenue) * 100;
+      const roundedPercentage = Math.round(percentage * 10) / 10; // Round to 1 decimal place
+
+      if (percentage > 0) {
+        return { type: 'up', percentage: roundedPercentage, text: `+${roundedPercentage}%` };
+      } else if (percentage < 0) {
+        return { type: 'down', percentage: Math.abs(roundedPercentage), text: `-${Math.abs(roundedPercentage)}%` };
+      } else {
+        return { type: 'neutral', percentage: 0, text: 'No change' };
+      }
+    };
+
+    // Get comparison data for current period
+    const currentComparison = getRevenueComparison(totalRevenue, period === "daily" ? yesterdayTotalRevenue : period === "weekly" ? previousWeekTotalRevenue : previousMonthTotalRevenue);
+
     return (
       <div className="flex flex-col h-full">
         {/* Summary Stats */}
         <div className="mb-4 flex-shrink-0">
-          <div className="bg-white rounded-lg border border-gray-200 p-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
-                  Total Revenue ({period === "daily" ? "Harian" : period === "weekly" ? "Mingguan" : "Bulanan"})
-                </p>
-                <p className="text-xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(totalRevenue)}
-                </p>
+          {period === "daily" ? (
+            // Layout untuk daily period dengan Today dan Yesterday
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Revenue Today */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue Today
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(totalRevenue)}
+                    </p>
+                    {/* Trend indicator */}
+                    <div className={`flex items-center gap-1 mt-1 ${currentComparison.type === 'up' ? 'text-green-600' :
+                      currentComparison.type === 'down' ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                      {currentComparison.type === 'up' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      )}
+                      {currentComparison.type === 'down' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                      )}
+                      <span className="text-xs font-medium">{currentComparison.text}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-gray-500 font-medium">
-                  {period === "daily" && "Hari ini"}
-                  {period === "weekly" && "Minggu ini"}
-                  {period === "monthly" && "Bulan ini"}
-                </p>
-                <div className="w-6 h-6 bg-brand-gold/10 rounded-full flex items-center justify-center mt-1">
-                  <svg className="w-3 h-3 text-brand-gold" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-                  </svg>
+
+              {/* Revenue Yesterday */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue Yesterday
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(yesterdayTotalRevenue)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          ) : period === "weekly" ? (
+            // Layout untuk weekly period dengan This Week dan Previous Week
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Revenue This Week */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue This Week
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(totalRevenue)}
+                    </p>
+                    {/* Trend indicator */}
+                    <div className={`flex items-center gap-1 mt-1 ${currentComparison.type === 'up' ? 'text-green-600' :
+                      currentComparison.type === 'down' ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                      {currentComparison.type === 'up' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      )}
+                      {currentComparison.type === 'down' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                      )}
+                      <span className="text-xs font-medium">{currentComparison.text}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Revenue Previous Week */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue Previous Week
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(previousWeekTotalRevenue)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : (
+            // Layout untuk monthly period
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {/* Revenue This Month */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue This Month
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(totalRevenue)}
+                    </p>
+                    {/* Trend indicator */}
+                    <div className={`flex items-center gap-1 mt-1 ${currentComparison.type === 'up' ? 'text-green-600' :
+                      currentComparison.type === 'down' ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                      {currentComparison.type === 'up' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                      )}
+                      {currentComparison.type === 'down' && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+                        </svg>
+                      )}
+                      <span className="text-xs font-medium">{currentComparison.text}</span>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Revenue Previous Month */}
+              <div className="bg-white rounded-lg border border-gray-200 p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                      Revenue Previous Month
+                    </p>
+                    <p className="text-xl font-bold text-gray-900 mt-1">
+                      {formatCurrency(previousMonthTotalRevenue)}
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                      </svg>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Chart */}

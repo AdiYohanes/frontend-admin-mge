@@ -96,12 +96,15 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
         if (period === "daily") {
           // Handle daily period - show hourly breakdown
           const revenueDataFromApi = response.today?.revenue_by_hour || [];
+
           return {
             type: "chart",
             data: revenueDataFromApi.map((item) => ({
               name: item.hour,
               Pemasukan: item.total_revenue || 0,
             })),
+            // Tambahkan data yesterday untuk perhitungan total kemarin
+            yesterday: response.yesterday,
           };
         } else if (period === "weekly") {
           // Handle weekly period - show daily breakdown
@@ -113,6 +116,8 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
               date: item.date,
               Pemasukan: item.total_revenue || 0,
             })),
+            // Tambahkan data previous_week untuk perhitungan total minggu sebelumnya
+            previous_week: response.previous_week,
           };
         } else if (period === "monthly") {
           // Handle monthly period - show weekly breakdown
@@ -123,6 +128,8 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
               name: item.week,
               Pemasukan: item.total_revenue || 0,
             })),
+            // Tambahkan data previous_month untuk perhitungan total bulan sebelumnya
+            previous_month: response.previous_month,
           };
         }
 

@@ -13,25 +13,21 @@ import {
 import {
   useAddGameMutation,
   useUpdateGameMutation,
+  useGetGenresQuery,
 } from "../api/rentalApiSlice";
 
 // Skema validasi yang lebih fleksibel
 const gameSchema = z.object({
   title: z.string().min(3, "Judul game minimal 3 karakter"),
-  genre: z.string().nonempty("Genre harus dipilih"),
+  genre: z.union([
+    z.string().nonempty("Genre harus dipilih"),
+    z.number().min(1, "Genre harus dipilih")
+  ]).refine((val) => val && val.toString().trim() !== "", {
+    message: "Genre harus dipilih"
+  }),
   description: z.string().optional().or(z.literal("")),
   image: z.any().optional(), // Lebih fleksibel untuk image
 });
-
-const genreOptions = [
-  "Action",
-  "Adventure",
-  "RPG",
-  "Sports",
-  "Co-op",
-  "Strategy",
-  "Fighting",
-];
 
 const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
@@ -40,6 +36,13 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   const [addGame, { isLoading: isAdding }] = useAddGameMutation();
   const [updateGame, { isLoading: isUpdating }] = useUpdateGameMutation();
   const isLoading = isAdding || isUpdating;
+
+  // Fetch genres from API
+  const { data: genresData, isLoading: isLoadingGenres } = useGetGenresQuery({
+    page: 1,
+    limit: 100, // Get all genres
+    search: "",
+  });
 
   const {
     register,
@@ -80,9 +83,23 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
+        // Handle genre properly - extract ID if it's an object, or use as is if it's a number
+        let genreValue = "";
+        if (editingData.genre) {
+          if (typeof editingData.genre === 'string') {
+            // If it's a string, we need to find the genre ID by name
+            const selectedGenre = genresData?.genres?.find(g => g.name === editingData.genre);
+            genreValue = selectedGenre ? selectedGenre.id.toString() : "";
+          } else if (editingData.genre && typeof editingData.genre === 'object' && editingData.genre.id) {
+            genreValue = editingData.genre.id.toString();
+          } else if (typeof editingData.genre === 'number') {
+            genreValue = editingData.genre.toString();
+          }
+        }
+
         reset({
           title: editingData.name || editingData.title || "",
-          genre: editingData.genre || "",
+          genre: genreValue, // This will be the genre ID
           description: editingData.description || "",
           image: null,
         });
@@ -97,7 +114,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
         setPreview(null);
       }
     }
-  }, [isOpen, isEditMode, editingData, reset]);
+  }, [isOpen, isEditMode, editingData, reset, genresData]);
 
   const handleRemoveImage = () => {
     setPreview(null);
@@ -106,7 +123,14 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
 
   const onSubmit = async (formData) => {
     try {
-      console.log("Form data being submitted:", formData); // Debug log
+      // Validate genre selection
+      if (!formData.genre) {
+        toast.error("Genre harus dipilih!");
+        return;
+      }
+
+      // Check if genre exists
+      const selectedGenre = genresData?.genres?.find(g => g.id.toString() === formData.genre.toString());
 
       if (isEditMode) {
         if (!formData.image || formData.image.length === 0) {
@@ -120,7 +144,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
       }
       onClose();
     } catch (err) {
-      console.error("Submit error:", err); // Debug log
       toast.error(err.data?.message || "Gagal memproses data game.");
     }
   };
@@ -244,11 +267,14 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
                 {...register("genre")}
                 className={`select select-bordered ${errors.genre ? "select-error" : ""
                   }`}
+                disabled={isLoadingGenres}
               >
-                <option value="">Select Genre...</option>
-                {genreOptions.map((o) => (
-                  <option key={o} value={o}>
-                    {o}
+                <option value="">
+                  {isLoadingGenres ? "Loading genres..." : "Select Genre..."}
+                </option>
+                {genresData?.genres?.map((genre) => (
+                  <option key={genre.id} value={genre.id}>
+                    {genre.name}
                   </option>
                 ))}
               </select>

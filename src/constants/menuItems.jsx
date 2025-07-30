@@ -41,6 +41,7 @@ const menuItems = [
       { title: "Rooms", path: "/rental/rooms" },
       { title: "Units", path: "/rental/units" },
       { title: "Games", path: "/rental/games" },
+      { title: "Genres", path: "/rental/genres" },
     ],
   },
   {

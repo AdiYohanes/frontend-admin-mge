@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { useGetBookingsQuery, useDeleteBookingMutation, useUpdateBookingMutation } from '../api/bookingApiSlice';
+import React, { useState, useEffect, useMemo /* , useRef */ } from 'react';
+import { useGetBookingsQuery, /* useDeleteBookingMutation, useUpdateBookingMutation */ } from '../api/bookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
-import { toast } from 'react-hot-toast';
+// import { toast } from 'react-hot-toast';
 import { format, parseISO } from 'date-fns';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 
@@ -10,8 +10,8 @@ import TableControls from '../../../components/common/TableControls';
 import Pagination from '../../../components/common/Pagination';
 import BookingTable from '../components/BookingTable';
 import AddBookingModal from '../components/AddBookingModal';
-import ConfirmationModal from '../../../components/common/ConfirmationModal';
-import RescheduleModal from '../components/RescheduleModal';
+// import ConfirmationModal from '../../../components/common/ConfirmationModal';
+// import RescheduleModal from '../components/RescheduleModal';
 import RefundModal from '../components/RefundModal';
 
 const BookingRoomPage = () => {
@@ -27,19 +27,19 @@ const BookingRoomPage = () => {
   // State untuk mengontrol semua modal
   const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
-  const [bookingToDelete, setBookingToDelete] = useState(null);
-  const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-  const [bookingToReschedule, setBookingToReschedule] = useState(null);
+  // const [bookingToDelete, setBookingToDelete] = useState(null);
+  // const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
+  // const [bookingToReschedule, setBookingToReschedule] = useState(null);
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [bookingToRefund, setBookingToRefund] = useState(null);
-  const [bookingToCancel, setBookingToCancel] = useState(null);
+  // const [bookingToCancel, setBookingToCancel] = useState(null);
 
   // Ref untuk modal konfirmasi
-  const deleteModalRef = useRef(null);
-  const cancelModalRef = useRef(null);
+  // const deleteModalRef = useRef(null);
+  // const cancelModalRef = useRef(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const statusTabs = ['All', 'Confirmed', 'Rescheduled', 'Finished', 'Cancelled'];
+  const statusTabs = ['All', 'Confirmed', 'Finished']; // Reschedule & cancelled comment out
 
   // --- RTK QUERY HOOKS ---
   const {
@@ -51,8 +51,8 @@ const BookingRoomPage = () => {
     status: statusFilter,
   });
 
-  const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
-  const [updateBooking, { isLoading: isUpdating }] = useUpdateBookingMutation();
+  // const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
+  // const [updateBooking, { isLoading: isUpdating }] = useUpdateBookingMutation();
 
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
   const { paginatedBookings, totalPages } = useMemo(() => {
@@ -139,31 +139,31 @@ const BookingRoomPage = () => {
     setCurrentPage(1);
   };
 
-  const handleOpenDeleteModal = (booking) => {
-    setBookingToDelete(booking);
-    deleteModalRef.current?.showModal();
+  const handleOpenDeleteModal = (/* booking */) => {
+    // setBookingToDelete(booking);
+    // deleteModalRef.current?.showModal();
   };
 
-  const handleConfirmDelete = async () => {
-    if (!bookingToDelete) return;
-    try {
-      await deleteBooking(bookingToDelete.id).unwrap();
-      toast.success('Booking berhasil dihapus!');
-      deleteModalRef.current?.close();
-    } catch (err) {
-      toast.error('Gagal menghapus booking.');
-      console.error('Gagal menghapus booking:', err);
-    }
-  };
+  // const handleConfirmDelete = async () => {
+  //   // if (!bookingToDelete) return;
+  //   // try {
+  //   //   await deleteBooking(bookingToDelete.id).unwrap();
+  //   //   toast.success('Booking berhasil dihapus!');
+  //   //   deleteModalRef.current?.close();
+  //   // } catch (err) {
+  //   //   toast.error('Gagal menghapus booking.');
+  //   //   console.error('Gagal menghapus booking:', err);
+  //   // }
+  // };
 
-  const handleOpenRescheduleModal = (booking) => {
-    setBookingToReschedule(booking);
-    setIsRescheduleModalOpen(true);
+  const handleOpenRescheduleModal = (/* booking */) => {
+    // setBookingToReschedule(booking);
+    // setIsRescheduleModalOpen(true);
   };
-  const handleCloseRescheduleModal = () => {
-    setIsRescheduleModalOpen(false);
-    setTimeout(() => setBookingToReschedule(null), 300);
-  };
+  // const handleCloseRescheduleModal = () => {
+  //   // setIsRescheduleModalOpen(false);
+  //   // setTimeout(() => setBookingToReschedule(null), 300);
+  // };
 
   const handleOpenRefundModal = (booking) => {
     setBookingToRefund(booking);
@@ -175,22 +175,22 @@ const BookingRoomPage = () => {
     setTimeout(() => setBookingToRefund(null), 300);
   };
 
-  const handleOpenCancelModal = (booking) => {
-    setBookingToCancel(booking);
-    cancelModalRef.current?.showModal();
+  const handleOpenCancelModal = (/* booking */) => {
+    // setBookingToCancel(booking);
+    // cancelModalRef.current?.showModal();
   };
 
-  const handleConfirmCancel = async () => {
-    if (!bookingToCancel) return;
-    try {
-      const payload = { id: bookingToCancel.id, status: 'cancelled' };
-      await updateBooking(payload).unwrap();
-      toast.success('Booking berhasil dibatalkan!');
-      cancelModalRef.current?.close();
-    } catch (err) {
-      toast.error(err.data?.message || 'Gagal membatalkan booking.');
-    }
-  };
+  // const handleConfirmCancel = async () => {
+  //   // if (!bookingToCancel) return;
+  //   // try {
+  //   //   const payload = { id: bookingToCancel.id, status: 'cancelled' };
+  //   //   await updateBooking(payload).unwrap();
+  //   //   toast.success('Booking berhasil dibatalkan!');
+  //   //   cancelModalRef.current?.close();
+  //   // } catch (err) {
+  //   //   toast.error(err.data?.message || 'Gagal membatalkan booking.');
+  //   // }
+  // };
 
   const handleSortToggle = () => {
     setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
@@ -259,14 +259,14 @@ const BookingRoomPage = () => {
       </div>
 
       <AddBookingModal isOpen={isAddEditModalOpen} onClose={handleCloseAddEditModal} editingData={editingData} onFormSubmit={handleSuccessSubmit} />
-      <RescheduleModal isOpen={isRescheduleModalOpen} onClose={handleCloseRescheduleModal} bookingData={bookingToReschedule} />
+      {/* <RescheduleModal isOpen={isRescheduleModalOpen} onClose={handleCloseRescheduleModal} bookingData={bookingToReschedule} /> */}
       <RefundModal isOpen={isRefundModalOpen} onClose={handleCloseRefundModal} bookingData={bookingToRefund} />
-      <ConfirmationModal ref={deleteModalRef} title="Konfirmasi Hapus" onConfirm={handleConfirmDelete} isLoading={isDeleting}>
+      {/* <ConfirmationModal ref={deleteModalRef} title="Konfirmasi Hapus" onConfirm={handleConfirmDelete} isLoading={isDeleting}>
         <p>Apakah Anda yakin ingin menghapus booking No. <span className="font-bold">{bookingToDelete?.noTransaction}</span>?</p>
       </ConfirmationModal>
       <ConfirmationModal ref={cancelModalRef} title="Konfirmasi Pembatalan" onConfirm={handleConfirmCancel} isLoading={isUpdating}>
         <p>Apakah Anda yakin ingin membatalkan booking No. <span className="font-bold">{bookingToCancel?.noTransaction}</span>?</p>
-      </ConfirmationModal>
+      </ConfirmationModal> */}
     </>
   );
 };

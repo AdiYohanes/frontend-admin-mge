@@ -17,8 +17,8 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
           imageUrl: console.image
             ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${console.image}`
             : `https://placehold.co/60x60/EEE/31343C?text=${console.name.charAt(
-                0
-              )}`,
+              0
+            )}`,
         })),
         totalPages: response.last_page,
         currentPage: response.current_page,
@@ -26,9 +26,9 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              { type: "Console", id: "LIST" },
-              ...result.consoles.map(({ id }) => ({ type: "Console", id })),
-            ]
+            { type: "Console", id: "LIST" },
+            ...result.consoles.map(({ id }) => ({ type: "Console", id })),
+          ]
           : [{ type: "Console", id: "LIST" }],
     }),
     addConsole: builder.mutation({
@@ -80,8 +80,8 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
           imageUrl: room.image
             ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${room.image}`
             : `https://placehold.co/60x60/EEE/31343C?text=${room.name.charAt(
-                0
-              )}`,
+              0
+            )}`,
         })),
         totalPages: response.last_page,
         currentPage: response.current_page,
@@ -89,9 +89,9 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              { type: "Room", id: "LIST" },
-              ...result.rooms.map(({ id }) => ({ type: "Room", id })),
-            ]
+            { type: "Room", id: "LIST" },
+            ...result.rooms.map(({ id }) => ({ type: "Room", id })),
+          ]
           : [{ type: "Room", id: "LIST" }],
     }),
     addRoom: builder.mutation({
@@ -160,9 +160,9 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       providesTags: (result) =>
         result
           ? [
-              { type: "Unit", id: "LIST" },
-              ...result.units.map(({ id }) => ({ type: "Unit", id })),
-            ]
+            { type: "Unit", id: "LIST" },
+            ...result.units.map(({ id }) => ({ type: "Unit", id })),
+          ]
           : [{ type: "Unit", id: "LIST" }],
     }),
     addUnit: builder.mutation({
@@ -192,36 +192,64 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
     // === Game Endpoints (Terhubung ke Backend) ===
     getGameList: builder.query({
       query: ({ page = 1, limit = 10, search = "" }) => ({
-        url: "/api/public/games",
+        url: "/api/admin/games", // Changed to admin endpoint for consistency
         params: { page, per_page: limit, search },
       }),
-      transformResponse: (response) => ({
-        games: response.data.map((game) => ({
-          ...game,
-          name: game.title,
-          console: game.consoles?.map((c) => c.name).join(", ") || "N/A",
-          imageUrl: game.image
-            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${game.image}`
-            : `https://placehold.co/60x60/EEE/31343C?text=${game.title.charAt(
-                0
-              )}`,
-          availableAt: 0,
-        })),
-        totalPages: response.last_page,
-        currentPage: response.current_page,
-      }),
+      transformResponse: (response) => {
+        return {
+          games: response.data.map((game) => {
+            // Handle genre properly - check multiple possible formats
+            let genreValue = "Unknown";
+            if (game.genre) {
+              if (typeof game.genre === 'string' && game.genre.trim() !== '') {
+                genreValue = game.genre;
+              } else if (typeof game.genre === 'object' && game.genre.name) {
+                genreValue = game.genre.name;
+              } else if (typeof game.genre === 'object' && game.genre.title) {
+                genreValue = game.genre.title;
+              }
+            } else if (game.genre_id) {
+              // If genre_id exists, we need to get the genre name
+              // For now, we'll use the ID as fallback
+              genreValue = `Genre ID: ${game.genre_id}`;
+            }
+
+            return {
+              ...game,
+              name: game.title,
+              console: game.consoles?.map((c) => c.name).join(", ") || "N/A",
+              genre: genreValue,
+              imageUrl: game.image
+                ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${game.image}`
+                : `https://placehold.co/60x60/EEE/31343C?text=${game.title.charAt(
+                  0
+                )}`,
+              availableAt: 0,
+            };
+          }),
+          totalPages: response.last_page,
+          currentPage: response.current_page,
+        };
+      },
       providesTags: (result) =>
         result
           ? [
-              { type: "Game", id: "LIST" },
-              ...result.games.map(({ id }) => ({ type: "Game", id })),
-            ]
+            { type: "Game", id: "LIST" },
+            ...result.games.map(({ id }) => ({ type: "Game", id })),
+          ]
           : [{ type: "Game", id: "LIST" }],
     }),
     getAllGames: builder.query({
       query: () => "/api/public/games?per_page=9999",
       transformResponse: (response) =>
-        response.data.map((game) => ({ ...game, name: game.title })),
+        response.data.map((game) => ({
+          ...game,
+          name: game.title,
+          // Handle genre properly - extract name if it's an object
+          genre: game.genre && typeof game.genre === 'object' && game.genre.name
+            ? game.genre.name
+            : (typeof game.genre === 'string' ? game.genre : 'Unknown'),
+        })),
       providesTags: ["Game"],
     }),
     getAllConsoles: builder.query({
@@ -236,11 +264,12 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       query: (newGame) => {
         const formData = new FormData();
         formData.append("title", newGame.title);
-        formData.append("genre", newGame.genre);
+        formData.append("genre_id", parseInt(newGame.genre) || newGame.genre); // Ensure it's a number
         formData.append("description", newGame.description || "");
         if (newGame.image && newGame.image.length > 0) {
           formData.append("image", newGame.image[0]);
         }
+
         return { url: "/api/admin/games", method: "POST", body: formData };
       },
       invalidatesTags: [{ type: "Game", id: "LIST" }],
@@ -249,26 +278,84 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       query: ({ id, ...patch }) => {
         const formData = new FormData();
         formData.append("title", patch.title);
-        formData.append("genre", patch.genre);
+        formData.append("genre_id", parseInt(patch.genre) || patch.genre); // Ensure it's a number
         formData.append("description", patch.description || "");
         if (patch.image && patch.image.length > 0) {
           formData.append("image", patch.image[0]);
         }
         formData.append("_method", "POST");
+
         return {
           url: `/api/admin/games/${id}`,
           method: "POST",
           body: formData,
         };
       },
-      invalidatesTags: (r, e, arg) => [
+      invalidatesTags: (result, error, arg) => [
         { type: "Game", id: "LIST" },
         { type: "Game", id: arg.id },
+        "Game", // Invalidate all game queries
       ],
     }),
     deleteGame: builder.mutation({
       query: (id) => ({ url: `/api/admin/games/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "Game", id: "LIST" }],
+    }),
+
+    // === Genre Endpoints (Terhubung ke Backend) ===
+    getGenres: builder.query({
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/admin/genres",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => {
+        // Handle both paginated and direct array response
+        if (Array.isArray(response)) {
+          // Direct array response (no pagination)
+          return {
+            genres: response,
+            totalPages: 1,
+            currentPage: 1,
+          };
+        } else {
+          // Paginated response
+          return {
+            genres: response.data || [],
+            totalPages: response.last_page || 1,
+            currentPage: response.current_page || 1,
+          };
+        }
+      },
+      providesTags: (result) =>
+        result
+          ? [
+            { type: "Genre", id: "LIST" },
+            ...(result.genres || []).map(({ id }) => ({ type: "Genre", id })),
+          ]
+          : [{ type: "Genre", id: "LIST" }],
+    }),
+    addGenre: builder.mutation({
+      query: (newGenre) => ({
+        url: "/api/admin/genres",
+        method: "POST",
+        body: newGenre,
+      }),
+      invalidatesTags: [{ type: "Genre", id: "LIST" }],
+    }),
+    updateGenre: builder.mutation({
+      query: ({ id, ...patch }) => ({
+        url: `/api/admin/genres/${id}`,
+        method: "POST",
+        body: { ...patch, _method: "POST" },
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: "Genre", id: "LIST" },
+        { type: "Genre", id: arg.id },
+      ],
+    }),
+    deleteGenre: builder.mutation({
+      query: (id) => ({ url: `/api/admin/genres/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Genre", id: "LIST" }],
     }),
   }),
 });
@@ -293,4 +380,8 @@ export const {
   useDeleteGameMutation,
   useGetAllRoomsQuery,
   useGetAllConsolesQuery,
+  useGetGenresQuery,
+  useAddGenreMutation,
+  useUpdateGenreMutation,
+  useDeleteGenreMutation,
 } = rentalApiSlice;

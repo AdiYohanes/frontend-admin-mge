@@ -36,9 +36,10 @@ const BookingTable = ({ bookings, isLoading, page, limit, onEdit, onDelete, onRe
       case 'confirmed': // Menambahkan aksi untuk status 'confirmed'
         return (
           <div className="flex items-center justify-center gap-1">
-            <div className="tooltip" data-tip="Reschedule"><button onClick={() => onReschedule(booking)} className="btn btn-ghost btn-xs"><ArrowPathIcon className="h-5 w-5 text-blue-500" /></button></div>
+            {/* <div className="tooltip" data-tip="Reschedule"><button onClick={() => onReschedule(booking)} className="btn btn-ghost btn-xs"><ArrowPathIcon className="h-5 w-5 text-blue-500" /></button></div>
             <div className="tooltip" data-tip="Cancel Booking"><button onClick={() => onCancel(booking)} className="btn btn-ghost btn-xs"><XCircleIcon className="h-5 w-5 text-orange-500" /></button></div>
-            <div className="tooltip" data-tip="Delete Record"><button onClick={() => onDelete(booking)} className="btn btn-ghost btn-xs text-error"><TrashIcon className="h-5 w-5" /></button></div>
+            <div className="tooltip" data-tip="Delete Record"><button onClick={() => onDelete(booking)} className="btn btn-ghost btn-xs text-error"><TrashIcon className="h-5 w-5" /></button></div> */}
+            <span className="text-xs text-gray-400">-</span>
           </div>
         );
       case 'cancelled':

@@ -23,6 +23,17 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
     zIndex: isDragging ? 10 : "auto",
   };
 
+  // Helper function to safely display genre
+  const getGenreDisplay = (genre) => {
+    if (typeof genre === 'string') {
+      return genre;
+    }
+    if (genre && typeof genre === 'object' && genre.name) {
+      return genre.name;
+    }
+    return 'Unknown';
+  };
+
   return (
     <tr
       ref={setNodeRef}
@@ -49,7 +60,7 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
       <td className="font-bold">{game.name}</td>
       <td>{game.console}</td>
       <td>
-        <div className="badge badge-ghost">{game.genre}</div>
+        <div className="badge badge-ghost">{getGenreDisplay(game.genre)}</div>
       </td>
       <td>{game.availableAt || 0} Units</td>
       <td className="text-center">
