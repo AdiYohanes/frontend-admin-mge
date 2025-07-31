@@ -50,6 +50,7 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
         const params = {
           page,
           per_page: limit,
+          invoice_prefix: 'FNB', // Filter hanya invoice yang berawalan FNB
         };
 
         // Hanya kirim parameter status jika tidak 'All'
@@ -142,39 +143,23 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
         ] : [{ type: 'FoodDrinkBooking', id: 'LIST' }],
     }),
 
-    // Endpoint baru untuk mendapatkan detail booking F&B
+    // Endpoint untuk mendapatkan detail booking F&B
     getFoodDrinkBookingDetail: builder.query({
-      query: (bookingIdOrIds) => {
-        // Handle both single ID and array of IDs
-        if (Array.isArray(bookingIdOrIds)) {
-          // Batch loading - return array of promises
-          return {
-            url: `/api/admin/bookings/batch`,
-            method: 'POST',
-            body: { booking_ids: bookingIdOrIds },
-          };
-        } else {
-          // Single booking detail
-          return {
-            url: `/api/admin/bookings/${bookingIdOrIds}`,
-          };
-        }
+      query: (bookingId) => {
+        // Single booking detail - menggunakan format /api/admin/bookings/{id}
+        return {
+          url: `/api/admin/bookings/${bookingId}`,
+        };
       },
       transformResponse: (response) => {
         console.log('Raw F&B Detail API Response:', response);
 
         if (!response) {
-          return [];
+          return null;
         }
 
-        // Handle batch response
-        if (Array.isArray(response)) {
-          return response.map(booking => transformBookingDetail(booking)).filter(Boolean);
-        }
-
-        // Handle single response - wrap in array for consistency
-        const singleResult = transformBookingDetail(response);
-        return singleResult ? [singleResult] : [];
+        // Transform single booking detail
+        return transformBookingDetail(response);
       },
       providesTags: (result, error, id) => [{ type: 'FoodDrinkBooking', id }],
     }),

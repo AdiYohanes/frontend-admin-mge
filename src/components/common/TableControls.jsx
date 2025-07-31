@@ -1,5 +1,5 @@
 import React from "react";
-import { PlusIcon } from "@heroicons/react/24/solid"; // <-- 1. Impor ikon Plus
+import { PlusIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid"; // <-- 1. Impor ikon Plus dan Search
 
 const TableControls = ({
   limit,
@@ -33,6 +33,7 @@ const TableControls = ({
         >
           <option value="5">5</option>
           <option value="10">10</option>
+          <option value="15">15</option>
           <option value="25">25</option>
           <option value="50">50</option>
         </select>
@@ -40,6 +41,21 @@ const TableControls = ({
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
+        {/* Search Input with Icon */}
+        <div className="relative">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <MagnifyingGlassIcon className="h-4 w-4 text-gray-400" />
+          </div>
+          <input
+            type="text"
+            placeholder="Search transactions..."
+            className="input input-bordered input-sm pl-10 pr-4"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+
+        {/* Month Filter */}
         {showMonthFilter && (
           <select
             className="select select-bordered select-sm"
@@ -54,14 +70,6 @@ const TableControls = ({
             ))}
           </select>
         )}
-
-        <input
-          type="text"
-          placeholder="Search..."
-          className="input input-bordered input-sm"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
       </div>
 
       {/* --- AWAL BLOK PERUBAHAN --- */}

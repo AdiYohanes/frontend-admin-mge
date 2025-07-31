@@ -394,7 +394,6 @@ const BookingRoomPage = () => {
               Showing {allBookings.length} of {paginationInfo.total} bookings
             </div>
           )}
-
           {/* Show filtered count when searching */}
           {debouncedSearchTerm.trim() && (
             <div className="text-sm text-gray-600 mt-2 text-center">

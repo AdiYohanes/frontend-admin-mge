@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useGetFoodDrinkBookingsQuery, useGetFoodDrinkBookingDetailQuery } from '../api/foodDrinkBookingApiSlice';
+import { useGetFoodDrinkBookingsQuery } from '../api/foodDrinkBookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
 
 import TableControls from '../../../components/common/TableControls';
@@ -20,76 +20,133 @@ const FoodDrinkBookingPage = () => {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Load booking list
+  // Load booking list - get all data for frontend pagination
   const { data: apiResponse, isLoading, isFetching } = useGetFoodDrinkBookingsQuery({
-    page: currentPage,
-    limit,
+    page: 1, // Always get page 1
+    limit: 1000, // Get more data for frontend filtering
     status: statusFilter,
   });
 
-  // Extract booking IDs for detail loading
-  const bookingIds = useMemo(() => {
-    if (!apiResponse?.bookings) return [];
-    return apiResponse.bookings.map(booking => booking.id);
-  }, [apiResponse?.bookings]);
+  // Debug: Log API response
+  useEffect(() => {
+    console.log('🔍 DEBUG - FoodDrinkBooking API Response:', {
+      apiResponse,
+      isLoading,
+      isFetching,
+      currentPage,
+      limit,
+      statusFilter
+    });
+  }, [apiResponse, isLoading, isFetching, currentPage, limit, statusFilter]);
 
-  // Load details for all bookings
-  const { data: bookingDetails, isLoading: isLoadingDetails } = useGetFoodDrinkBookingDetailQuery(
-    bookingIds.length > 0 ? bookingIds : null,
-    {
-      skip: bookingIds.length === 0,
-    }
-  );
-
-  // Merge booking list with details
+  // Merge booking list with details - gunakan data FnB items dari response API
   const mergedBookings = useMemo(() => {
     if (!apiResponse?.bookings) return [];
 
     return apiResponse.bookings.map(booking => {
-      // Ensure bookingDetails is an array and handle both single and batch responses
-      let detailsArray = [];
-      if (Array.isArray(bookingDetails)) {
-        detailsArray = bookingDetails;
-      } else if (bookingDetails && typeof bookingDetails === 'object') {
-        // If it's a single object, wrap it in array
-        detailsArray = [bookingDetails];
-      }
+      // Data FnB items sudah tersedia di booking.fnbItems dari API response
+      const fnbItems = booking.fnbItems || [];
 
-      const detail = detailsArray.find(d => d?.id === booking.id);
-
-      // Create order name from FnB items
-      const orderName = detail?.fnbItems?.length > 0
-        ? detail.fnbItems.map(item => `${item.name} (${item.quantity}x)`).join(', ')
-        : 'F&B Order';
+      // Create order name from FnB items - gunakan data yang sudah ada
+      const orderName = fnbItems.length > 0
+        ? fnbItems.map(item => `${item.name} (${item.quantity}x)`).join(', ')
+        : booking.orderName || 'F&B Order'; // Fallback ke orderName dari API
 
       return {
         ...booking,
         orderName: orderName,
-        fnbItems: detail?.fnbItems || [],
+        fnbItems: fnbItems,
       };
     });
-  }, [apiResponse?.bookings, bookingDetails]);
+  }, [apiResponse?.bookings]);
 
-  // Filter data berdasarkan search term di frontend
+  // Debug: Log merged bookings
+  useEffect(() => {
+    console.log('🔍 DEBUG - Merged Bookings:', {
+      mergedBookingsCount: mergedBookings.length,
+      sampleMergedBookings: mergedBookings.slice(0, 2).map(b => ({
+        id: b.id,
+        noTransaction: b.noTransaction,
+        name: b.name,
+        orderName: b.orderName,
+        fnbItemsCount: b.fnbItems?.length || 0
+      }))
+    });
+  }, [mergedBookings]);
+
+  // Filter data berdasarkan search term di frontend dan pastikan hanya FNB
   const filteredBookings = useMemo(() => {
     if (!mergedBookings) return [];
 
-    return mergedBookings.filter(booking =>
-      booking.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      booking.noTransaction.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      booking.orderName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      booking.phoneNumber.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-      booking.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-    );
+    // Debug: Log sebelum filtering
+    console.log('🔍 DEBUG - FoodDrinkBooking filtering:', {
+      totalBookings: mergedBookings.length,
+      searchTerm: debouncedSearchTerm,
+      sampleBookings: mergedBookings.slice(0, 3).map(b => ({
+        id: b.id,
+        noTransaction: b.noTransaction,
+        name: b.name
+      }))
+    });
+
+    const fnbOnlyBookings = mergedBookings.filter(booking => booking.noTransaction?.startsWith('FNB'));
+
+    // Debug: Log setelah FNB filter
+    console.log('🔍 DEBUG - After FNB filter:', {
+      fnbBookingsCount: fnbOnlyBookings.length,
+      sampleFnbBookings: fnbOnlyBookings.slice(0, 3).map(b => ({
+        id: b.id,
+        noTransaction: b.noTransaction,
+        name: b.name
+      }))
+    });
+
+    return fnbOnlyBookings
+      // Filter berdasarkan search term
+      .filter(booking =>
+        booking.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        booking.noTransaction.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        booking.orderName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        booking.phoneNumber.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+        booking.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+      );
   }, [mergedBookings, debouncedSearchTerm]);
 
-  // Gunakan pagination dari API response
-  const paginationData = apiResponse?.pagination || {
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-    perPage: 15
+  // Debug: Log final filtered bookings
+  useEffect(() => {
+    console.log('🔍 DEBUG - Final Filtered Bookings:', {
+      filteredBookingsCount: filteredBookings.length,
+      sampleFilteredBookings: filteredBookings.slice(0, 2).map(b => ({
+        id: b.id,
+        noTransaction: b.noTransaction,
+        name: b.name,
+        orderName: b.orderName
+      }))
+    });
+  }, [filteredBookings]);
+
+  // Frontend pagination untuk filtered data
+  const paginatedBookings = useMemo(() => {
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    return filteredBookings.slice(startIndex, endIndex);
+  }, [filteredBookings, currentPage, limit]);
+
+  const paginationData = {
+    currentPage: currentPage,
+    totalPages: Math.ceil(filteredBookings.length / limit),
+    total: filteredBookings.length,
+    perPage: limit
   };
+
+  // Debug: Log pagination data
+  useEffect(() => {
+    console.log('🔍 DEBUG - Pagination Data:', {
+      paginationData,
+      filteredBookingsCount: filteredBookings.length,
+      apiResponseTotal: apiResponse?.pagination?.total
+    });
+  }, [paginationData, filteredBookings.length, apiResponse?.pagination?.total]);
 
   const handleOpenPrintModal = (order) => {
     setOrderToPrint(order);
@@ -137,7 +194,7 @@ const FoodDrinkBookingPage = () => {
           <div>
             <h1 className="text-3xl font-bold text-base-content">Food & Drink Booking</h1>
             <p className="text-base-content/60 mt-1">
-              Kelola pesanan makanan dan minuman pelanggan
+              Kelola pesanan makanan dan minuman pelanggan (Invoice: FNB-*)
             </p>
           </div>
         </div>
@@ -174,8 +231,8 @@ const FoodDrinkBookingPage = () => {
             {/* Table */}
             <div className="mb-6">
               <FoodDrinkTable
-                orders={filteredBookings}
-                isLoading={isLoading || isFetching || isLoadingDetails}
+                orders={paginatedBookings}
+                isLoading={isLoading || isFetching}
                 page={currentPage}
                 limit={limit}
                 onPrint={handleOpenPrintModal}
@@ -193,7 +250,7 @@ const FoodDrinkBookingPage = () => {
             </div>
 
             {/* Loading Overlay */}
-            {(isLoading || isFetching || isLoadingDetails) && (
+            {(isLoading || isFetching) && (
               <div className="absolute inset-0 bg-base-100/50 flex items-center justify-center rounded-lg">
                 <span className="loading loading-spinner loading-lg"></span>
               </div>
@@ -219,3 +276,4 @@ const FoodDrinkBookingPage = () => {
 };
 
 export default FoodDrinkBookingPage;
+
