@@ -11,6 +11,7 @@ const TableControls = ({
   onAddClick,
   addButtonText,
   showMonthFilter = true,
+  searchPlaceholder = "Search transactions...",
 }) => {
   const monthOptions = Array.from({ length: 12 }, (e, i) => {
     const date = new Date(2025, i, 1);
@@ -48,7 +49,7 @@ const TableControls = ({
           </div>
           <input
             type="text"
-            placeholder="Search transactions..."
+            placeholder={searchPlaceholder}
             className="input input-bordered input-sm pl-10 pr-4"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}

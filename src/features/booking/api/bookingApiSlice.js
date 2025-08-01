@@ -5,7 +5,6 @@ import { format, parseISO, differenceInHours } from "date-fns";
 export const bookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBookings: builder.query({
-      // --- PERBAIKAN UTAMA DI SINI ---
       query: ({ month = '', status = '', page = 1, per_page = 10 }) => {
         const params = {
           page,
@@ -38,9 +37,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
         };
 
         const transformedData = bookingsData
-          // PERBAIKAN: Hapus filter strict BOOK prefix karena data bisa EVT-, BOOK-, dll
-          // .filter(booking => booking.invoice_number && booking.invoice_number.startsWith('BOOK'))
-          // Filter: Exclude FNB invoice numbers
           .filter(booking => !booking.invoice_number?.startsWith('FNB'))
           .map(booking => {
             const hasValidTimes = booking.start_time && booking.end_time;
@@ -101,78 +97,51 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
       },
     }),
 
-    addBooking: builder.mutation({
-      query: (newBooking) => ({
-        url: "/api/admin/bookings",
-        method: "POST",
-        body: newBooking,
-      }),
-      invalidatesTags: [{ type: "Booking", id: "LIST" }],
-    }),
-    updateBooking: builder.mutation({
-      query: ({ id, ...patch }) => {
-        const formData = new FormData();
-        // Loop melalui data patch dan tambahkan ke FormData
-        for (const key in patch) {
-          formData.append(key, patch[key]);
-        }
-
-        return {
-          url: `/api/admin/bookings/${id}/update`,
-          method: 'POST',
-          body: formData, // Kirim sebagai FormData
-        };
-      },
-      invalidatesTags: (result, error, arg) => [{ type: 'Booking', id: 'LIST' }, { type: 'Booking', id: arg.id }],
-    }),
-    deleteBooking: builder.mutation({
+    getBookingDetail: builder.query({
       query: (bookingId) => ({
         url: `/api/admin/bookings/${bookingId}`,
-        method: "DELETE",
       }),
-      invalidatesTags: [{ type: "Booking", id: "LIST" }],
-    }), getAvailableDays: builder.mutation({
-      query: ({ unitId, startDate, endDate }) => ({
-        url: `/api/public/get-availability-day/${unitId}`,
-        method: 'POST',
-        body: {
-          start_date: startDate,
-          end_date: endDate,
-        },
-      }),
-    }),
+      transformResponse: (response) => {
+        console.log('🔍 DEBUG - Booking detail response:', response);
 
-    // Mutation untuk memeriksa ketersediaan jam pada hari tertentu
-    getAvailableTimes: builder.mutation({
-      query: ({ unitId, date }) => ({
-        url: `/api/public/get-availability-time/${unitId}`,
-        method: 'POST',
-        body: { date },
-      }),
-    }),
+        // Transform booking detail data
+        const booking = response;
+        const isFnb = booking.invoice_number?.startsWith('FNB');
 
-    // Ganti updateBooking dengan mutation yang lebih spesifik
-    rescheduleBooking: builder.mutation({
-      query: ({ bookingId, startTime, endTime }) => ({
-        url: `/api/reschedule/${bookingId}`,
-        method: 'POST',
-        body: {
-          start_time: startTime,
-          end_time: endTime,
-        },
-      }),
-      // Invalidate getBookings agar tabel di-refresh
-      invalidatesTags: [{ type: 'Booking', id: 'LIST' }],
+        return {
+          id: booking.id,
+          invoiceNumber: booking.invoice_number,
+          bookableType: booking.bookable_type,
+          bookableId: booking.bookable_id,
+          unitId: booking.unit_id,
+          gameId: booking.game_id,
+          startTime: booking.start_time,
+          endTime: booking.end_time,
+          totalPrice: parseFloat(booking.total_price) || 0,
+          status: booking.status,
+          notes: booking.notes,
+          createdAt: booking.created_at,
+          updatedAt: booking.updated_at,
+          eventId: booking.event_id,
+          totalVisitors: booking.total_visitors,
+          promoId: booking.promo_id,
+          reminderSent: booking.reminder_sent,
+          createdByAdminId: booking.created_by_admin_id,
+          taxAmount: parseFloat(booking.tax_amount) || 0,
+          serviceFeeAmount: parseFloat(booking.service_fee_amount) || 0,
+          bookable: booking.bookable,
+          unit: booking.unit,
+          game: booking.game,
+          fnbs: booking.fnbs || [],
+          transactions: booking.transactions || [],
+          createdByAdmin: booking.created_by_admin,
+          isFnb: isFnb,
+          type: isFnb ? 'Food & Beverage' : 'Room Booking'
+        };
+      },
+      providesTags: (result, error, id) => [{ type: 'Booking', id }],
     }),
   }),
 });
 
-export const {
-  useGetBookingsQuery,
-  useAddBookingMutation,
-  useUpdateBookingMutation,
-  useDeleteBookingMutation,
-  useGetAvailableDaysMutation, // Hook baru
-  useGetAvailableTimesMutation, // Hook baru
-  useRescheduleBookingMutation, // Hook baru
-} = bookingApiSlice;
+export const { useGetBookingsQuery, useGetBookingDetailQuery } = bookingApiSlice;

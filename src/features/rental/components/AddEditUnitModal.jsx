@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -31,6 +31,7 @@ const unitSchema = z.object({
 
 const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const { data: roomsData } = useGetAllRoomsQuery();
   const { data: consolesData } = useGetAllConsolesQuery();
@@ -85,69 +86,103 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
     }
   };
 
-  const renderMultiSelect = (name, field, options, placeholder, isLoading, key = 'id', labelKey = 'name') => (
-    <>
-      <div className="dropdown w-full">
-        <label tabIndex={0} className="btn btn-outline justify-between w-full font-normal border-base-300 hover:border-brand-gold hover:bg-brand-gold/5">
-          <span className="flex items-center gap-2">
-            <CpuChipIcon className="h-4 w-4 text-brand-gold" />
-            {placeholder} ({field.value?.length || 0} terpilih)
+  const handleConsoleToggle = (field, consoleId) => {
+    const currentSelection = field.value || [];
+    const isSelected = currentSelection.includes(consoleId);
+
+    const newSelection = isSelected
+      ? currentSelection.filter(id => id !== consoleId)
+      : [...currentSelection, consoleId];
+
+    field.onChange(newSelection);
+
+    // Close dropdown after selection
+    setIsDropdownOpen(false);
+  };
+
+  const renderConsoleSelector = (field) => {
+    const selectedConsoles = field.value || [];
+
+    return (
+      <div className="form-control">
+        <label className="label">
+          <span className="label-text font-medium">
+            Consoles <span className="text-error">*</span>
           </span>
-          <ChevronDownIcon className="h-5 w-5" />
         </label>
-        <ul tabIndex={0} className="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-full max-h-60 overflow-y-auto border border-base-300">
-          {isLoading ? (
-            <li className="p-4 text-center">
-              <span className="loading loading-spinner text-brand-gold"></span>
-            </li>
-          ) : (
-            options?.map(option => (
-              <li key={option[key]}>
-                <label className="label cursor-pointer hover:bg-base-200 rounded-lg p-2">
-                  <span className="font-medium">{option[labelKey]}</span>
+
+        {/* Dropdown Trigger */}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            className="w-full btn btn-outline justify-between text-left font-normal border-base-300 hover:border-brand-gold hover:bg-brand-gold/5"
+          >
+            <span className="flex items-center gap-2">
+              <CpuChipIcon className="h-4 w-4 text-brand-gold" />
+              {selectedConsoles.length > 0
+                ? `${selectedConsoles.length} console${selectedConsoles.length > 1 ? 's' : ''} selected`
+                : 'Select consoles...'
+              }
+            </span>
+            <ChevronDownIcon className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
+
+          {/* Dropdown Menu */}
+          {isDropdownOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+              {consolesData?.map(console => (
+                <label
+                  key={console.id}
+                  className="flex items-center justify-between px-4 py-2 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0"
+                >
+                  <span className="font-medium">{console.name}</span>
                   <input
                     type="checkbox"
-                    className="checkbox checkbox-primary checked:bg-brand-gold checked:border-brand-gold"
-                    checked={field.value?.includes(option[key])}
-                    onChange={e => {
-                      const sel = field.value || [];
-                      const newSel = e.target.checked ? [...sel, option[key]] : sel.filter(id => id !== option[key]);
-                      field.onChange(newSel);
-                    }}
+                    className="checkbox checkbox-sm checkbox-primary"
+                    checked={selectedConsoles.includes(console.id)}
+                    onChange={() => handleConsoleToggle(field, console.id)}
                   />
                 </label>
-              </li>
-            ))
-          )}
-        </ul>
-      </div>
-      <div className="mt-2 flex flex-wrap gap-1 min-h-[1.5rem]">
-        {field.value?.map(id => {
-          const selectedItem = options?.find(opt => opt[key] === id);
-          return selectedItem ? (
-            <div key={id} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
-              <CpuChipIcon className="h-3 w-3" />
-              {selectedItem[labelKey]}
-              <button
-                type="button"
-                className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
-                onClick={() => {
-                  const newSel = field.value.filter(val => val !== id);
-                  field.onChange(newSel);
-                }}
-              >
-                <XMarkIcon className="h-3 w-3" />
-              </button>
+              ))}
             </div>
-          ) : null;
-        })}
+          )}
+        </div>
+
+        {/* Selected Items Display */}
+        {selectedConsoles.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {selectedConsoles.map(consoleId => {
+              const console = consolesData?.find(c => c.id === consoleId);
+              return console ? (
+                <div key={consoleId} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
+                  <CpuChipIcon className="h-3 w-3" />
+                  {console.name}
+                  <button
+                    type="button"
+                    className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
+                    onClick={() => handleConsoleToggle(field, consoleId)}
+                  >
+                    <XMarkIcon className="h-3 w-3" />
+                  </button>
+                </div>
+              ) : null;
+            })}
+          </div>
+        )}
+
+        {errors.console_ids && (
+          <span className="text-xs text-error mt-1">
+            {errors.console_ids.message}
+          </span>
+        )}
       </div>
-    </>
-  );
+    );
+  };
 
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-lg">
+      <div className="modal-box w-11/12 max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between pb-3 border-b border-base-300">
           <div className="flex items-center gap-2">
             <BuildingOfficeIcon className="h-5 w-5 text-brand-gold" />
@@ -291,26 +326,14 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
           </div>
 
           {/* Consoles */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                Consoles <span className="text-error">*</span>
-              </span>
-            </label>
-            <Controller
-              name="console_ids"
-              control={control}
-              defaultValue={[]}
-              render={({ field }) => renderMultiSelect(field.name, field, consolesData, "Select Consoles")}
-            />
-            {errors.console_ids && (
-              <span className="text-xs text-error mt-1">
-                {errors.console_ids.message}
-              </span>
-            )}
-          </div>
+          <Controller
+            name="console_ids"
+            control={control}
+            defaultValue={[]}
+            render={({ field }) => renderConsoleSelector(field)}
+          />
 
-          <div className="modal-action pt-3 border-t border-base-300">
+          <div className="modal-action pt-3 border-t border-base-300 sticky bottom-0 bg-base-100">
             <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
               Cancel
             </button>

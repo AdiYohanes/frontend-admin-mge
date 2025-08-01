@@ -1,17 +1,16 @@
 /* eslint-disable no-unused-vars */
 import React from 'react';
-import { PencilSquareIcon, TrashIcon, ArrowPathIcon, XCircleIcon, ReceiptRefundIcon } from '@heroicons/react/24/outline';
+import { EyeIcon, ReceiptRefundIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../../utils/formatters';
-import { CalendarDaysIcon, ClockIcon } from '@heroicons/react/24/solid';
 
-const BookingTable = ({ bookings, isLoading, page, limit, onEdit, onDelete, onReschedule, onCancel, onRefund }) => {
+const BookingTable = ({ bookings, isLoading, page, limit, onViewDetails, onRefund }) => {
   // Fungsi helper untuk menentukan warna badge status
   const getStatusBadge = (status) => {
     const baseClasses = 'badge font-semibold capitalize';
     switch (status?.toLowerCase()) {
       case 'finished':
       case 'complete':
-      case 'confirmed': // Menambahkan status 'confirmed'
+      case 'confirmed':
         return `${baseClasses} badge-success`;
       case 'pending':
       case 'booking success':
@@ -29,26 +28,39 @@ const BookingTable = ({ bookings, isLoading, page, limit, onEdit, onDelete, onRe
 
   // Fungsi untuk merender tombol aksi secara dinamis berdasarkan status
   const renderActions = (booking) => {
-    switch (booking.statusBooking?.toLowerCase()) {
-      case 'pending':
-      case 'booking success':
-      case 'rescheduled':
-      case 'confirmed': // Menambahkan aksi untuk status 'confirmed'
-        return (
-          <div className="flex items-center justify-center gap-1">
-            {/* <div className="tooltip" data-tip="Reschedule"><button onClick={() => onReschedule(booking)} className="btn btn-ghost btn-xs"><ArrowPathIcon className="h-5 w-5 text-blue-500" /></button></div>
-            <div className="tooltip" data-tip="Cancel Booking"><button onClick={() => onCancel(booking)} className="btn btn-ghost btn-xs"><XCircleIcon className="h-5 w-5 text-orange-500" /></button></div>
-            <div className="tooltip" data-tip="Delete Record"><button onClick={() => onDelete(booking)} className="btn btn-ghost btn-xs text-error"><TrashIcon className="h-5 w-5" /></button></div> */}
-            <span className="text-xs text-gray-400">-</span>
-          </div>
-        );
-      case 'cancelled':
-        return (
-          <div className="tooltip" data-tip="Refund"><button onClick={() => onRefund(booking)} className="btn btn-ghost btn-xs"><ReceiptRefundIcon className="h-5 w-5 text-accent" /></button></div>
-        );
-      default:
-        return <span className="text-xs text-gray-400">-</span>;
+    const actions = [];
+
+    // View Details - selalu tersedia untuk semua booking
+    actions.push(
+      <div key="view" className="tooltip" data-tip="View Details">
+        <button
+          onClick={() => onViewDetails(booking)}
+          className="btn btn-ghost btn-xs"
+        >
+          <EyeIcon className="h-5 w-5 text-blue-500" />
+        </button>
+      </div>
+    );
+
+    // Refund - hanya untuk status tertentu
+    if (booking.statusBooking?.toLowerCase() === 'cancelled') {
+      actions.push(
+        <div key="refund" className="tooltip" data-tip="Refund">
+          <button
+            onClick={() => onRefund(booking)}
+            className="btn btn-ghost btn-xs"
+          >
+            <ReceiptRefundIcon className="h-5 w-5 text-accent" />
+          </button>
+        </div>
+      );
     }
+
+    return (
+      <div className="flex items-center justify-center gap-1">
+        {actions.length > 0 ? actions : <span className="text-xs text-gray-400">-</span>}
+      </div>
+    );
   };
 
   if (isLoading) {

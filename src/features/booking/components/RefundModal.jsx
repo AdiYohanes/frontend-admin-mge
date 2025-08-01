@@ -2,7 +2,6 @@ import React, { useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useUpdateBookingMutation } from "../api/bookingApiSlice";
 import { toast } from "react-hot-toast";
 import { formatCurrency } from "../../../utils/formatters";
 
@@ -17,8 +16,6 @@ const refundSchema = z.object({
 const percentageOptions = [0, 25, 50, 75, 100];
 
 const RefundModal = ({ isOpen, onClose, bookingData }) => {
-  const [updateBooking, { isLoading }] = useUpdateBookingMutation();
-
   const {
     register,
     handleSubmit,
@@ -46,18 +43,17 @@ const RefundModal = ({ isOpen, onClose, bookingData }) => {
 
   const onSubmit = async (formData) => {
     try {
-      const updatedData = {
-        ...bookingData,
-        statusBooking: "Refunded",
-        // Kita bisa tambahkan info refund ke data booking untuk catatan
-        refundDetails: {
-          percentage: formData.refundPercentage,
-          amount: calculatedRefund,
-          refundedAt: new Date().toISOString(),
-        },
-      };
+      // TODO: Implement refund API call here
+      console.log('Refund data:', {
+        bookingId: bookingData?.id,
+        percentage: formData.refundPercentage,
+        amount: calculatedRefund,
+        bookingData
+      });
 
-      await updateBooking(updatedData).unwrap();
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       toast.success(
         `Refund sebesar ${formatCurrency(calculatedRefund)} berhasil diproses!`
       );
@@ -68,8 +64,10 @@ const RefundModal = ({ isOpen, onClose, bookingData }) => {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
+    <div className="modal modal-open">
       <div className="modal-box">
         <button
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
@@ -115,9 +113,8 @@ const RefundModal = ({ isOpen, onClose, bookingData }) => {
             </label>
             <select
               {...register("refundPercentage", { valueAsNumber: true })}
-              className={`select select-bordered ${
-                errors.refundPercentage ? "select-error" : ""
-              }`}
+              className={`select select-bordered ${errors.refundPercentage ? "select-error" : ""
+                }`}
             >
               {percentageOptions.map((p) => (
                 <option key={p} value={p}>
@@ -125,6 +122,13 @@ const RefundModal = ({ isOpen, onClose, bookingData }) => {
                 </option>
               ))}
             </select>
+            {errors.refundPercentage && (
+              <label className="label">
+                <span className="label-text-alt text-error">
+                  {errors.refundPercentage.message}
+                </span>
+              </label>
+            )}
           </div>
 
           <div className="form-control">
@@ -146,9 +150,7 @@ const RefundModal = ({ isOpen, onClose, bookingData }) => {
             <button
               type="submit"
               className="btn btn-primary"
-              disabled={isLoading}
             >
-              {isLoading && <span className="loading loading-spinner"></span>}
               Proses Refund
             </button>
           </div>

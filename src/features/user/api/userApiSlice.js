@@ -4,23 +4,23 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query({
-      query: ({ search = "", page = 1, per_page = 15, role = "CUST" }) => ({
-        url: "/api/admin/user",
-        params: {
-          page,
-          per_page,
-          search,
-          role,
-        },
-      }),
-      transformResponse: (response, meta, arg) => {
-        const { page = 1, per_page = 15 } = arg;
+      query: ({ page = 1, per_page = 10, search = "", role = "CUST" }) => {
+        const params = { page, per_page, role };
+        if (search) params.search = search;
         return {
-          users: response.data || [],
-          totalPages: response.last_page || 1,
-          currentPage: response.current_page || 1,
-          total: response.total || 0,
+          url: "/api/admin/user",
+          params: params,
         };
+      },
+      transformResponse: (response) => {
+        const users = response.data || [];
+        const pagination = {
+          currentPage: response.current_page || 1,
+          totalPages: response.last_page || 1,
+          total: response.total || 0,
+          perPage: response.per_page || 10,
+        };
+        return { users, pagination };
       },
       providesTags: (result) =>
         result
@@ -100,14 +100,6 @@ export const userApiSlice = apiSlice.injectEndpoints({
         return null;
       },
     }),
-
-    redeemPoints: builder.mutation({
-      query: ({ user_id, points_to_redeem, description }) => ({
-        url: "/api/admin/points-redeem",
-        method: "POST",
-        body: { user_id, points_to_redeem, description },
-      }),
-    }),
   }),
 });
 
@@ -118,5 +110,4 @@ export const {
   useUpdateUserMutation,
   useDeleteUserMutation,
   useVerifyUserQuery,
-  useRedeemPointsMutation,
 } = userApiSlice;

@@ -13,8 +13,6 @@ import Pagination from "../../../components/common/Pagination";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 import TopUserCard from "../components/TopUserCard";
 import CustomerTable from "../components/CustomerTable";
-import AddEditCustomerModal from "../components/AddEditCustomerModal";
-import RedeemPointModal from "../components/RedeemPointModal";
 
 const CustomerListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -22,10 +20,7 @@ const CustomerListPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingData, setEditingData] = useState(null);
   const [customerToDelete, setCustomerToDelete] = useState(null);
-  const [isRedeemModalOpen, setIsRedeemModalOpen] = useState(false);
   const deleteModalRef = useRef(null);
 
   const {
@@ -44,16 +39,6 @@ const CustomerListPage = () => {
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  const handleEditCustomer = (user) => {
-    setEditingData(user);
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setEditingData(null);
-  };
-
   const handleDeleteCustomer = (user) => {
     setCustomerToDelete(user);
     deleteModalRef.current?.showModal();
@@ -68,14 +53,6 @@ const CustomerListPage = () => {
       toast.error("Gagal menghapus customer.");
       console.error("Failed to delete customer:", err);
     }
-  };
-
-  const handleRedeemPoint = () => {
-    setIsRedeemModalOpen(true);
-  };
-
-  const handleCloseRedeemModal = () => {
-    setIsRedeemModalOpen(false);
   };
 
   return (
@@ -102,55 +79,19 @@ const CustomerListPage = () => {
         <div className="card-body">
           <h2 className="card-title text-2xl mb-4">Customer List</h2>
 
-          {/* Custom Table Controls with Redeem Point Button */}
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between mb-4">
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Show</span>
-                </label>
-                <select
-                  className="select select-bordered select-sm"
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                >
-                  <option value={10}>10</option>
-                  <option value={15}>15</option>
-                  <option value={25}>25</option>
-                  <option value={50}>50</option>
-                </select>
-              </div>
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Search</span>
-                </label>
-                <input
-                  type="text"
-                  placeholder="Search customers..."
-                  className="input input-bordered input-sm w-full sm:w-64"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <button
-                onClick={handleRedeemPoint}
-                className="btn btn-sm bg-brand-gold hover:bg-amber-600 text-white"
-              >
-                Redeem Point
-              </button>
-            </div>
-          </div>
+          <TableControls
+            limit={limit}
+            setLimit={setLimit}
+            searchTerm={searchTerm}
+            setSearchTerm={setSearchTerm}
+          />
 
           <CustomerTable
             users={tableData?.users}
             isLoading={isLoadingTable || isFetchingTable}
             page={currentPage}
             limit={limit}
-            onEdit={handleEditCustomer}
             onDelete={handleDeleteCustomer}
-            onRedeemPoint={handleRedeemPoint}
           />
           <Pagination
             currentPage={tableData?.currentPage}
@@ -159,19 +100,6 @@ const CustomerListPage = () => {
           />
         </div>
       </div>
-
-      {/* Modal untuk Tambah dan Edit Customer */}
-      <AddEditCustomerModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        editingData={editingData}
-      />
-
-      {/* Modal untuk Redeem Point */}
-      <RedeemPointModal
-        isOpen={isRedeemModalOpen}
-        onClose={handleCloseRedeemModal}
-      />
 
       <ConfirmationModal
         ref={deleteModalRef}

@@ -1,19 +1,16 @@
-import React, { useState, useEffect, useMemo /* , useRef */ } from 'react';
-import { useGetBookingsQuery, /* useDeleteBookingMutation, useUpdateBookingMutation */ } from '../api/bookingApiSlice';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useGetBookingsQuery, useGetBookingDetailQuery } from '../api/bookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
-// import { toast } from 'react-hot-toast';
 import { parseISO } from 'date-fns';
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon, EyeIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from '../../../components/common/TableControls';
 import Pagination from '../../../components/common/Pagination';
 import BookingTable from '../components/BookingTable';
-// import AddBookingModal from '../components/AddBookingModal';
-// import ConfirmationModal from '../../../components/common/ConfirmationModal';
-// import RescheduleModal from '../components/RescheduleModal';
 import RefundModal from '../components/RefundModal';
+import BookingDetailModal from '../components/BookingDetailModal';
 
 const BookingRoomPage = () => {
   // --- STATE MANAGEMENT ---
@@ -28,26 +25,18 @@ const BookingRoomPage = () => {
   // Navigation hook
   const navigate = useNavigate();
 
-  // State untuk mengontrol semua modal
-  // const [isAddEditModalOpen, setIsAddEditModalOpen] = useState(false);
-  // const [editingData, setEditingData] = useState(null);
-  // const [bookingToDelete, setBookingToDelete] = useState(null);
-  // const [isRescheduleModalOpen, setIsRescheduleModalOpen] = useState(false);
-  // const [bookingToReschedule, setBookingToReschedule] = useState(null);
+  // State untuk mengontrol modal
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
   const [bookingToRefund, setBookingToRefund] = useState(null);
-  // const [bookingToCancel, setBookingToCancel] = useState(null);
-
-  // Ref untuk modal konfirmasi
-  // const deleteModalRef = useRef(null);
-  // const cancelModalRef = useRef(null);
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const statusTabs = ['All', 'Confirmed', 'Pending', 'Completed']; // Reschedule & cancelled comment out
+  const statusTabs = ['All', 'Confirmed', 'Pending', 'Completed'];
 
   // --- RTK QUERY HOOKS ---
   const {
-    data: apiResponse, // Sekarang berisi { bookings, pagination }
+    data: apiResponse,
     isLoading,
     isFetching,
     refetch
@@ -67,6 +56,15 @@ const BookingRoomPage = () => {
     refetchOnMountOrArgChange: true,
   });
 
+  // Booking detail query
+  const {
+    data: bookingDetail,
+    isLoading: isDetailLoading,
+    error: detailError
+  } = useGetBookingDetailQuery(selectedBookingId, {
+    skip: !selectedBookingId,
+  });
+
   // Extract data dari response
   const allBookings = apiResponse?.bookings || [];
   const paginationInfo = apiResponse?.pagination || {};
@@ -82,9 +80,6 @@ const BookingRoomPage = () => {
     });
   }, [allBookings, paginationInfo, monthFilter, statusFilter]);
 
-  // const [deleteBooking, { isLoading: isDeleting }] = useDeleteBookingMutation();
-  // const [updateBooking, { isLoading: isUpdating }] = useUpdateBookingMutation();
-
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
   const { paginatedBookings, totalPages } = useMemo(() => {
     if (!allBookings) {
@@ -92,7 +87,7 @@ const BookingRoomPage = () => {
     }
 
     // Filter berdasarkan search term
-    let filtered = [...allBookings]; // Create a new array to avoid read-only issues
+    let filtered = [...allBookings];
 
     // Debug: Log sebelum filtering
     console.log('🔍 DEBUG - Sebelum filtering:', {
@@ -112,22 +107,6 @@ const BookingRoomPage = () => {
         booking.console.toLowerCase().includes(searchLower)
       );
     }
-
-    // Filter berdasarkan month (jika ada) - PERBAIKAN: Hapus filter month di frontend karena sudah di backend
-    // if (monthFilter) {
-    //   filtered = filtered.filter(booking => {
-    //     if (!booking.rawBooking?.start_time) return false;
-
-    //     try {
-    //       const bookingDate = parseISO(booking.rawBooking.start_time);
-    //       const bookingMonth = format(bookingDate, 'yyyy-MM');
-    //       return bookingMonth === monthFilter;
-    //     } catch (error) {
-    //       console.error('Error parsing date:', error);
-    //       return false;
-    //     }
-    //   });
-    // }
 
     // Sort berdasarkan tanggal
     filtered.sort((a, b) => {
@@ -149,7 +128,6 @@ const BookingRoomPage = () => {
     // PERBAIKAN: Gunakan pagination dari backend jika tidak ada search term
     if (!debouncedSearchTerm.trim()) {
       // Jika tidak ada search, gunakan data langsung dari API (sudah dipaginasi di backend)
-      // PERBAIKAN: Gunakan paginationInfo.last_page dari backend untuk total pages yang akurat
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
 
       console.log('🔍 DEBUG - Backend pagination:', {
@@ -163,7 +141,7 @@ const BookingRoomPage = () => {
       });
 
       return {
-        paginatedBookings: filtered, // Data sudah dipaginasi dari backend
+        paginatedBookings: filtered,
         totalPages: calculatedTotalPages
       };
     }
@@ -230,49 +208,16 @@ const BookingRoomPage = () => {
     navigate('/rent');
   };
 
-  const handleOpenEditModal = (/* booking */) => {
-    // setEditingData(booking);
-    // setIsAddEditModalOpen(true);
+  const handleViewDetails = (booking) => {
+    console.log('View details for booking:', booking);
+    setSelectedBookingId(booking.id);
+    setIsDetailModalOpen(true);
   };
 
-  // const handleCloseAddEditModal = () => {
-  //   // setIsAddEditModalOpen(false);
-  //   // setTimeout(() => { setEditingData(null); }, 300);
-  // };
-
-  // const handleSuccessSubmit = () => {
-  //   // handleCloseAddEditModal();
-  //   setSearchTerm('');
-  //   setMonthFilter('');
-  //   setStatusFilter('All');
-  //   setCurrentPage(1);
-  // };
-
-  const handleOpenDeleteModal = (/* booking */) => {
-    // setBookingToDelete(booking);
-    // deleteModalRef.current?.showModal();
+  const handleCloseDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setSelectedBookingId(null);
   };
-
-  // const handleConfirmDelete = async () => {
-  //   // if (!bookingToDelete) return;
-  //   // try {
-  //   //   await deleteBooking(bookingToDelete.id).unwrap();
-  //   //   toast.success('Booking berhasil dihapus!');
-  //   //   deleteModalRef.current?.close();
-  //   // } catch (err) {
-  //   //   toast.error('Gagal menghapus booking.');
-  //   //   console.error('Gagal menghapus booking:', err);
-  //   // }
-  // };
-
-  const handleOpenRescheduleModal = (/* booking */) => {
-    // setBookingToReschedule(booking);
-    // setIsRescheduleModalOpen(true);
-  };
-  // const handleCloseRescheduleModal = () => {
-  //   // setIsRescheduleModalOpen(false);
-  //   // setTimeout(() => setBookingToReschedule(null), 300);
-  // };
 
   const handleOpenRefundModal = (booking) => {
     setBookingToRefund(booking);
@@ -283,23 +228,6 @@ const BookingRoomPage = () => {
     setIsRefundModalOpen(false);
     setTimeout(() => setBookingToRefund(null), 300);
   };
-
-  const handleOpenCancelModal = (/* booking */) => {
-    // setBookingToCancel(booking);
-    // cancelModalRef.current?.showModal();
-  };
-
-  // const handleConfirmCancel = async () => {
-  //   // if (!bookingToCancel) return;
-  //   // try {
-  //   //   const payload = { id: bookingToCancel.id, status: 'cancelled' };
-  //   //   await updateBooking(payload).unwrap();
-  //   //   toast.success('Booking berhasil dibatalkan!');
-  //   //   cancelModalRef.current?.close();
-  //   // } catch (err) {
-  //   //   toast.error(err.data?.message || 'Gagal membatalkan booking.');
-  //   // }
-  // };
 
   const handleSortToggle = () => {
     setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
@@ -381,10 +309,7 @@ const BookingRoomPage = () => {
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}
-            onEdit={handleOpenEditModal}
-            onDelete={handleOpenDeleteModal}
-            onReschedule={handleOpenRescheduleModal}
-            onCancel={handleOpenCancelModal}
+            onViewDetails={handleViewDetails}
             onRefund={handleOpenRefundModal}
           />
 
@@ -419,15 +344,15 @@ const BookingRoomPage = () => {
         </div>
       </div>
 
-      {/* <AddBookingModal isOpen={isAddEditModalOpen} onClose={handleCloseAddEditModal} editingData={editingData} onFormSubmit={handleSuccessSubmit} /> */}
-      {/* <RescheduleModal isOpen={isRescheduleModalOpen} onClose={handleCloseRescheduleModal} bookingData={bookingToReschedule} /> */}
       <RefundModal isOpen={isRefundModalOpen} onClose={handleCloseRefundModal} bookingData={bookingToRefund} />
-      {/* <ConfirmationModal ref={deleteModalRef} title="Konfirmasi Hapus" onConfirm={handleConfirmDelete} isLoading={isDeleting}>
-        <p>Apakah Anda yakin ingin menghapus booking No. <span className="font-bold">{bookingToDelete?.noTransaction}</span>?</p>
-      </ConfirmationModal>
-      <ConfirmationModal ref={cancelModalRef} title="Konfirmasi Pembatalan" onConfirm={handleConfirmCancel} isLoading={isUpdating}>
-        <p>Apakah Anda yakin ingin membatalkan booking No. <span className="font-bold">{bookingToCancel?.noTransaction}</span>?</p>
-      </ConfirmationModal> */}
+
+      <BookingDetailModal
+        isOpen={isDetailModalOpen}
+        onClose={handleCloseDetailModal}
+        bookingData={bookingDetail}
+        isLoading={isDetailLoading}
+        error={detailError}
+      />
     </>
   );
 };
