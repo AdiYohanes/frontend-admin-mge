@@ -1,76 +1,33 @@
-import React, { useState, useRef } from "react";
+import React from "react";
 import {
   useGetFeaturedConsolesQuery,
-  useDeleteFeaturedConsoleMutation,
+  useUpdateConsoleFeaturedStatusMutation,
 } from "../api/settingsApiSlice";
 import { toast } from "react-hot-toast";
-import TableControls from "../../../components/common/TableControls";
-import AddEditFeaturedConsoleModal from "./AddEditFeaturedConsoleModal";
-import ConfirmationModal from "../../../components/common/ConfirmationModal";
 import FeaturedConsoleTable from "./FeaturedConsoleTable";
 
 const FeaturedConsoleManagement = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editingData, setEditingData] = useState(null);
-  const [itemToDelete, setItemToDelete] = useState(null);
-  const deleteModalRef = useRef(null);
-
   const { data, isLoading } = useGetFeaturedConsolesQuery();
-  const [deleteConsole, { isLoading: isDeleting }] =
-    useDeleteFeaturedConsoleMutation();
+  const [updateConsoleStatus] = useUpdateConsoleFeaturedStatusMutation();
 
-  const handleEdit = (item) => {
-    setEditingData(item);
-    setIsModalOpen(true);
-  };
-  const handleAdd = () => {
-    setEditingData(null);
-    setIsModalOpen(true);
-  };
-  const handleDelete = (item) => {
-    setItemToDelete(item);
-    deleteModalRef.current?.showModal();
-  };
-  const handleConfirmDelete = async () => {
+  const handleToggleStatus = async (console) => {
     try {
-      await deleteConsole(itemToDelete.id).unwrap();
-      toast.success("Item berhasil dihapus.");
-      deleteModalRef.current?.close();
+      await updateConsoleStatus({
+        id: console.id,
+        isActive: !console.isActive
+      }).unwrap();
+      toast.success(`Console ${console.isActive ? 'unfeatured' : 'featured'} successfully!`);
     } catch {
-      toast.error("Gagal menghapus item.");
+      toast.error("Failed to update console status.");
     }
   };
 
   return (
-    <>
-      <TableControls
-        onAddClick={handleAdd}
-        addButtonText="Add Featured Console"
-        showMonthFilter={false}
-      />
-      <FeaturedConsoleTable
-        consoles={data?.consoles}
-        isLoading={isLoading}
-        onEdit={handleEdit}
-        onDelete={handleDelete}
-      />
-      <AddEditFeaturedConsoleModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        editingData={editingData}
-      />
-      <ConfirmationModal
-        ref={deleteModalRef}
-        title="Hapus Featured Console"
-        onConfirm={handleConfirmDelete}
-        isLoading={isDeleting}
-      >
-        <p>
-          Yakin ingin menghapus{" "}
-          <span className="font-bold">"{itemToDelete?.title}"</span>?
-        </p>
-      </ConfirmationModal>
-    </>
+    <FeaturedConsoleTable
+      consoles={data?.consoles}
+      isLoading={isLoading}
+      onToggleStatus={handleToggleStatus}
+    />
   );
 };
 

@@ -64,13 +64,18 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
                   </div>
                 </td>
                 <td>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-success"
-                    checked={banner.isActive}
-                    onChange={() => handleToggleStatus(banner)}
-                    disabled={isUpdatingStatus}
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className={`toggle toggle-sm ${banner.isActive ? 'toggle-success' : 'toggle-error'}`}
+                      checked={banner.isActive}
+                      onChange={() => handleToggleStatus(banner)}
+                      disabled={isUpdatingStatus}
+                    />
+                    <span className={`text-sm ${banner.isActive ? 'text-success' : 'text-error'}`}>
+                      {banner.isActive ? 'Active' : 'Inactive'}
+                    </span>
+                  </div>
                 </td>
                 <td className="text-center">
                   <div className="flex items-center justify-center gap-1">

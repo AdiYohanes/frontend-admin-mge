@@ -121,10 +121,10 @@ const AddEditConsoleModal = ({ isOpen, onClose, editingData }) => {
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 ${isDragActive
-                  ? "border-brand-gold bg-brand-gold/5"
-                  : preview
-                    ? "border-brand-gold bg-base-100"
-                    : "border-base-300 hover:border-brand-gold hover:bg-base-50"
+                ? "border-brand-gold bg-brand-gold/5"
+                : preview
+                  ? "border-brand-gold bg-base-100"
+                  : "border-base-300 hover:border-brand-gold hover:bg-base-50"
                 }`}
             >
               <input {...getInputProps()} />
@@ -184,35 +184,38 @@ const AddEditConsoleModal = ({ isOpen, onClose, editingData }) => {
             )}
           </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                Name <span className="text-error">*</span>
-              </span>
-            </label>
-            <input
-              type="text"
-              {...register("name")}
-              className={`input input-bordered ${errors.name ? "input-error" : ""
-                }`}
-              placeholder="Enter console name..."
-            />
-            {errors.name && (
-              <span className="text-xs text-error mt-1">
-                {errors.name.message}
-              </span>
-            )}
-          </div>
+          {/* Name & Description */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">
+                  Name <span className="text-error">*</span>
+                </span>
+              </label>
+              <input
+                type="text"
+                {...register("name")}
+                className={`input input-bordered ${errors.name ? "input-error" : ""
+                  }`}
+                placeholder="Enter console name..."
+              />
+              {errors.name && (
+                <span className="text-xs text-error mt-1">
+                  {errors.name.message}
+                </span>
+              )}
+            </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Description</span>
-            </label>
-            <textarea
-              {...register("description")}
-              className="textarea textarea-bordered h-24"
-              placeholder="Enter console description (optional)..."
-            ></textarea>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Description</span>
+              </label>
+              <textarea
+                {...register("description")}
+                className="textarea textarea-bordered h-24"
+                placeholder="Enter console description (optional)..."
+              ></textarea>
+            </div>
           </div>
 
           <div className="modal-action pt-4 border-t border-base-300">

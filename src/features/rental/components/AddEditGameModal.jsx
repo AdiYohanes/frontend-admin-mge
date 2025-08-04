@@ -49,7 +49,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     handleSubmit,
     reset,
     setValue,
-    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(gameSchema),
@@ -60,9 +59,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
       image: null,
     },
   });
-
-  // Watch image field untuk debugging
-  const imageField = watch("image");
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -128,9 +124,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
         toast.error("Genre harus dipilih!");
         return;
       }
-
-      // Check if genre exists
-      const selectedGenre = genresData?.genres?.find(g => g.id.toString() === formData.genre.toString());
 
       if (isEditMode) {
         if (!formData.image || formData.image.length === 0) {
@@ -286,7 +279,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
             </div>
           </div>
 
-          <div className="form-control">
+          <div className="form-control flex flex-col">
             <label className="label">
               <span className="label-text font-medium">Description</span>
             </label>
@@ -301,13 +294,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
               </span>
             )}
           </div>
-
-          {/* Debug info - remove in production */}
-          {import.meta.env.DEV && (
-            <div className="text-xs text-gray-500 p-2 bg-gray-100 rounded">
-              Debug: Image field value: {JSON.stringify(imageField)}
-            </div>
-          )}
 
           <div className="modal-action pt-4 border-t border-base-300">
             <button type="button" className="btn btn-ghost" onClick={onClose}>

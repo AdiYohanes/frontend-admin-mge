@@ -165,64 +165,56 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Featured Consoles Endpoints ===
     getFeaturedConsoles: builder.query({
-      query: () => "/api/admin/featured-consoles", // Asumsi endpoint
+      query: () => "/api/public/consoles",
+      transformResponse: (response) => ({
+        consoles: response.data.map((console) => ({
+          id: console.id,
+          name: console.name,
+          imageUrl: console.image
+            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${console.image}`
+            : `https://placehold.co/150x75/EEE/31343C?text=No+Image`,
+          isActive: console.is_active || false,
+          description: console.description || "",
+        })),
+      }),
       providesTags: [{ type: "FeaturedConsole", id: "LIST" }],
     }),
-    addFeaturedConsole: builder.mutation({
-      query: (item) => ({
-        url: "/api/admin/featured-consoles",
+    updateConsoleFeaturedStatus: builder.mutation({
+      query: ({ id, isActive }) => ({
+        url: `/api/admin/consoles/${id}`,
         method: "POST",
-        body: item,
-      }),
-      invalidatesTags: [{ type: "FeaturedConsole", id: "LIST" }],
-    }),
-    updateFeaturedConsole: builder.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `/api/admin/featured-consoles/${id}`,
-        method: "POST",
-        body: { ...patch, _method: "POST" },
-      }),
-      invalidatesTags: (r, e, arg) => [
-        { type: "FeaturedConsole", id: "LIST" },
-        { type: "FeaturedConsole", id: arg.id },
-      ],
-    }),
-    deleteFeaturedConsole: builder.mutation({
-      query: (id) => ({
-        url: `/api/admin/featured-consoles/${id}`,
-        method: "DELETE",
+        body: { is_active: isActive },
       }),
       invalidatesTags: [{ type: "FeaturedConsole", id: "LIST" }],
     }),
 
     // === Featured Games Endpoints ===
     getFeaturedGames: builder.query({
-      query: () => "/api/admin/featured-games", // Asumsi endpoint
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: "/api/public/games",
+        params: { page, per_page: limit, search },
+      }),
+      transformResponse: (response) => ({
+        games: response.data.map((game) => ({
+          id: game.id,
+          name: game.title || game.name,
+          imageUrl: game.image
+            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${game.image}`
+            : `https://placehold.co/150x75/EEE/31343C?text=No+Image`,
+          isActive: game.is_active || false,
+          description: game.description || "",
+        })),
+        totalPages: response.last_page,
+        currentPage: response.current_page,
+        totalItems: response.total,
+      }),
       providesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
-    addFeaturedGame: builder.mutation({
-      query: (item) => ({
-        url: "/api/admin/featured-games",
+    updateGameFeaturedStatus: builder.mutation({
+      query: ({ id, isActive }) => ({
+        url: `/api/admin/games/${id}`,
         method: "POST",
-        body: item,
-      }),
-      invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
-    }),
-    updateFeaturedGame: builder.mutation({
-      query: ({ id, ...patch }) => ({
-        url: `/api/admin/featured-games/${id}`,
-        method: "POST",
-        body: { ...patch, _method: "POST" },
-      }),
-      invalidatesTags: (r, e, arg) => [
-        { type: "FeaturedGame", id: "LIST" },
-        { type: "FeaturedGame", id: arg.id },
-      ],
-    }),
-    deleteFeaturedGame: builder.mutation({
-      query: (id) => ({
-        url: `/api/admin/featured-games/${id}`,
-        method: "DELETE",
+        body: { is_active: isActive },
       }),
       invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
@@ -323,13 +315,9 @@ export const {
   useUpdateBannerMutation,
   useDeleteBannerMutation,
   useGetFeaturedConsolesQuery,
-  useAddFeaturedConsoleMutation,
-  useUpdateFeaturedConsoleMutation,
-  useDeleteFeaturedConsoleMutation,
+  useUpdateConsoleFeaturedStatusMutation,
   useGetFeaturedGamesQuery,
-  useAddFeaturedGameMutation,
-  useUpdateFeaturedGameMutation,
-  useDeleteFeaturedGameMutation,
+  useUpdateGameFeaturedStatusMutation,
   useGetFeaturedRoomsQuery,
   useUpdateRoomFeaturedStatusMutation,
   useAddFeaturedRoomMutation,
@@ -340,3 +328,49 @@ export const {
   useUpdateCustomerReviewMutation,
   useDeleteCustomerReviewMutation,
 } = settingsApiSlice;
+
+// Pricelist endpoints
+export const pricelistApiSlice = apiSlice.injectEndpoints({
+  endpoints: (builder) => ({
+    getPricelists: builder.query({
+      query: ({ page = 1, limit = 10, search = "" }) => ({
+        url: `/api/admin/pricelists?page=${page}&limit=${limit}&search=${search}`,
+        method: 'GET',
+      }),
+      providesTags: ['Pricelist'],
+    }),
+
+    addPricelist: builder.mutation({
+      query: (data) => ({
+        url: '/api/admin/pricelists',
+        method: 'POST',
+        body: data, // FormData will be passed here
+      }),
+      invalidatesTags: ['Pricelist'],
+    }),
+
+    updatePricelist: builder.mutation({
+      query: ({ id, data }) => ({
+        url: `/api/admin/pricelists/${id}`,
+        method: 'POST',
+        body: data, // FormData will be passed here
+      }),
+      invalidatesTags: ['Pricelist'],
+    }),
+
+    deletePricelist: builder.mutation({
+      query: (id) => ({
+        url: `/api/admin/pricelists/${id}`,
+        method: 'DELETE',
+      }),
+      invalidatesTags: ['Pricelist'],
+    }),
+  }),
+});
+
+export const {
+  useGetPricelistsQuery,
+  useAddPricelistMutation,
+  useUpdatePricelistMutation,
+  useDeletePricelistMutation,
+} = pricelistApiSlice;

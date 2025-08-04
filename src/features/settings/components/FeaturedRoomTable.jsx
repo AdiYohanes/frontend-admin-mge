@@ -68,13 +68,18 @@ const FeaturedRoomTable = ({ rooms, isLoading, onEdit, onDelete }) => {
                   )}
                 </td>
                 <td>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-success"
-                    checked={room.isActive}
-                    onChange={() => handleToggleStatus(room)}
-                    disabled={isUpdatingStatus}
-                  />
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className={`toggle toggle-sm ${room.isActive ? 'toggle-success' : 'toggle-error'}`}
+                      checked={room.isActive}
+                      onChange={() => handleToggleStatus(room)}
+                      disabled={isUpdatingStatus}
+                    />
+                    <span className={`text-sm ${room.isActive ? 'text-success' : 'text-error'}`}>
+                      {room.isActive ? 'Featured' : 'Not Featured'}
+                    </span>
+                  </div>
                 </td>
               </tr>
             ))

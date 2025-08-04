@@ -1,20 +1,6 @@
 import React from "react";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
-import { useUpdateFeaturedGameMutation } from "../api/settingsApiSlice";
-import { toast } from "react-hot-toast";
 
-const FeaturedGameTable = ({ games, isLoading, onEdit, onDelete }) => {
-  const [updateGame, { isLoading: isUpdatingStatus }] =
-    useUpdateFeaturedGameMutation();
-
-  const handleToggleStatus = async (game) => {
-    try {
-      await updateGame({ ...game, isActive: !game.isActive }).unwrap();
-      toast.success(`Status berhasil diperbarui.`);
-    } catch {
-      toast.error("Gagal memperbarui status.");
-    }
-  };
+const FeaturedGameTable = ({ games, isLoading, onToggleStatus, currentPage = 1, limit = 10 }) => {
 
   if (isLoading)
     return (
@@ -29,56 +15,41 @@ const FeaturedGameTable = ({ games, isLoading, onEdit, onDelete }) => {
         <thead className="bg-base-200">
           <tr>
             <th>No</th>
-            <th>Description</th>
-            <th>Highlighted Games</th>
-            <th>Activation</th>
-            <th className="text-center">Actions</th>
+            <th>Image</th>
+            <th>Name</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
           {(!games || games.length === 0) ? (
             <tr>
-              <td colSpan="5" className="text-center py-8 text-base-content/60">
+              <td colSpan="4" className="text-center py-8 text-base-content/60">
                 Tidak ada data game yang ditemukan.
               </td>
             </tr>
           ) : (
             games.map((game, index) => (
               <tr key={game.id} className="hover">
-                <th>{index + 1}</th>
-                <td className="text-sm max-w-sm">{game.description}</td>
+                <th>{(currentPage - 1) * limit + index + 1}</th>
                 <td>
-                  <div className="flex flex-wrap gap-1">
-                    {game.highlightedGames.map((g) => (
-                      <div key={g} className="badge badge-primary badge-outline">
-                        {g}
-                      </div>
-                    ))}
+                  <div className="avatar">
+                    <div className="mask mask-squircle w-16 h-16">
+                      <img src={game.imageUrl} alt={game.name} />
+                    </div>
                   </div>
                 </td>
+                <td className="font-bold">{game.name}</td>
                 <td>
-                  <input
-                    type="checkbox"
-                    className="toggle toggle-success"
-                    checked={game.isActive}
-                    onChange={() => handleToggleStatus(game)}
-                    disabled={isUpdatingStatus}
-                  />
-                </td>
-                <td className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={() => onEdit(game)}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(game)}
-                      className="btn btn-ghost btn-sm text-error"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className={`toggle toggle-sm ${game.isActive ? 'toggle-success' : 'toggle-error'}`}
+                      checked={game.isActive}
+                      onChange={() => onToggleStatus(game)}
+                    />
+                    <span className={`text-sm ${game.isActive ? 'text-success' : 'text-error'}`}>
+                      {game.isActive ? 'Featured' : 'Not Featured'}
+                    </span>
                   </div>
                 </td>
               </tr>

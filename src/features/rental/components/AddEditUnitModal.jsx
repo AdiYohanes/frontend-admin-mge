@@ -291,38 +291,39 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
             </div>
           </div>
 
-          {/* Status */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">
-                Status <span className="text-error">*</span>
-              </span>
-            </label>
-            <select
-              {...register('status')}
-              className={`select select-bordered select-sm ${errors.status ? 'select-error' : ''}`}
-            >
-              <option value="available">Available</option>
-              <option value="booked">Booked</option>
-              <option value="maintenance">Maintenance</option>
-            </select>
-            {errors.status && (
-              <span className="text-xs text-error mt-1">
-                {errors.status.message}
-              </span>
-            )}
-          </div>
+          {/* Status & Description */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">
+                  Status <span className="text-error">*</span>
+                </span>
+              </label>
+              <select
+                {...register('status')}
+                className={`select select-bordered select-sm ${errors.status ? 'select-error' : ''}`}
+              >
+                <option value="available">Available</option>
+                <option value="booked">Booked</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+              {errors.status && (
+                <span className="text-xs text-error mt-1">
+                  {errors.status.message}
+                </span>
+              )}
+            </div>
 
-          {/* Description */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium">Description</span>
-            </label>
-            <textarea
-              {...register('description')}
-              placeholder="Unit description..."
-              className="textarea textarea-bordered textarea-sm h-16"
-            ></textarea>
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Description</span>
+              </label>
+              <textarea
+                {...register('description')}
+                placeholder="Unit description..."
+                className="textarea textarea-bordered textarea-sm h-16"
+              ></textarea>
+            </div>
           </div>
 
           {/* Consoles */}

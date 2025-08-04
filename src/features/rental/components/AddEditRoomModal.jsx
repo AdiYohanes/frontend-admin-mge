@@ -138,10 +138,10 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 ${isDragActive
-                  ? "border-brand-gold bg-brand-gold/5"
-                  : preview
-                    ? "border-brand-gold bg-base-100"
-                    : "border-base-300 hover:border-brand-gold hover:bg-base-50"
+                ? "border-brand-gold bg-brand-gold/5"
+                : preview
+                  ? "border-brand-gold bg-base-100"
+                  : "border-base-300 hover:border-brand-gold hover:bg-base-50"
                 }`}
             >
               <input {...getInputProps()} />
@@ -249,7 +249,8 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
             </div>
           </div>
 
-          <div className="form-control">
+          {/* Description Section */}
+          <div className="form-control flex flex-col">
             <label className="label">
               <span className="label-text font-medium">Description</span>
             </label>

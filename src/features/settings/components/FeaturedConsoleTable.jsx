@@ -1,7 +1,6 @@
 import React from "react";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
 
-const FeaturedConsoleTable = ({ consoles, isLoading, onEdit, onDelete }) => {
+const FeaturedConsoleTable = ({ consoles, isLoading, onToggleStatus }) => {
   if (isLoading)
     return (
       <div className="flex justify-center p-10">
@@ -16,8 +15,8 @@ const FeaturedConsoleTable = ({ consoles, isLoading, onEdit, onDelete }) => {
           <tr>
             <th>No</th>
             <th>Image</th>
-            <th>Title</th>
-            <th className="text-center">Actions</th>
+            <th>Name</th>
+            <th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -34,25 +33,22 @@ const FeaturedConsoleTable = ({ consoles, isLoading, onEdit, onDelete }) => {
                 <td>
                   <div className="avatar">
                     <div className="mask mask-squircle w-16 h-16">
-                      <img src={console.imageUrl} alt={console.title} />
+                      <img src={console.imageUrl} alt={console.name} />
                     </div>
                   </div>
                 </td>
-                <td className="font-bold">{console.title}</td>
-                <td className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={() => onEdit(console)}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(console)}
-                      className="btn btn-ghost btn-sm text-error"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
+                <td className="font-bold">{console.name}</td>
+                <td>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      className={`toggle toggle-sm ${console.isActive ? 'toggle-success' : 'toggle-error'}`}
+                      checked={console.isActive}
+                      onChange={() => onToggleStatus(console)}
+                    />
+                    <span className={`text-sm ${console.isActive ? 'text-success' : 'text-error'}`}>
+                      {console.isActive ? 'Featured' : 'Not Featured'}
+                    </span>
                   </div>
                 </td>
               </tr>

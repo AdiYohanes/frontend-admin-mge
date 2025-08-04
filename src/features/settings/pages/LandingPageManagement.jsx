@@ -4,6 +4,7 @@ import FeaturedConsoleManagement from "../components/FeaturedConsoleManagement";
 import FeaturedRoomManagement from "../components/FeaturedRoomManagement";
 import FeaturedGameManagement from "../components/FeaturedGameManagement";
 import CustomerReviewManagement from "../components/CustomerReviewManagement";
+import PricelistTable from "../components/PricelistTable";
 
 const LandingPageManagement = () => {
   return (
@@ -65,14 +66,6 @@ const LandingPageManagement = () => {
       {/* Featured Rooms Section */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-xl font-semibold">Featured Rooms</h3>
-              <p className="text-sm text-base-content/60">
-                Kelola room yang ditampilkan di halaman utama
-              </p>
-            </div>
-          </div>
           <FeaturedRoomManagement />
         </div>
       </div>
@@ -89,6 +82,13 @@ const LandingPageManagement = () => {
             </div>
           </div>
           <CustomerReviewManagement />
+        </div>
+      </div>
+
+      {/* Pricelist Section */}
+      <div className="card bg-base-100 shadow-xl">
+        <div className="card-body">
+          <PricelistTable />
         </div>
       </div>
     </div>
