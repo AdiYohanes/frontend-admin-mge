@@ -61,7 +61,6 @@ const menuItems = [
     title: "Settings",
     icon: <Cog6ToothIcon className={iconClass} />,
     submenu: [
-      { title: "App Settings", path: "/settings/app" },
       { title: "Promo Management", path: "/settings/promo" },
       { title: "FAQ", path: "/settings/faq" },
       { title: "Landing Page", path: "/settings/landing-page" },

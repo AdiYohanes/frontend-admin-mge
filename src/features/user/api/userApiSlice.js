@@ -64,14 +64,60 @@ export const userApiSlice = apiSlice.injectEndpoints({
     }),
 
     updateUser: builder.mutation({
-      query: ({ id, ...patch }) => {
-        const { confirmPassword, ...dataToSend } = patch;
+      query: ({ id, name, email, phone, username, ...patch }) => {
+        console.log("🔍 DEBUG - API Update User:", { id, name, email, phone, username });
+
+        const dataToSend = {
+          name,
+          email,
+          phone,
+          username,
+          ...patch
+        };
 
         return {
           url: `/api/admin/user/${id}`,
           method: "POST",
-          body: dataToSend, // <-- Tidak ada lagi '_method: "PUT"'
+          body: dataToSend,
         };
+      },
+      // Optimistic update untuk realtime
+      async onQueryStarted({ id, name, email, phone, username, ...patch }, { dispatch, queryFulfilled, getState }) {
+        // Optimistic update untuk getUsers query
+        const patchResult = dispatch(
+          userApiSlice.util.updateQueryData('getUsers', { page: 1, per_page: 9999, role: "CUST" }, (draft) => {
+            const user = draft.users.find(user => user.id === id);
+            if (user) {
+              user.name = name;
+              user.email = email;
+              user.phone = phone;
+              user.username = username;
+              Object.assign(user, patch);
+            }
+          })
+        );
+
+        // Optimistic update untuk getTopSpenders query
+        const topSpendersPatch = dispatch(
+          userApiSlice.util.updateQueryData('getTopSpenders', undefined, (draft) => {
+            const user = draft.find(user => user.id === id);
+            if (user) {
+              user.name = name;
+              user.email = email;
+              user.phone = phone;
+              user.username = username;
+              Object.assign(user, patch);
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Jika gagal, rollback optimistic update
+          patchResult.undo();
+          topSpendersPatch.undo();
+        }
       },
       invalidatesTags: (result, error, arg) => [
         { type: "User", id: "LIST" },

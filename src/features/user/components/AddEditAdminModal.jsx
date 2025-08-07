@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useAddUserMutation, useUpdateUserMutation } from "../api/userApiSlice";
 import { toast } from "react-hot-toast";
+import { XMarkIcon } from "@heroicons/react/24/outline";
 
 // Updated schema to match API requirements
 const adminSchema = z
@@ -117,169 +118,206 @@ const AddEditAdminModal = ({ isOpen, onClose, editingData }) => {
     }
   };
 
+  if (!isOpen) return null;
+
   return (
-    <div className={`modal ${isOpen ? "modal-open" : ""}`}>
+    <div className="modal modal-open">
       <div className="modal-box w-11/12 max-w-2xl">
-        <button
-          className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-          onClick={onClose}
-        >
-          ✕
-        </button>
-        <h3 className="font-bold text-lg">
-          {isEditMode ? "Edit User Admin" : "Add New User Admin"}
-        </h3>
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Full Name</span>
-              </label>
-              <input
-                type="text"
-                {...register("name")}
-                className={`input input-bordered ${errors.name ? "input-error" : ""
-                  }`}
-              />
-              {errors.name && (
-                <span className="text-xs text-error mt-1">
-                  {errors.name.message}
-                </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Username</span>
-              </label>
-              <input
-                type="text"
-                {...register("username")}
-                className={`input input-bordered ${errors.username ? "input-error" : ""
-                  }`}
-              />
-              {errors.username && (
-                <span className="text-xs text-error mt-1">
-                  {errors.username.message}
-                </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Email (Optional)</span>
-              </label>
-              <input
-                type="email"
-                {...register("email")}
-                className={`input input-bordered ${errors.email ? "input-error" : ""
-                  }`}
-              />
-              {errors.email && (
-                <span className="text-xs text-error mt-1">
-                  {errors.email.message}
-                </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Phone Number</span>
-              </label>
-              <input
-                type="tel"
-                {...register("phone")}
-                className={`input input-bordered ${errors.phone ? "input-error" : ""
-                  }`}
-              />
-              {errors.phone && (
-                <span className="text-xs text-error mt-1">
-                  {errors.phone.message}
-                </span>
-              )}
-            </div>
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h3 className="font-bold text-xl">
+              {isEditMode ? "Edit User Admin" : "Add New User Admin"}
+            </h3>
+            <p className="text-sm text-base-content/60 mt-1">
+              {isEditMode ? "Update informasi user admin" : "Tambahkan user admin baru ke sistem"}
+            </p>
           </div>
+          <button
+            onClick={onClose}
+            className="btn btn-sm btn-circle btn-ghost"
+          >
+            <XMarkIcon className="h-5 w-5" />
+          </button>
+        </div>
 
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text">Role</span>
-            </label>
-            <div className="p-4 bg-base-200 rounded-lg flex gap-6">
-              <label className="label cursor-pointer justify-start gap-2">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+          {/* Personal Information Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-brand-gold rounded"></div>
+              <h4 className="font-semibold text-lg">Informasi Pribadi</h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Full Name *</span>
+                </label>
                 <input
-                  type="radio"
-                  {...register("role")}
-                  value="Admin"
-                  className="radio checked:bg-brand-gold"
-                />{" "}
-                <span className="label-text">Admin</span>
-              </label>
-              <label className="label cursor-pointer justify-start gap-2">
+                  type="text"
+                  placeholder="Masukkan nama lengkap"
+                  {...register("name")}
+                  className={`input input-bordered w-full ${errors.name ? "input-error" : ""}`}
+                />
+                {errors.name && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.name.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Username *</span>
+                </label>
                 <input
-                  type="radio"
-                  {...register("role")}
-                  value="Superadmin"
-                  className="radio checked:bg-brand-gold"
-                />{" "}
-                <span className="label-text">Superadmin</span>
-              </label>
-            </div>
-            {errors.role && (
-              <span className="text-xs text-error mt-1">
-                {errors.role.message}
-              </span>
-            )}
-          </div>
+                  type="text"
+                  placeholder="Masukkan username"
+                  {...register("username")}
+                  className={`input input-bordered w-full ${errors.username ? "input-error" : ""}`}
+                />
+                {errors.username && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.username.message}
+                  </span>
+                )}
+              </div>
 
-          <div className="divider text-sm font-semibold">Set Password</div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">
-                  {isEditMode ? "New Password (Optional)" : "Password"}
-                </span>
-              </label>
-              <input
-                type="password"
-                {...register("password")}
-                className={`input input-bordered ${errors.password ? "input-error" : ""
-                  }`}
-              />
-              {errors.password && (
-                <span className="text-xs text-error mt-1">
-                  {errors.password.message}
-                </span>
-              )}
-            </div>
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text">Confirm Password</span>
-              </label>
-              <input
-                type="password"
-                {...register("confirmPassword")}
-                className={`input input-bordered ${errors.confirmPassword ? "input-error" : ""
-                  }`}
-              />
-              {errors.confirmPassword && (
-                <span className="text-xs text-error mt-1">
-                  {errors.confirmPassword.message}
-                </span>
-              )}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Email</span>
+                </label>
+                <input
+                  type="email"
+                  placeholder="Masukkan email (opsional)"
+                  {...register("email")}
+                  className={`input input-bordered w-full ${errors.email ? "input-error" : ""}`}
+                />
+                {errors.email && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.email.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Phone Number *</span>
+                </label>
+                <input
+                  type="tel"
+                  placeholder="Masukkan nomor telepon"
+                  {...register("phone")}
+                  className={`input input-bordered w-full ${errors.phone ? "input-error" : ""}`}
+                />
+                {errors.phone && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.phone.message}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="modal-action pt-4">
-            <button type="button" className="btn btn-ghost" onClick={onClose}>
-              Batal
+          {/* Role Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-brand-gold rounded"></div>
+              <h4 className="font-semibold text-lg">Role & Permissions</h4>
+            </div>
+
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Role *</span>
+              </label>
+              <div className="p-4 bg-base-200 rounded-lg">
+                <label className="label cursor-pointer justify-start gap-3">
+                  <input
+                    type="radio"
+                    {...register("role")}
+                    value="Admin"
+                    className="radio radio-primary checked:bg-brand-gold"
+                  />
+                  <div>
+                    <span className="label-text font-medium">Admin</span>
+                    <span className="text-xs text-base-content/60 block">Akses penuh ke sistem admin</span>
+                  </div>
+                </label>
+              </div>
+              {errors.role && (
+                <span className="text-xs text-error mt-1">
+                  {errors.role.message}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Password Section */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="w-1 h-6 bg-brand-gold rounded"></div>
+              <h4 className="font-semibold text-lg">Security</h4>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">
+                    {isEditMode ? "New Password" : "Password *"}
+                  </span>
+                </label>
+                <input
+                  type="password"
+                  placeholder={isEditMode ? "Kosongkan jika tidak ingin mengubah" : "Masukkan password"}
+                  {...register("password")}
+                  className={`input input-bordered w-full ${errors.password ? "input-error" : ""}`}
+                />
+                {errors.password && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.password.message}
+                  </span>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Confirm Password</span>
+                </label>
+                <input
+                  type="password"
+                  placeholder="Konfirmasi password"
+                  {...register("confirmPassword")}
+                  className={`input input-bordered w-full ${errors.confirmPassword ? "input-error" : ""}`}
+                />
+                {errors.confirmPassword && (
+                  <span className="text-xs text-error mt-1">
+                    {errors.confirmPassword.message}
+                  </span>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Action Buttons */}
+          <div className="modal-action pt-6">
+            <button
+              type="button"
+              className="btn btn-ghost"
+              onClick={onClose}
+              disabled={isLoading}
+            >
+              Cancel
             </button>
             <button
               type="submit"
-              className="btn bg-brand-gold hover:bg-amber-600 text-white"
+              className="btn bg-brand-gold hover:bg-amber-600 text-white border-brand-gold"
               disabled={isLoading}
             >
-              {isLoading && (
-                <span className="loading loading-spinner"></span>
+              {isLoading ? (
+                <span className="loading loading-spinner loading-sm"></span>
+              ) : (
+                isEditMode ? "Save Changes" : "Add Admin"
               )}
-              {isEditMode ? "Save Changes" : "Add Admin"}
             </button>
           </div>
         </form>

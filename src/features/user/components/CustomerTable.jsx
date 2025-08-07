@@ -1,9 +1,9 @@
 /* eslint-disable no-unused-vars */
 import React from "react";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../../../utils/formatters";
 
-const CustomerTable = ({ users, isLoading, page, limit, onDelete }) => {
+const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
   if (isLoading)
     return (
       <div className="flex justify-center p-10">
@@ -48,6 +48,14 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete }) => {
               </td>
               <td className="text-center">
                 <div className="flex items-center justify-center gap-1">
+                  <div className="tooltip" data-tip="Edit">
+                    <button
+                      onClick={() => onEdit(user)}
+                      className="btn btn-ghost btn-xs text-warning"
+                    >
+                      <PencilSquareIcon className="h-5 w-5" />
+                    </button>
+                  </div>
                   <div className="tooltip tooltip-error" data-tip="Hapus">
                     <button
                       onClick={() => onDelete(user)}

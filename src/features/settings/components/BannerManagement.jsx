@@ -55,6 +55,7 @@ const BannerManagement = () => {
         onAddClick={handleAdd}
         addButtonText="Add Banner"
         showMonthFilter={false}
+        showSearch={false}
         showLimitControl={false} // Kita tidak pakai paginasi di sini
       />
 

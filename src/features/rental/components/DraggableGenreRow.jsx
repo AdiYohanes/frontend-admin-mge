@@ -36,6 +36,7 @@ const DraggableGenreRow = ({
         try {
             return format(new Date(dateString), "dd MMM yyyy");
         } catch (error) {
+            console.error("Error formatting date:", error);
             return "Invalid Date";
         }
     };
@@ -65,7 +66,6 @@ const DraggableGenreRow = ({
                     </div>
                     <div>
                         <div className="font-semibold">{genre.name}</div>
-                        <div className="text-xs text-base-content/60">ID: {genre.id}</div>
                     </div>
                 </div>
             </td>

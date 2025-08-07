@@ -53,6 +53,7 @@ const CustomerReviewManagement = () => {
         onAddClick={handleAdd}
         addButtonText="Add Review"
         showMonthFilter={false}
+        showSearch={false}
       />
 
       <CustomerReviewTable

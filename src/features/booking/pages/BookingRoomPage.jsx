@@ -204,8 +204,8 @@ const BookingRoomPage = () => {
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
-    // Navigate to /rent instead of opening modal
-    navigate('/rent');
+    // Redirect to specific URL for OTS booking
+    window.open('http://f0w8ssgc0kw4gkc08s04448o.168.231.84.221.sslip.io/rent', '_blank');
   };
 
   const handleViewDetails = (booking) => {
