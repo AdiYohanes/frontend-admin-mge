@@ -26,7 +26,6 @@ const GameTable = ({ games, isLoading, page, limit, onEdit, onDelete }) => {
             <th>Name</th>
             <th>Console</th>
             <th>Genre</th>
-            <th>Available at</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>

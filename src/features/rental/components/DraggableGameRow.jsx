@@ -34,6 +34,21 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
     return 'Unknown';
   };
 
+  // Helper function to safely display console
+  const getConsoleDisplay = (console) => {
+    if (console && typeof console === 'object' && console.name) {
+      return console.name;
+    }
+    if (console && typeof console === 'string') {
+      // Return empty string if console is "N/A" or similar
+      if (console === 'N/A' || console === 'n/a' || console === 'N/a') {
+        return '';
+      }
+      return console;
+    }
+    return '';
+  };
+
   return (
     <tr
       ref={setNodeRef}
@@ -58,11 +73,10 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
         </div>
       </td>
       <td className="font-bold">{game.name}</td>
-      <td>{game.console}</td>
+      <td>{getConsoleDisplay(game.console)}</td>
       <td>
         <div className="badge badge-ghost">{getGenreDisplay(game.genre)}</div>
       </td>
-      <td>{game.availableAt || 0} Units</td>
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
           <div className="tooltip" data-tip="Edit">
