@@ -237,7 +237,7 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
                   type="number"
                   {...register("max_visitors", { valueAsNumber: true })}
                   placeholder="4"
-                  className={`input input-bordered w-full pl-10 ${errors.max_visitors ? "input-error" : ""
+                  className={`input input-bordered w-full ${errors.max_visitors ? "input-error" : ""
                     }`}
                 />
               </div>

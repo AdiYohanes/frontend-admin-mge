@@ -1,5 +1,5 @@
 import React from "react";
-import { PlusIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid"; // <-- 1. Impor ikon Plus dan Search
+import { PlusIcon, MagnifyingGlassIcon } from "@heroicons/react/24/solid";
 
 const TableControls = ({
   limit,
@@ -12,17 +12,16 @@ const TableControls = ({
   addButtonText,
   showMonthFilter = true,
   showSearch = true,
-  searchPlaceholder = "Search transactions...",
+  searchPlaceholder = "Search ...",
 }) => {
-  const monthOptions = Array.from({ length: 12 }, (e, i) => {
-    const date = new Date(2025, i, 1);
-    const label = date.toLocaleDateString("id-ID", {
-      month: "long",
-      year: "numeric",
-    });
-    const value = `2025-${String(i + 1).padStart(2, "0")}`;
+  // Generate last 12 months including current month, dynamically
+  const monthOptions = Array.from({ length: 12 }, (_, idx) => {
+    const now = new Date();
+    const date = new Date(now.getFullYear(), now.getMonth() - idx, 1);
+    const label = date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
+    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
     return { label, value };
-  });
+  }).reverse();
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -63,8 +62,9 @@ const TableControls = ({
             className="select select-bordered select-sm"
             value={monthFilter}
             onChange={(e) => setMonthFilter(e.target.value)}
+            aria-label="Filter by month"
           >
-            <option value="">Filter by Month</option>
+            <option value="">All months</option>
             {monthOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}

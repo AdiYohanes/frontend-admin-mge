@@ -153,6 +153,28 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
           rentPrice: parseFloat(unit.price) || 0,
           console_ids: unit.consoles?.map((c) => c.id) || [],
           game_ids: unit.games?.map((g) => g.id) || [],
+          // New fields from updated response
+          pointName: unit.point?.name || "-",
+          pointsPerHour: unit.point?.points_per_hour || 0,
+          maxVisitors: unit.max_visitors || 0,
+          status: unit.status || "unknown",
+          // Enhanced console and game data
+          consoleDetails: unit.consoles?.map((c) => ({
+            id: c.id,
+            name: c.name,
+            description: c.description,
+            image: c.image,
+            amount: c.amount,
+            isActive: c.is_active
+          })) || [],
+          gameDetails: unit.games?.map((g) => ({
+            id: g.id,
+            title: g.title,
+            description: g.description,
+            image: g.image,
+            genreId: g.genre_id,
+            isActive: g.is_active
+          })) || []
         })),
         totalPages: response.last_page,
         currentPage: response.current_page,
@@ -186,6 +208,16 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
     }),
     deleteUnit: builder.mutation({
       query: (id) => ({ url: `/api/admin/units/${id}`, method: "DELETE" }),
+      invalidatesTags: [{ type: "Unit", id: "LIST" }],
+    }),
+
+    // Reorder games in unit
+    reorderGames: builder.mutation({
+      query: ({ unitId, gameIds }) => ({
+        url: `/api/admin/units/${unitId}/games/reorder`,
+        method: "POST",
+        body: { game_ids: gameIds },
+      }),
       invalidatesTags: [{ type: "Unit", id: "LIST" }],
     }),
 
@@ -373,6 +405,7 @@ export const {
   useAddUnitMutation,
   useUpdateUnitMutation,
   useDeleteUnitMutation,
+  useReorderGamesMutation,
   useGetGameListQuery,
   useGetAllGamesQuery,
   useAddGameMutation,

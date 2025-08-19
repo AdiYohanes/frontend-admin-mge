@@ -139,7 +139,7 @@ const CustomerListPage = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             showMonthFilter={false}
-            searchPlaceholder="Search customers..."
+            searchPlaceholder="Search ..."
           />
 
           <CustomerTable

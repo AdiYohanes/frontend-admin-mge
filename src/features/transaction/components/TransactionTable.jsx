@@ -73,7 +73,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
             <th>METODE PEMBAYARAN</th>
             <th>TANGGAL PEMBAYARAN</th>
             <th>STATUS</th>
-            <th>TOTAL REFUND</th>
+
           </tr>
         </thead>
         <tbody>
@@ -150,15 +150,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
               <td>
                 <span className={getStatusBadge(tx.status)}>{tx.status}</span>
               </td>
-              <td>
-                {tx.totalRefund ? (
-                  <div className="font-semibold text-error text-sm">
-                    {formatCurrency(tx.totalRefund)}
-                  </div>
-                ) : (
-                  <span className="text-sm">Rp0</span>
-                )}
-              </td>
+
             </tr>
           ))}
         </tbody>

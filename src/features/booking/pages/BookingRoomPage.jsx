@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useGetBookingsQuery, useGetBookingDetailQuery } from '../api/bookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
 import { parseISO } from 'date-fns';
-import { ChevronUpIcon, ChevronDownIcon, EyeIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useNavigate } from 'react-router';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
@@ -40,21 +40,20 @@ const BookingRoomPage = () => {
     isLoading,
     isFetching,
     refetch
-  } = useGetBookingsQuery({
-    month: monthFilter,
-    status: statusFilter,
-    page: currentPage,
-    per_page: limit,
-  }, {
-    // Auto refresh setiap 30 detik
-    pollingInterval: 30000,
-    // Refetch ketika window focus kembali
-    refetchOnFocus: true,
-    // Refetch ketika reconnect
-    refetchOnReconnect: true,
-    // Refetch ketika mount
-    refetchOnMountOrArgChange: true,
-  });
+  } = useGetBookingsQuery(
+    {
+      month: monthFilter,
+      status: statusFilter,
+      page: currentPage,
+      per_page: limit,
+    },
+    {
+      pollingInterval: 30000,
+      refetchOnFocus: true,
+      refetchOnReconnect: true,
+      refetchOnMountOrArgChange: true,
+    }
+  );
 
   // Booking detail query
   const {
@@ -71,13 +70,7 @@ const BookingRoomPage = () => {
 
   // Debug: Log data yang diterima dari API
   useEffect(() => {
-    console.log('🔍 DEBUG - Data dari API:', {
-      totalBookings: allBookings?.length || 0,
-      paginationInfo,
-      monthFilter,
-      statusFilter,
-      allBookings: allBookings
-    });
+    // noop: keep effect for potential future side-effects
   }, [allBookings, paginationInfo, monthFilter, statusFilter]);
 
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
@@ -90,11 +83,23 @@ const BookingRoomPage = () => {
     let filtered = [...allBookings];
 
     // Debug: Log sebelum filtering
-    console.log('🔍 DEBUG - Sebelum filtering:', {
-      totalBookings: filtered.length,
-      searchTerm: debouncedSearchTerm,
-      monthFilter
-    });
+    // Client-side filter by selected month if backend doesn't filter
+    if (monthFilter) {
+      const [year, month] = monthFilter.split('-');
+      filtered = filtered.filter((booking) => {
+        try {
+          const date = booking.rawBooking?.start_time
+            ? parseISO(booking.rawBooking.start_time)
+            : null;
+          if (!date) return false;
+          const bYear = String(date.getFullYear());
+          const bMonth = String(date.getMonth() + 1).padStart(2, '0');
+          return bYear === year && bMonth === month;
+        } catch {
+          return false;
+        }
+      });
+    }
 
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
@@ -120,25 +125,15 @@ const BookingRoomPage = () => {
           return dateA - dateB; // Oldest first
         }
       } catch (error) {
-        console.error('Error sorting dates:', error);
+        // ignore sort errors
         return 0;
       }
     });
 
-    // PERBAIKAN: Gunakan pagination dari backend jika tidak ada search term
-    if (!debouncedSearchTerm.trim()) {
+    // PERBAIKAN: Gunakan pagination dari backend hanya jika tidak ada search term dan tidak ada month filter
+    if (!debouncedSearchTerm.trim() && !monthFilter) {
       // Jika tidak ada search, gunakan data langsung dari API (sudah dipaginasi di backend)
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
-
-      console.log('🔍 DEBUG - Backend pagination:', {
-        paginationTotal: paginationInfo.total,
-        lastPage: paginationInfo.last_page,
-        limit,
-        calculatedTotalPages,
-        currentPage,
-        allBookingsLength: allBookings.length,
-        paginationInfo: paginationInfo
-      });
 
       return {
         paginatedBookings: filtered,
@@ -146,50 +141,26 @@ const BookingRoomPage = () => {
       };
     }
 
-    // Jika ada search term, lakukan pagination di frontend
+    // Jika ada search term atau month filter (client-side), lakukan pagination di frontend
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
-
-    // Debug: Log setelah filtering dan pagination
-    console.log('🔍 DEBUG - Frontend pagination (with search):', {
-      filteredCount: filtered.length,
-      paginatedCount: paginated.length,
-      currentPage,
-      limit,
-      totalPages: total,
-      hasSearchTerm: !!debouncedSearchTerm.trim(),
-      paginationTotal: paginationInfo.total
-    });
 
     return { paginatedBookings: paginated, totalPages: total };
   }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit, sortOrder, paginationInfo]);
 
   // Debug: Log totalPages untuk memastikan tombol pagination muncul
   useEffect(() => {
-    console.log('🔍 DEBUG - Pagination info:', {
-      totalPages,
-      currentPage,
-      limit,
-      paginationInfo,
-      hasSearchTerm: !!debouncedSearchTerm.trim()
-    });
+    // noop: keep effect for potential future side-effects
   }, [totalPages, currentPage, limit, paginationInfo, debouncedSearchTerm]);
 
   // Debug: Log perubahan limit dan currentPage
   useEffect(() => {
-    console.log('🔍 DEBUG - State changes:', {
-      limit,
-      currentPage,
-      monthFilter,
-      statusFilter
-    });
+    // noop: keep effect for potential future side-effects
   }, [limit, currentPage, monthFilter, statusFilter]);
 
   // Auto-refresh status indicator
   useEffect(() => {
-    if (isFetching) {
-      console.log('🔄 Auto-refreshing booking data...');
-    }
+    // noop: keep effect for potential future side-effects
   }, [isFetching]);
 
   // Show last refresh time
@@ -198,7 +169,6 @@ const BookingRoomPage = () => {
   useEffect(() => {
     if (!isFetching && apiResponse) {
       setLastRefreshTime(new Date());
-      console.log('✅ Data refreshed successfully');
     }
   }, [isFetching, apiResponse]);
 
@@ -209,7 +179,6 @@ const BookingRoomPage = () => {
   };
 
   const handleViewDetails = (booking) => {
-    console.log('View details for booking:', booking);
     setSelectedBookingId(booking.id);
     setIsDetailModalOpen(true);
   };
@@ -325,16 +294,6 @@ const BookingRoomPage = () => {
               Found {paginatedBookings.length} bookings matching "{debouncedSearchTerm}"
             </div>
           )}
-
-          {/* Debug: Log pagination info sebelum render */}
-          {console.log('🔍 DEBUG - Rendering Pagination:', {
-            currentPage,
-            totalPages,
-            paginatedBookings: paginatedBookings.length,
-            limit,
-            paginationInfo: paginationInfo,
-            hasSearchTerm: !!debouncedSearchTerm.trim()
-          })}
 
           <Pagination
             currentPage={currentPage}

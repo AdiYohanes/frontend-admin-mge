@@ -144,7 +144,7 @@ const TransactionListPage = () => {
           monthFilter={monthFilter}
           setMonthFilter={setMonthFilter}
           showMonthFilter={true}
-          searchPlaceholder="Search by transaction number..." // Added placeholder for clarity
+          searchPlaceholder="Search ..."
         />
 
         <TransactionTable

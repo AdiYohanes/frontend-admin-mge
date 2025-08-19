@@ -1,9 +1,8 @@
-/* eslint-disable no-unused-vars */
-import React from 'react';
+import React, { useMemo } from 'react';
 import { EyeIcon, ReceiptRefundIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../../utils/formatters';
 
-const BookingTable = ({ bookings, isLoading, page, limit, onViewDetails, onRefund }) => {
+const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDetails, onRefund }) => {
   // Fungsi helper untuk menentukan warna badge status
   const getStatusBadge = (status) => {
     const baseClasses = 'badge font-semibold capitalize';
@@ -63,6 +62,15 @@ const BookingTable = ({ bookings, isLoading, page, limit, onViewDetails, onRefun
     );
   };
 
+  // Hitung offset nomor baris secara aman agar tetap benar setelah filter/pagination
+  const rowStartIndex = useMemo(() => {
+    const currentPage = Number(page);
+    const perPage = Number(limit);
+    const safePage = Number.isFinite(currentPage) && currentPage > 0 ? currentPage : 1;
+    const safeLimit = Number.isFinite(perPage) && perPage > 0 ? perPage : (bookings?.length || 10);
+    return (safePage - 1) * safeLimit;
+  }, [page, limit, bookings]);
+
   if (isLoading) {
     return <div className="flex justify-center p-10"><span className="loading loading-lg"></span></div>;
   }
@@ -89,7 +97,7 @@ const BookingTable = ({ bookings, isLoading, page, limit, onViewDetails, onRefun
         <tbody>
           {bookings.map((booking, index) => (
             <tr key={booking.id} className="hover">
-              <th>{(page - 1) * limit + index + 1}</th>
+              <th>{rowStartIndex + index + 1}</th>
               <td><div className="font-bold">{booking.name}</div><div className="text-xs opacity-60">{booking.phoneNumber}</div></td>
               <td><div className="font-mono text-xs">{booking.noTransaction}</div></td>
               <td><div className="badge badge-outline badge-info">{booking.bookingType}</div></td>
@@ -99,7 +107,13 @@ const BookingTable = ({ bookings, isLoading, page, limit, onViewDetails, onRefun
                   <li><span className="font-semibold">Unit:</span> {booking.unit}</li>
                 </ul>
               </td>
-              <td><div className="font-semibold">{booking.tanggalBooking}</div><div className="text-xs opacity-70">{booking.startTime} - {booking.endTime} ({booking.duration.toFixed(0)} jam)</div></td>
+              <td>
+                <div className="font-semibold">{booking.tanggalBooking}</div>
+                <div className="text-xs opacity-70">
+                  {booking.startTime || '-'} - {booking.endTime || '-'} (
+                  {Number.isFinite(booking.duration) ? Number(booking.duration).toFixed(0) : '-'} jam)
+                </div>
+              </td>
               <td><div className="font-bold text-success">{formatCurrency(booking.totalPembayaran)}</div><div className="text-xs opacity-60">{booking.metodePembayaran}</div></td>
               <td><span className={getStatusBadge(booking.statusBooking)}>{booking.statusBooking}</span></td>
               <td className="text-center">{renderActions(booking)}</td>

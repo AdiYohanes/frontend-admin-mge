@@ -65,7 +65,7 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
         });
       } else {
         // Reset form tambah baru tanpa data game
-        reset({ name: '', room_id: '', description: '', status: 'available', max_visitors: 4, price: 25000, console_ids: [] });
+        reset({ name: '', room_id: '', description: '', status: 'available', max_visitors: 0, price: 0, console_ids: [] });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -255,8 +255,9 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
                 <input
                   type="number"
                   {...register('max_visitors')}
-                  placeholder="4"
-                  className={`input input-bordered input-sm w-full pl-10 ${errors.max_visitors ? 'input-error' : ''}`}
+                  placeholder="0"
+                  min="0"
+                  className={`input input-bordered input-sm w-full ${errors.max_visitors ? 'input-error' : ''}`}
                 />
               </div>
               {errors.max_visitors && (
@@ -279,8 +280,9 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
                 <input
                   type="number"
                   {...register('price')}
-                  placeholder="25000"
-                  className={`input input-bordered input-sm w-full pl-10 ${errors.price ? 'input-error' : ''}`}
+                  placeholder="0"
+                  min="0"
+                  className={`input input-bordered input-sm w-full ${errors.price ? 'input-error' : ''}`}
                 />
               </div>
               {errors.price && (

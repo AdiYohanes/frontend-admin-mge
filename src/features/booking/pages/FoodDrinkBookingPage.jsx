@@ -224,7 +224,7 @@ const FoodDrinkBookingPage = () => {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 showMonthFilter={false}
-                searchPlaceholder="Cari nama, no. transaksi, atau email..."
+                searchPlaceholder="Search ..."
               />
             </div>
 

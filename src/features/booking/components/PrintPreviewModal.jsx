@@ -181,7 +181,6 @@ const PrintPreviewModal = ({ isOpen, onClose, orderData }) => {
               <div class="logo-container">
                 <img src="/images/logo.png" alt="Logo" class="logo">
               </div>
-              <p class="slogan">Make Good Enough</p>
               <h1 class="receipt-title">Receipt</h1>
               <h4 class="company-name">Medan Gaming Ecosystem</h4>
               <p class="address">
@@ -300,7 +299,6 @@ const PrintPreviewModal = ({ isOpen, onClose, orderData }) => {
               <div className="w-12 h-12 rounded-full mx-auto mb-2 flex items-center justify-center overflow-hidden">
                 <img src="/images/logo.png" alt="Logo" className="w-8 h-8 object-contain" />
               </div>
-              <p className="text-xs text-gray-700 mb-2">Make Good Enough</p>
               <h1 className="font-bold text-2xl text-brand-gold mb-1" style={{ fontFamily: 'monospace' }}>Receipt</h1>
               <h4 className="font-bold text-base mb-1">Medan Gaming Ecosystem</h4>
               <p className="text-xs text-gray-600 leading-tight">

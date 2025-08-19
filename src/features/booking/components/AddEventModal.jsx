@@ -265,36 +265,40 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
               Event Details
             </h4>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Event Name *</span>
-              </label>
-              <input
-                type="text"
-                {...register("eventName")}
-                className={`input input-bordered focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.eventName ? "input-error" : ""
-                  }`}
-                placeholder="Enter event name"
-              />
-              {errors.eventName && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="form-control">
                 <label className="label">
-                  <span className="label-text-alt text-error">
-                    {errors.eventName.message}
-                  </span>
+                  <span className="label-text font-medium">Event Name *</span>
                 </label>
-              )}
+                <input
+                  type="text"
+                  {...register("eventName")}
+                  className={`input input-bordered focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.eventName ? "input-error" : ""
+                    }`}
+                  placeholder="Enter event name"
+                />
+                {errors.eventName && (
+                  <label className="label">
+                    <span className="label-text-alt text-error">
+                      {errors.eventName.message}
+                    </span>
+                  </label>
+                )}
+              </div>
+
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  {...register("eventDescription")}
+                  className="textarea textarea-bordered focus:border-brand-gold focus:ring-1 focus:ring-brand-gold h-20"
+                  placeholder="Enter event description"
+                />
+              </div>
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Description</span>
-              </label>
-              <textarea
-                {...register("eventDescription")}
-                className="textarea textarea-bordered focus:border-brand-gold focus:ring-1 focus:ring-brand-gold h-20"
-                placeholder="Enter event description"
-              />
-            </div>
+
           </div>
 
           {/* Rental Details */}

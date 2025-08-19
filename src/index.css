@@ -11,7 +11,21 @@
 @theme {
   --color-brand-gold: #b99733;
   --font-mincraft: Minecraft, sans-serif;
-  --font-funnel: Archivo, sans-serif;
+  --font-funnel: "Funnel Display", sans-serif;
+
+  /* Font family configuration */
+  --font-family-sans: "Funnel Display", system-ui, sans-serif;
+  --font-family-serif: "Funnel Display", Georgia, serif;
+  --font-family-mono: "Funnel Display", monospace;
+}
+
+/* Global font settings */
+* {
+  font-family: "Funnel Display", sans-serif;
+}
+
+body {
+  font-family: "Funnel Display", sans-serif;
 }
 
 /* Dark mode support */
