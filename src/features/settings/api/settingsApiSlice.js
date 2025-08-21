@@ -5,6 +5,53 @@ import { apiSlice } from "../../../store/api/apiSlice";
 
 export const settingsApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
+    // === Tax Endpoints ===
+    getTaxes: builder.query({
+      query: () => ({ url: "/api/public/taxes" }),
+      transformResponse: (response) => ({
+        taxes: Array.isArray(response)
+          ? response.map((t) => ({
+            id: t.id,
+            name: t.name,
+            percentage: Number(t.percentage ?? 0),
+            isActive: Boolean(t.is_active),
+          }))
+          : [],
+      }),
+      providesTags: [{ type: "Tax", id: "LIST" }],
+    }),
+    updateTax: builder.mutation({
+      query: ({ id, percentage }) => ({
+        url: `/api/admin/taxes/${id}`,
+        method: "POST",
+        body: { percentage },
+      }),
+      invalidatesTags: [{ type: "Tax", id: "LIST" }],
+    }),
+
+    // === Service Fee Endpoints ===
+    getServiceFees: builder.query({
+      query: () => ({ url: "/api/public/services-fee" }),
+      transformResponse: (response) => ({
+        services: Array.isArray(response)
+          ? response.map((s) => ({
+            id: s.id,
+            name: s.name,
+            amount: Number(s.amount ?? 0),
+            isActive: Boolean(s.is_active),
+          }))
+          : [],
+      }),
+      providesTags: [{ type: "ServiceFee", id: "LIST" }],
+    }),
+    updateServiceFee: builder.mutation({
+      query: ({ id, amount }) => ({
+        url: `/api/admin/services-fee/${id}`,
+        method: "POST",
+        body: { amount },
+      }),
+      invalidatesTags: [{ type: "ServiceFee", id: "LIST" }],
+    }),
     // === Promo Endpoints ===
     getPromos: builder.query({
       query: ({ page = 1, limit = 10, search = "" }) => ({
@@ -219,6 +266,52 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
 
+    // === Rewards (Public) ===
+    getRewards: builder.query({
+      query: () => "/api/public/rewards",
+      transformResponse: (response) => ({
+        rewards: Array.isArray(response)
+          ? response.map((r) => ({
+            id: r.id,
+            name: r.name,
+            description: r.description || "",
+            imageUrl: r.image
+              ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${r.image}`
+              : `https://placehold.co/48x48/EEE/31343C?text=Img`,
+            rewardType: r.effects?.type || "-",
+            pointsRequired: Number(r.points_required ?? 0),
+            effects: r.effects || {},
+            unit: r.unit || null,
+          }))
+          : [],
+      }),
+      providesTags: (result) =>
+        result && result.rewards
+          ? [{ type: "Rewards", id: "LIST" }, ...result.rewards.map((r) => ({ type: "Rewards", id: r.id }))]
+          : [{ type: "Rewards", id: "LIST" }],
+    }),
+
+    // === Rewards (Admin) ===
+    addReward: builder.mutation({
+      query: (payload) => ({
+        url: "/api/admin/rewards",
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: [{ type: "Rewards", id: "LIST" }],
+    }),
+    updateReward: builder.mutation({
+      query: ({ id, ...payload }) => ({
+        url: `/api/admin/rewards/${id}`,
+        method: "POST",
+        body: payload,
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: "Rewards", id: "LIST" },
+        { type: "Rewards", id: arg.id },
+      ],
+    }),
+
     // === Featured Rooms Endpoints ===
     getFeaturedRooms: builder.query({
       query: () => "/api/public/rooms",
@@ -302,6 +395,13 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 });
 
 export const {
+  useGetTaxesQuery,
+  useUpdateTaxMutation,
+  useGetServiceFeesQuery,
+  useUpdateServiceFeeMutation,
+  useGetRewardsQuery,
+  useAddRewardMutation,
+  useUpdateRewardMutation,
   useGetPromosQuery,
   useAddPromoMutation,
   useUpdatePromoMutation,

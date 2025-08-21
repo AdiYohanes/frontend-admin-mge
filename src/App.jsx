@@ -24,6 +24,8 @@ import TransactionListPage from "./features/transaction/pages/TransactionListPag
 import PromoManagementPage from "./features/settings/pages/PromoManagementPage";
 import FaqManagementPage from "./features/settings/pages/FaqManagementPage";
 import LandingPageManagement from "./features/settings/pages/LandingPageManagement";
+import RewardsListPage from "./features/settings/pages/RewardsListPage";
+import AdditionalFeePage from "./features/settings/pages/AdditionalFeePage";
 
 const router = createBrowserRouter([
   {
@@ -54,6 +56,8 @@ const router = createBrowserRouter([
           { path: "settings/promo", element: <PromoManagementPage /> },
           { path: "settings/faq", element: <FaqManagementPage /> },
           { path: "settings/landing-page", element: <LandingPageManagement /> },
+          { path: "settings/rewards", element: <RewardsListPage /> },
+          { path: "settings/additional-fee", element: <AdditionalFeePage /> },
           // Rute terproteksi lainnya akan ditambahkan di sini
         ],
       },

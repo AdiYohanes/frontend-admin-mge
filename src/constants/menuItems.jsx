@@ -64,6 +64,8 @@ const menuItems = [
       { title: "Promo Management", path: "/settings/promo" },
       { title: "FAQ", path: "/settings/faq" },
       { title: "Landing Page", path: "/settings/landing-page" },
+      { title: "Rewards", path: "/settings/rewards" },
+      { title: "Additional Fee", path: "/settings/additional-fee" },
     ],
   },
 ];
