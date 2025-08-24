@@ -240,6 +240,13 @@ const FoodDrinkBookingPage = () => {
               />
             </div>
 
+            {/* Show filtered count when searching */}
+            {debouncedSearchTerm.trim() && (
+              <div className="text-sm text-gray-600 mb-4 text-center">
+                Found {filteredBookings.length} F&B orders matching "{debouncedSearchTerm}"
+              </div>
+            )}
+
             {/* Pagination */}
             <div className="flex justify-center">
               <Pagination

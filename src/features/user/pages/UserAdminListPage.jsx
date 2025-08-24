@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useGetUsersQuery, useDeleteUserMutation } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
@@ -25,15 +25,50 @@ const UserAdminListPage = () => {
   const deleteModalRef = useRef(null);
 
   // --- RTK QUERY HOOKS ---
-  // Panggil hook dengan 'role' ADMN untuk mendapatkan data admin
-  const { data, isLoading, isFetching } = useGetUsersQuery({
-    page: currentPage,
-    per_page: limit,
-    search: debouncedSearchTerm,
+  // Get all admin users for frontend filtering
+  const { data: tableData, isLoading, isFetching } = useGetUsersQuery({
+    page: 1,
+    per_page: 9999, // Get all users for client-side filtering
+    search: '', // Remove backend search, do it frontend
     role: "ADMN",
   });
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+
+  // Reset page when search term or limit changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm, limit]);
+
+  // Client-side filtering
+  const filteredUsers = useMemo(() => {
+    if (!tableData?.users) return [];
+
+    if (!debouncedSearchTerm.trim()) {
+      return tableData.users;
+    }
+
+    const searchLower = debouncedSearchTerm.toLowerCase();
+    return tableData.users.filter((user) => {
+      return (
+        user.name?.toLowerCase().includes(searchLower) ||
+        user.username?.toLowerCase().includes(searchLower) ||
+        user.email?.toLowerCase().includes(searchLower) ||
+        user.phone?.toLowerCase().includes(searchLower) ||
+        user.role?.toLowerCase().includes(searchLower)
+      );
+    });
+  }, [tableData?.users, debouncedSearchTerm]);
+
+  // Frontend pagination for filtered results
+  const paginatedUsers = useMemo(() => {
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    return filteredUsers.slice(startIndex, endIndex);
+  }, [filteredUsers, currentPage, limit]);
+
+  // Calculate total pages for filtered results
+  const totalPages = Math.ceil(filteredUsers.length / limit);
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
@@ -82,14 +117,22 @@ const UserAdminListPage = () => {
             addButtonText="Add Admin"
           />
           <UserAdminTable
-            users={data?.users}
+            users={paginatedUsers}
             isLoading={isLoading || isFetching}
             onEdit={handleOpenEditModal}
             onDelete={handleOpenDeleteModal}
           />
+
+          {/* Show filtered count when searching */}
+          {debouncedSearchTerm.trim() && (
+            <div className="text-sm text-gray-600 mt-2 text-center">
+              Found {filteredUsers.length} admin users matching "{debouncedSearchTerm}"
+            </div>
+          )}
+
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={currentPage}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

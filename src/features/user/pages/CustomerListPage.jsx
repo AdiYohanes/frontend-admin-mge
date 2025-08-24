@@ -5,6 +5,7 @@ import {
   useGetTopSpendersQuery,
   useDeleteUserMutation,
 } from "../api/userApiSlice";
+import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
 
 import TableControls from "../../../components/common/TableControls";
@@ -18,6 +19,7 @@ const CustomerListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [customerToDelete, setCustomerToDelete] = useState(null);
   const deleteModalRef = useRef(null);
@@ -29,7 +31,7 @@ const CustomerListPage = () => {
   // Reset page to 1 when search term changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
+  }, [debouncedSearchTerm]);
 
   // Reset page to 1 when limit changes
   useEffect(() => {
@@ -55,11 +57,11 @@ const CustomerListPage = () => {
   const filteredUsers = useMemo(() => {
     if (!tableData?.users) return [];
 
-    if (!searchTerm.trim()) {
+    if (!debouncedSearchTerm.trim()) {
       return tableData.users;
     }
 
-    const searchLower = searchTerm.toLowerCase();
+    const searchLower = debouncedSearchTerm.toLowerCase();
     return tableData.users.filter((user) => {
       return (
         user.name?.toLowerCase().includes(searchLower) ||
@@ -68,7 +70,7 @@ const CustomerListPage = () => {
         user.phone?.toLowerCase().includes(searchLower)
       );
     });
-  }, [tableData?.users, searchTerm]);
+  }, [tableData?.users, debouncedSearchTerm]);
 
   // Pagination for filtered results
   const paginatedUsers = useMemo(() => {
@@ -150,6 +152,14 @@ const CustomerListPage = () => {
             onDelete={handleDeleteCustomer}
             onEdit={handleEditCustomer}
           />
+
+          {/* Show filtered count when searching */}
+          {debouncedSearchTerm.trim() && (
+            <div className="text-sm text-gray-600 mt-2 text-center">
+              Found {filteredUsers.length} customers matching "{debouncedSearchTerm}"
+            </div>
+          )}
+
           <Pagination
             currentPage={currentPage}
             totalPages={totalPages}

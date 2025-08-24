@@ -433,44 +433,18 @@ export const {
 export const pricelistApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getPricelists: builder.query({
-      query: ({ page = 1, limit = 10, search = "" }) => ({
-        url: `/api/admin/pricelists?page=${page}&limit=${limit}&search=${search}`,
+      query: () => ({
+        url: `/api/public/pricelists`,
         method: 'GET',
       }),
+      transformResponse: (response) => ({
+        rooms: Array.isArray(response) ? response : [],
+      }),
       providesTags: ['Pricelist'],
-    }),
-
-    addPricelist: builder.mutation({
-      query: (data) => ({
-        url: '/api/admin/pricelists',
-        method: 'POST',
-        body: data, // FormData will be passed here
-      }),
-      invalidatesTags: ['Pricelist'],
-    }),
-
-    updatePricelist: builder.mutation({
-      query: ({ id, data }) => ({
-        url: `/api/admin/pricelists/${id}`,
-        method: 'POST',
-        body: data, // FormData will be passed here
-      }),
-      invalidatesTags: ['Pricelist'],
-    }),
-
-    deletePricelist: builder.mutation({
-      query: (id) => ({
-        url: `/api/admin/pricelists/${id}`,
-        method: 'DELETE',
-      }),
-      invalidatesTags: ['Pricelist'],
     }),
   }),
 });
 
 export const {
   useGetPricelistsQuery,
-  useAddPricelistMutation,
-  useUpdatePricelistMutation,
-  useDeletePricelistMutation,
 } = pricelistApiSlice;

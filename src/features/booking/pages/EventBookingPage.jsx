@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   useGetEventBookingsQuery,
   useDeleteEventBookingMutation,
@@ -32,9 +32,9 @@ const EventBookingPage = () => {
   ];
 
   const { data, isLoading, isFetching } = useGetEventBookingsQuery({
-    page: currentPage,
-    limit,
-    search: debouncedSearchTerm,
+    page: 1, // Always get page 1 for frontend filtering
+    limit: 1000, // Get more data for frontend filtering
+    search: '', // Remove backend search, we'll do it frontend
     status: statusFilter,
   });
 
@@ -45,6 +45,38 @@ const EventBookingPage = () => {
 
   const [deleteEventBooking, { isLoading: isDeleting }] =
     useDeleteEventBookingMutation();
+
+  // Frontend filtering and pagination
+  const { filteredEvents, paginatedEvents, totalPages } = useMemo(() => {
+    if (!data?.bookings) {
+      return { filteredEvents: [], paginatedEvents: [], totalPages: 1 };
+    }
+
+    // Filter berdasarkan search term
+    let filtered = [...data.bookings];
+
+    if (debouncedSearchTerm.trim()) {
+      const searchLower = debouncedSearchTerm.toLowerCase();
+      filtered = filtered.filter(event =>
+        event.eventName?.toLowerCase().includes(searchLower) ||
+        event.customerName?.toLowerCase().includes(searchLower) ||
+        event.phone?.toLowerCase().includes(searchLower) ||
+        event.email?.toLowerCase().includes(searchLower) ||
+        event.organizerName?.toLowerCase().includes(searchLower) ||
+        event.eventType?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // Frontend pagination
+    const total = Math.ceil(filtered.length / limit);
+    const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
+
+    return {
+      filteredEvents: filtered,
+      paginatedEvents: paginated,
+      totalPages: total
+    };
+  }, [data?.bookings, debouncedSearchTerm, currentPage, limit]);
 
   const handleOpenAddModal = () => {
     setEditingData(null);
@@ -108,16 +140,24 @@ const EventBookingPage = () => {
             showMonthFilter={false}
           />
           <EventBookingTable
-            events={data?.bookings}
+            events={paginatedEvents}
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}
             onEdit={handleOpenEditModal}
             onDelete={handleOpenDeleteModal}
           />
+
+          {/* Show filtered count when searching */}
+          {debouncedSearchTerm.trim() && (
+            <div className="text-sm text-gray-600 mt-2 text-center">
+              Found {filteredEvents.length} events matching "{debouncedSearchTerm}"
+            </div>
+          )}
+
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={currentPage}
+            totalPages={totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

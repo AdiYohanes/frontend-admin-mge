@@ -106,13 +106,15 @@ const PeakTimeChart = () => {
             <span className="loading loading-spinner"></span>
           </div>
         ) : (
-          <div className="flex-grow">
+          <div className="flex-grow relative">
             {renderChart()}
             {(!data || data.length === 0) && (
-              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <p className="text-gray-400 text-sm bg-white/80 px-3 py-1 rounded-full">
-                  Tidak ada data untuk periode ini
-                </p>
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+                <div className="bg-base-100/90 backdrop-blur-sm px-4 py-2 rounded-lg shadow-sm border border-base-300">
+                  <p className="text-base-content/60 text-sm font-medium">
+                    Tidak ada data untuk periode ini
+                  </p>
+                </div>
               </div>
             )}
           </div>

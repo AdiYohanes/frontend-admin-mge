@@ -48,7 +48,7 @@ const menuItems = [
     title: "Food & Drink",
     icon: <ShoppingBagIcon className={iconClass} />,
     submenu: [
-      { title: "Food & Drink", path: "/food-drink/items" },
+      { title: "Food & Drink List", path: "/food-drink/items" },
       { title: "Category", path: "/food-drink/categories" },
     ],
   },

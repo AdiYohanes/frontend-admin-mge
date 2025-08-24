@@ -3,7 +3,6 @@ import { useGetBookingsQuery, useGetBookingDetailQuery } from '../api/bookingApi
 import useDebounce from '../../../hooks/useDebounce';
 import { parseISO } from 'date-fns';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-import { useNavigate } from 'react-router';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from '../../../components/common/TableControls';
@@ -23,7 +22,6 @@ const BookingRoomPage = () => {
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
 
   // Navigation hook
-  const navigate = useNavigate();
 
   // State untuk mengontrol modal
   const [isRefundModalOpen, setIsRefundModalOpen] = useState(false);
@@ -74,9 +72,9 @@ const BookingRoomPage = () => {
   }, [allBookings, paginationInfo, monthFilter, statusFilter]);
 
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
-  const { paginatedBookings, totalPages } = useMemo(() => {
+  const { paginatedBookings, totalPages, totalFiltered } = useMemo(() => {
     if (!allBookings) {
-      return { paginatedBookings: [], totalPages: 1 };
+      return { paginatedBookings: [], totalPages: 1, totalFiltered: 0 };
     }
 
     // Filter berdasarkan search term
@@ -125,7 +123,7 @@ const BookingRoomPage = () => {
           return dateA - dateB; // Oldest first
         }
       } catch (error) {
-        // ignore sort errors
+        console.error('Error sorting bookings:', error);
         return 0;
       }
     });
@@ -137,7 +135,8 @@ const BookingRoomPage = () => {
 
       return {
         paginatedBookings: filtered,
-        totalPages: calculatedTotalPages
+        totalPages: calculatedTotalPages,
+        totalFiltered: filtered.length
       };
     }
 
@@ -145,7 +144,11 @@ const BookingRoomPage = () => {
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
 
-    return { paginatedBookings: paginated, totalPages: total };
+    return {
+      paginatedBookings: paginated,
+      totalPages: total,
+      totalFiltered: filtered.length
+    };
   }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit, sortOrder, paginationInfo]);
 
   // Debug: Log totalPages untuk memastikan tombol pagination muncul
@@ -291,7 +294,7 @@ const BookingRoomPage = () => {
           {/* Show filtered count when searching */}
           {debouncedSearchTerm.trim() && (
             <div className="text-sm text-gray-600 mt-2 text-center">
-              Found {paginatedBookings.length} bookings matching "{debouncedSearchTerm}"
+              Found {totalFiltered || 0} bookings matching "{debouncedSearchTerm}"
             </div>
           )}
 
