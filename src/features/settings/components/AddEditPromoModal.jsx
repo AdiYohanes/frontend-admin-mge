@@ -11,15 +11,32 @@ import { toast } from "react-hot-toast";
 
 // Skema validasi untuk form promo
 const promoSchema = z.object({
-  code: z
+  promo_code: z
     .string()
     .min(5, "Kode promo minimal 5 karakter")
     .regex(/^[A-Z0-9]+$/, "Gunakan huruf kapital dan angka"),
-  description: z.string().min(10, "Deskripsi minimal 10 karakter"),
-  nominal: z
+  percentage: z
     .number()
-    .min(1, "Nominal minimal 1%")
-    .max(100, "Nominal maksimal 100%"),
+    .min(1, "Persentase minimal 1%")
+    .max(100, "Persentase maksimal 100%"),
+  is_active: z.boolean().default(true),
+  start_date: z.string().min(1, "Tanggal mulai wajib diisi").refine((date) => {
+    return new Date(date).toString() !== 'Invalid Date';
+  }, "Format tanggal tidak valid"),
+  end_date: z.string().min(1, "Tanggal berakhir wajib diisi").refine((date) => {
+    return new Date(date).toString() !== 'Invalid Date';
+  }, "Format tanggal tidak valid"),
+  usage_limit: z
+    .number()
+    .min(1, "Batas penggunaan minimal 1"),
+  usage_limit_per_user: z
+    .number()
+    .min(1, "Batas penggunaan per user minimal 1"),
+}).refine((data) => {
+  return new Date(data.end_date) > new Date(data.start_date);
+}, {
+  message: "Tanggal berakhir harus setelah tanggal mulai",
+  path: ["end_date"],
 });
 
 const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
@@ -48,7 +65,15 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
         reset(editingData);
       } else {
         // Mode Tambah: reset ke form kosong dengan nilai default
-        reset({ code: "", description: "", nominal: 10 });
+        reset({
+          promo_code: "",
+          percentage: 10,
+          is_active: true,
+          start_date: "",
+          end_date: "",
+          usage_limit: 100,
+          usage_limit_per_user: 1
+        });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -58,7 +83,7 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
     try {
       if (isEditMode) {
         // Panggil mutation update jika dalam mode edit
-        await updatePromo({ ...editingData, ...formData }).unwrap();
+        await updatePromo({ id: editingData.id, ...formData }).unwrap();
         toast.success("Promo berhasil diperbarui!");
       } else {
         // Panggil mutation tambah jika dalam mode tambah
@@ -108,40 +133,19 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
             </label>
             <input
               type="text"
-              {...register("code")}
-              className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.code ? "input-error" : ""
+              {...register("promo_code")}
+              className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.promo_code ? "input-error" : ""
                 }`}
-              placeholder="Contoh: WEEKENDSERU"
+              placeholder="Contoh: DISKON10"
             />
-            {errors.code && (
+            {errors.promo_code && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
-                {errors.code.message}
+                {errors.promo_code.message}
               </span>
             )}
           </div>
 
-          {/* Description */}
-          <div className="form-control">
-            <label className="label">
-              <span className="label-text font-medium flex items-center gap-2">
-                <FiFileText className="h-4 w-4 text-brand-gold" />
-                Deskripsi Promo
-              </span>
-            </label>
-            <textarea
-              {...register("description")}
-              className={`textarea textarea-bordered h-24 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.description ? "textarea-error" : ""
-                }`}
-              placeholder="Jelaskan detail promo, syarat dan ketentuan, periode berlaku, dll..."
-            ></textarea>
-            {errors.description && (
-              <span className="text-xs text-error mt-1 flex items-center gap-1">
-                {errors.description.message}
-              </span>
-            )}
-          </div>
-
-          {/* Nominal Discount */}
+          {/* Percentage */}
           <div className="form-control">
             <label className="label">
               <span className="label-text font-medium flex items-center gap-2">
@@ -152,10 +156,10 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
             <div className="relative">
               <input
                 type="number"
-                {...register("nominal", { valueAsNumber: true })}
-                className={`input input-bordered w-full pr-12 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.nominal ? "input-error" : ""
+                {...register("percentage", { valueAsNumber: true })}
+                className={`input input-bordered w-full pr-12 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.percentage ? "input-error" : ""
                   }`}
-                placeholder="15"
+                placeholder="10"
                 min="1"
                 max="100"
               />
@@ -163,11 +167,105 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
                 <span className="text-base-content/60 text-sm">%</span>
               </div>
             </div>
-            {errors.nominal && (
+            {errors.percentage && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
-                {errors.nominal.message}
+                {errors.percentage.message}
               </span>
             )}
+          </div>
+
+          {/* Date Range */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Start Date */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Tanggal Mulai</span>
+              </label>
+              <input
+                type="date"
+                {...register("start_date")}
+                className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.start_date ? "input-error" : ""
+                  }`}
+              />
+              {errors.start_date && (
+                <span className="text-xs text-error mt-1">
+                  {errors.start_date.message}
+                </span>
+              )}
+            </div>
+
+            {/* End Date */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Tanggal Berakhir</span>
+              </label>
+              <input
+                type="date"
+                {...register("end_date")}
+                className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.end_date ? "input-error" : ""
+                  }`}
+              />
+              {errors.end_date && (
+                <span className="text-xs text-error mt-1">
+                  {errors.end_date.message}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Usage Limits */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Total Usage Limit */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Batas Total Penggunaan</span>
+              </label>
+              <input
+                type="number"
+                {...register("usage_limit", { valueAsNumber: true })}
+                className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.usage_limit ? "input-error" : ""
+                  }`}
+                placeholder="100"
+                min="1"
+              />
+              {errors.usage_limit && (
+                <span className="text-xs text-error mt-1">
+                  {errors.usage_limit.message}
+                </span>
+              )}
+            </div>
+
+            {/* Usage Limit Per User */}
+            <div className="form-control">
+              <label className="label">
+                <span className="label-text font-medium">Batas Per User</span>
+              </label>
+              <input
+                type="number"
+                {...register("usage_limit_per_user", { valueAsNumber: true })}
+                className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.usage_limit_per_user ? "input-error" : ""
+                  }`}
+                placeholder="1"
+                min="1"
+              />
+              {errors.usage_limit_per_user && (
+                <span className="text-xs text-error mt-1">
+                  {errors.usage_limit_per_user.message}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* Active Status */}
+          <div className="form-control">
+            <label className="label cursor-pointer justify-start gap-3">
+              <input
+                type="checkbox"
+                {...register("is_active")}
+                className="checkbox checkbox-primary"
+              />
+              <span className="label-text font-medium">Aktifkan promo</span>
+            </label>
           </div>
 
           {/* Action Buttons */}

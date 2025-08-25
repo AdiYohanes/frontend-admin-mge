@@ -10,8 +10,17 @@ const PromoTable = ({ promos, isLoading, page, limit, onEdit, onDelete }) => {
   const handleToggleStatus = async (promo) => {
     try {
       // Kirim data lengkap dengan status yang sudah dibalik
-      await updatePromo({ ...promo, isActive: !promo.isActive }).unwrap();
-      toast.success(`Status promo ${promo.code} berhasil diperbarui.`);
+      await updatePromo({
+        id: promo.id,
+        promo_code: promo.promo_code,
+        percentage: promo.percentage,
+        is_active: !promo.is_active,
+        start_date: promo.start_date,
+        end_date: promo.end_date,
+        usage_limit: promo.usage_limit,
+        usage_limit_per_user: promo.usage_limit_per_user,
+      }).unwrap();
+      toast.success(`Status promo ${promo.promo_code} berhasil diperbarui.`);
     } catch {
       toast.error("Gagal memperbarui status promo.");
     }
@@ -37,9 +46,10 @@ const PromoTable = ({ promos, isLoading, page, limit, onEdit, onDelete }) => {
           <tr>
             <th>No</th>
             <th>Promo Code</th>
-            <th>Description</th>
-            <th>Nominal</th>
-            <th>Activation</th>
+            <th>Percentage</th>
+            <th>Period</th>
+            <th>Usage</th>
+            <th>Status</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -48,17 +58,26 @@ const PromoTable = ({ promos, isLoading, page, limit, onEdit, onDelete }) => {
             <tr key={promo.id} className="hover">
               <th>{(page - 1) * limit + index + 1}</th>
               <td>
-                <div className="font-bold font-mono">{promo.code}</div>
+                <div className="font-bold font-mono">{promo.promo_code}</div>
               </td>
-              <td className="text-sm opacity-80 max-w-md truncate">
-                {promo.description}
+              <td className="font-semibold">{promo.percentage}%</td>
+              <td className="text-sm">
+                <div className="space-y-1">
+                  <div>Start: {new Date(promo.start_date).toLocaleDateString('id-ID')}</div>
+                  <div>End: {new Date(promo.end_date).toLocaleDateString('id-ID')}</div>
+                </div>
               </td>
-              <td className="font-semibold">{promo.nominal}%</td>
+              <td className="text-sm">
+                <div className="space-y-1">
+                  <div>Used: <span className="font-semibold">{promo.times_used}</span>/{promo.usage_limit}</div>
+                  <div>Per User: {promo.usage_limit_per_user}</div>
+                </div>
+              </td>
               <td>
                 <input
                   type="checkbox"
                   className="toggle toggle-success"
-                  checked={promo.isActive}
+                  checked={promo.is_active}
                   onChange={() => handleToggleStatus(promo)}
                   disabled={isUpdatingStatus}
                 />

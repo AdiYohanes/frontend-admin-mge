@@ -87,10 +87,17 @@ const PromoManagementPage = () => {
             onDelete={handleOpenDeleteModal}
           />
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={data?.currentPage || currentPage}
+            totalPages={data?.totalPages || 1}
             onPageChange={setCurrentPage}
           />
+
+          {/* Show pagination info */}
+          {data?.total > 0 && (
+            <div className="text-sm text-gray-600 mt-2 text-center">
+              Showing {data.from} to {data.to} of {data.total} promos
+            </div>
+          )}
         </div>
       </div>
 
@@ -107,7 +114,7 @@ const PromoManagementPage = () => {
       >
         <p>
           Apakah Anda yakin ingin menghapus promo{" "}
-          <span className="font-bold font-mono">{promoToDelete?.code}</span>?
+          <span className="font-bold font-mono">{promoToDelete?.promo_code}</span>?
         </p>
       </ConfirmationModal>
     </>

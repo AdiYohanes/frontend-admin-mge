@@ -61,13 +61,23 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response) => ({
         promos: response.data.map((promo) => ({
           id: promo.id,
-          code: promo.name,
-          description: promo.description,
-          nominal: promo.percentage,
-          isActive: promo.is_active,
+          promo_code: promo.promo_code,
+          percentage: promo.percentage,
+          is_active: promo.is_active,
+          start_date: promo.start_date,
+          end_date: promo.end_date,
+          usage_limit: promo.usage_limit,
+          usage_limit_per_user: promo.usage_limit_per_user,
+          times_used: promo.times_used,
+          created_at: promo.created_at,
+          updated_at: promo.updated_at,
         })),
         totalPages: response.last_page,
         currentPage: response.current_page,
+        total: response.total,
+        perPage: response.per_page,
+        from: response.from,
+        to: response.to,
       }),
       providesTags: (result) =>
         result
@@ -78,28 +88,43 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
           : [{ type: "Promo", id: "LIST" }],
     }),
     addPromo: builder.mutation({
-      query: (newPromo) => ({
-        url: "/api/admin/promos",
-        method: "POST",
-        body: {
-          name: newPromo.code,
-          description: newPromo.description,
-          percentage: newPromo.nominal,
-          is_active: true,
-        },
-      }),
+      query: (newPromo) => {
+        const body = {
+          promo_code: newPromo.promo_code || "",
+          percentage: newPromo.percentage || 0,
+          is_active: newPromo.is_active !== undefined ? newPromo.is_active : true,
+          start_date: newPromo.start_date || "",
+          end_date: newPromo.end_date || "",
+          usage_limit: newPromo.usage_limit || 0,
+          usage_limit_per_user: newPromo.usage_limit_per_user || 0,
+        };
+
+        return {
+          url: "/api/admin/promos",
+          method: "POST",
+          body,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        };
+      },
       invalidatesTags: [{ type: "Promo", id: "LIST" }],
     }),
     updatePromo: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `/api/admin/promos/${id}`,
-        method: "POST",
+        method: "PUT",
         body: {
-          name: patch.code,
-          description: patch.description,
-          percentage: patch.nominal,
-          is_active: patch.isActive,
-          _method: "POST",
+          promo_code: String(patch.promo_code).trim(),
+          percentage: Number(patch.percentage),
+          is_active: Boolean(patch.is_active),
+          start_date: String(patch.start_date),
+          end_date: String(patch.end_date),
+          usage_limit: Number(patch.usage_limit),
+          usage_limit_per_user: Number(patch.usage_limit_per_user),
+        },
+        headers: {
+          'Content-Type': 'application/json',
         },
       }),
       invalidatesTags: (r, e, arg) => [
