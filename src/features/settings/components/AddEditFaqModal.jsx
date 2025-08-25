@@ -66,7 +66,7 @@ const AddEditFaqModal = ({ isOpen, onClose, editingData }) => {
 
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-2xl">
+      <div className="modal-box w-11/12 max-w-xl">
         <button
           className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
           onClick={onClose}
@@ -77,8 +77,8 @@ const AddEditFaqModal = ({ isOpen, onClose, editingData }) => {
           {isEditMode ? "Edit FAQ" : "Add New FAQ"}
         </h3>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-6">
-          <div className="form-control">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-2 mt-6">
+          <div className="form-control flex flex-col gap-2">
             <label className="label">
               <span className="label-text">Question</span>
             </label>
@@ -86,9 +86,8 @@ const AddEditFaqModal = ({ isOpen, onClose, editingData }) => {
               type="text"
               {...register("question")}
               placeholder="e.g. Bagaimana cara booking?"
-              className={`input input-bordered ${
-                errors.question ? "input-error" : ""
-              }`}
+              className={`input input-bordered ${errors.question ? "input-error" : ""
+                } w-full`}
             />
             {errors.question && (
               <span className="text-xs text-error mt-1">
@@ -97,15 +96,14 @@ const AddEditFaqModal = ({ isOpen, onClose, editingData }) => {
             )}
           </div>
 
-          <div className="form-control">
+          <div className="form-control flex flex-col gap-2">
             <label className="label">
               <span className="label-text">Answer</span>
             </label>
             <textarea
               {...register("answer")}
-              className={`textarea textarea-bordered h-32 ${
-                errors.answer ? "textarea-error" : ""
-              }`}
+              className={`textarea textarea-bordered h-32 w-full ${errors.answer ? "textarea-error" : ""
+                }`}
               placeholder="Tulis jawaban dari pertanyaan di atas..."
             ></textarea>
             {errors.answer && (
