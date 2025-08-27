@@ -14,6 +14,7 @@ import {
   useAddGameMutation,
   useUpdateGameMutation,
   useGetGenresQuery,
+  useGetConsolesQuery,
 } from "../api/rentalApiSlice";
 
 // Skema validasi yang lebih fleksibel
@@ -24,6 +25,12 @@ const gameSchema = z.object({
     z.number().min(1, "Genre harus dipilih")
   ]).refine((val) => val && val.toString().trim() !== "", {
     message: "Genre harus dipilih"
+  }),
+  console: z.union([
+    z.string().nonempty("Console harus dipilih"),
+    z.number().min(1, "Console harus dipilih")
+  ]).refine((val) => val && val.toString().trim() !== "", {
+    message: "Console harus dipilih"
   }),
   description: z.string().optional().or(z.literal("")),
   image: z.any().optional(), // Lebih fleksibel untuk image
@@ -44,6 +51,25 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     search: "",
   });
 
+  // Fetch consoles from API
+  const { data: consolesData, isLoading: isLoadingConsoles, error: consolesError } = useGetConsolesQuery({
+    page: 1,
+    limit: 9999,
+    search: "",
+  });
+
+  // Debug: Log console data
+  useEffect(() => {
+    console.log('Consoles Data:', consolesData);
+    console.log('Is Loading Consoles:', isLoadingConsoles);
+    console.log('Consoles Error:', consolesError);
+    console.log('Consoles Data Type:', typeof consolesData);
+    console.log('Consoles Data Length:', consolesData?.consoles?.length);
+    if (consolesData?.consoles && consolesData.consoles.length > 0) {
+      console.log('First Console:', consolesData.consoles[0]);
+    }
+  }, [consolesData, isLoadingConsoles, consolesError]);
+
   const {
     register,
     handleSubmit,
@@ -55,6 +81,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     defaultValues: {
       title: "",
       genre: "",
+      console: "",
       description: "",
       image: null,
     },
@@ -79,8 +106,10 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
-        // Handle genre properly - extract ID if it's an object, or use as is if it's a number
+        // Handle genre and console properly - extract ID if it's an object, or use as is if it's a number
         let genreValue = "";
+        let consoleValue = "";
+
         if (editingData.genre) {
           if (typeof editingData.genre === 'string') {
             // If it's a string, we need to find the genre ID by name
@@ -93,9 +122,25 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
           }
         }
 
+        // Handle console data
+        if (editingData.consoles && editingData.consoles.length > 0) {
+          // If consoles is an array, take the first one
+          const firstConsole = editingData.consoles[0];
+          if (typeof firstConsole === 'string') {
+            // If it's a string, find the console ID by name
+            const selectedConsole = consolesData?.consoles?.find(c => c.name === firstConsole);
+            consoleValue = selectedConsole ? selectedConsole.id.toString() : "";
+          } else if (firstConsole && typeof firstConsole === 'object' && firstConsole.id) {
+            consoleValue = firstConsole.id.toString();
+          } else if (typeof firstConsole === 'number') {
+            consoleValue = firstConsole.toString();
+          }
+        }
+
         reset({
           title: editingData.name || editingData.title || "",
           genre: genreValue, // This will be the genre ID
+          console: consoleValue, // This will be the console ID
           description: editingData.description || "",
           image: null,
         });
@@ -104,13 +149,14 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
         reset({
           title: "",
           genre: "",
+          console: "",
           description: "",
           image: null,
         });
         setPreview(null);
       }
     }
-  }, [isOpen, isEditMode, editingData, reset, genresData]);
+  }, [isOpen, isEditMode, editingData, reset, genresData, consolesData]);
 
   const handleRemoveImage = () => {
     setPreview(null);
@@ -119,9 +165,13 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
 
   const onSubmit = async (formData) => {
     try {
-      // Validate genre selection
+      // Validate genre and console selection
       if (!formData.genre) {
         toast.error("Genre harus dipilih!");
+        return;
+      }
+      if (!formData.console) {
+        toast.error("Console harus dipilih!");
         return;
       }
 
@@ -277,6 +327,44 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
                 </span>
               )}
             </div>
+          </div>
+
+          <div className="form-control flex flex-col">
+            <label className="label">
+              <span className="label-text font-medium">
+                Console <span className="text-error">*</span>
+              </span>
+            </label>
+            <select
+              {...register("console")}
+              className={`select select-bordered ${errors.console ? "select-error" : ""
+                }`}
+              disabled={isLoadingConsoles}
+            >
+              <option value="">
+                {isLoadingConsoles ? "Loading consoles..." : "Select Console..."}
+              </option>
+              {consolesData?.consoles?.map((console) => (
+                <option key={console.id} value={console.id}>
+                  {console.name}
+                </option>
+              ))}
+            </select>
+            {errors.console && (
+              <span className="text-xs text-error mt-1">
+                {errors.console.message}
+              </span>
+            )}
+            {consolesError && (
+              <span className="text-xs text-error mt-1">
+                Error loading consoles: {consolesError?.data?.message || consolesError?.message || 'Unknown error'}
+              </span>
+            )}
+            {!isLoadingConsoles && !consolesError && (!consolesData?.consoles || consolesData.consoles.length === 0) && (
+              <span className="text-xs text-warning mt-1">
+                No consoles available
+              </span>
+            )}
           </div>
 
           <div className="form-control flex flex-col">

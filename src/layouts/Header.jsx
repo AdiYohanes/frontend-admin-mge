@@ -7,6 +7,7 @@ import {
   UserCircleIcon,
   SunIcon,
   MoonIcon,
+  CheckIcon,
 } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -16,6 +17,7 @@ import useTheme from "../hooks/useTheme";
 import {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
+  useMarkAsReadMutation,
 } from "../features/notification/api/notificationApiSlice";
 
 const Header = () => {
@@ -25,13 +27,16 @@ const Header = () => {
   const { theme, toggleTheme } = useTheme();
 
   // --- LOGIKA NOTIFIKASI ---
-  const { data: notificationsData } = useGetNotificationsQuery(undefined, {
+  const { data: notificationsData, isLoading: isLoadingNotifications, error: notificationsError } = useGetNotificationsQuery(undefined, {
     pollingInterval: 30000, // Ambil data baru setiap 30 detik
     refetchOnFocus: true, // Ambil data baru saat user kembali ke tab ini
   });
 
   const [markAllAsRead, { isLoading: isMarkingRead }] =
     useMarkAllAsReadMutation();
+
+  const [markAsRead, { isLoading: isMarkingSingleRead }] =
+    useMarkAsReadMutation();
 
   // Hitung notifikasi yang belum dibaca secara efisien dengan useMemo
   const unreadCount = useMemo(() => {
@@ -44,6 +49,26 @@ const Header = () => {
       await markAllAsRead().unwrap();
     } catch (err) {
       console.error("Failed to mark notifications as read:", err);
+    }
+  };
+
+  const handleMarkAsRead = async (notificationId) => {
+    try {
+      await markAsRead(notificationId).unwrap();
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const handleNotificationClick = (notification) => {
+    // Mark as read when clicked
+    if (!notification.read) {
+      handleMarkAsRead(notification.id);
+    }
+
+    // Navigate to the link if available
+    if (notification.link) {
+      navigate(notification.link);
     }
   };
   // --- AKHIR LOGIKA NOTIFIKASI ---
@@ -128,23 +153,61 @@ const Header = () => {
                 )}
               </div>
               <ul className="space-y-2 max-h-96 overflow-y-auto p-1">
-                {notificationsData?.notifications &&
+                {isLoadingNotifications ? (
+                  <li className="p-4 text-center">
+                    <span className="loading loading-spinner loading-md"></span>
+                    <p className="text-sm text-gray-500 mt-2">Loading notifications...</p>
+                  </li>
+                ) : notificationsError ? (
+                  <li className="p-4 text-center text-sm text-error">
+                    Error loading notifications. Please try again.
+                  </li>
+                ) : notificationsData?.notifications &&
                   notificationsData.notifications.length > 0 ? (
                   notificationsData.notifications.map((notif) => (
                     <li
                       key={notif.id}
-                      className={`p-2 rounded-lg ${!notif.read ? "bg-blue-50" : ""
+                      className={`p-3 rounded-lg border transition-all duration-200 ${!notif.read
+                          ? "bg-blue-50 border-blue-200 shadow-sm"
+                          : "bg-base-50 border-base-200"
                         }`}
                     >
-                      <p className="text-sm font-medium text-gray-800">
-                        {notif.text}
-                      </p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatDistanceToNow(new Date(notif.timestamp), {
-                          addSuffix: true,
-                          locale: idLocale,
-                        })}
-                      </p>
+                      <div className="flex items-start justify-between gap-3">
+                        <div
+                          className="flex-1 cursor-pointer"
+                          onClick={() => handleNotificationClick(notif)}
+                        >
+                          <p className={`text-sm font-medium ${!notif.read ? "text-blue-900" : "text-gray-800"
+                            }`}>
+                            {notif.text}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {formatDistanceToNow(new Date(notif.timestamp), {
+                              addSuffix: true,
+                              locale: idLocale,
+                            })}
+                          </p>
+                        </div>
+
+                        {/* Individual Read Button */}
+                        {!notif.read && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleMarkAsRead(notif.id);
+                            }}
+                            disabled={isMarkingSingleRead}
+                            className="btn btn-xs btn-circle bg-blue-100 hover:bg-blue-200 text-blue-600 border-0 flex-shrink-0"
+                            title="Mark as read"
+                          >
+                            {isMarkingSingleRead ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            ) : (
+                              <CheckIcon className="h-3 w-3" />
+                            )}
+                          </button>
+                        )}
+                      </div>
                     </li>
                   ))
                 ) : (

@@ -1,81 +1,61 @@
 import { apiSlice } from "../../../store/api/apiSlice";
-import { subMinutes } from "date-fns";
-
-const createMockNotification = (id, text, minutesAgo, read = false) => ({
-  id,
-  text,
-  timestamp: subMinutes(new Date(), minutesAgo).toISOString(),
-  read,
-});
-
-let mockNotifications = [
-  createMockNotification(
-    1,
-    "MonsterHunter booked VIP Unit A for 2 hours.",
-    1,
-    false
-  ),
-  createMockNotification(2, "New Customer is registered!", 25, false),
-  createMockNotification(
-    3,
-    "MonsterHunter booked VVIP Unit A for 5 hours.",
-    25,
-    false
-  ),
-  createMockNotification(
-    4,
-    "AsepSubagja booked Regular Unit A for 2 hours.",
-    120,
-    true
-  ),
-  createMockNotification(
-    5,
-    "MonsterHunter booked VIP Unit A for 2 hours.",
-    1440,
-    true
-  ),
-  createMockNotification(6, "New Customer is registered!", 2880, true),
-];
 
 export const notificationApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
-    // PERBAIKAN 1: Gunakan providesTags dengan pola objek
+    // Get all notifications from API
     getNotifications: builder.query({
-      queryFn: async () => {
-        const sortedNotifs = [...mockNotifications].sort(
-          (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-        );
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: { notifications: sortedNotifs } };
+      query: () => "/api/admin/notifications",
+      transformResponse: (response) => {
+        // Transform the response to match the expected structure
+        return {
+          notifications: response.map((notif) => ({
+            id: notif.id,
+            text: notif.message,
+            timestamp: notif.created_at,
+            read: notif.is_read,
+            link: notif.link,
+            read_at: notif.read_at,
+            updated_at: notif.updated_at,
+          })),
+        };
       },
       providesTags: (result) =>
         result
           ? [
-              { type: "Notification", id: "LIST" },
-              ...result.notifications.map(({ id }) => ({
-                type: "Notification",
-                id,
-              })),
-            ]
+            { type: "Notification", id: "LIST" },
+            ...result.notifications.map(({ id }) => ({
+              type: "Notification",
+              id,
+            })),
+          ]
           : [{ type: "Notification", id: "LIST" }],
     }),
 
-    // PERBAIKAN 2: Gunakan pola imutabel (.map) dan invalidatesTags yang benar
+    // Mark all notifications as read
     markAllAsRead: builder.mutation({
-      queryFn: async () => {
-        // Jangan mutasi langsung! Buat array baru dengan .map
-        mockNotifications = mockNotifications.map((notif) => ({
-          ...notif,
-          read: true,
-        }));
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        return { data: "ok" };
-      },
-      // Invalidate tag 'LIST' yang spesifik
+      query: () => ({
+        url: "/api/admin/notifications/read-all",
+        method: "POST",
+      }),
       invalidatesTags: [{ type: "Notification", id: "LIST" }],
+    }),
+
+    // Mark single notification as read
+    markAsRead: builder.mutation({
+      query: (id) => ({
+        url: `/api/admin/notifications/${id}/read`,
+        method: "POST",
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: "Notification", id: "LIST" },
+        { type: "Notification", id: arg },
+      ],
     }),
   }),
 });
 
-export const { useGetNotificationsQuery, useMarkAllAsReadMutation } =
-  notificationApiSlice;
+export const {
+  useGetNotificationsQuery,
+  useMarkAllAsReadMutation,
+  useMarkAsReadMutation
+} = notificationApiSlice;
