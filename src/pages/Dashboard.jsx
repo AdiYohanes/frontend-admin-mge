@@ -159,7 +159,7 @@ const DashboardPage = () => {
         </div>
 
         {/* Baris 4: Statistik Populer & Konsol dengan design yang diperbaiki */}
-        <div className="card bg-base-100 shadow-xl border border-base-200">
+        <div className="card bg-base-100 shadow-xl border border-base-200 min-h-[400px]">
           <div className="card-body">
             <StatsSection />
           </div>

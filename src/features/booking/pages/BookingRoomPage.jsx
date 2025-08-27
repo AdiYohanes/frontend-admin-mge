@@ -111,11 +111,11 @@ const BookingRoomPage = () => {
       );
     }
 
-    // Sort berdasarkan tanggal
+    // Sort berdasarkan created_at
     filtered.sort((a, b) => {
       try {
-        const dateA = parseISO(a.rawBooking?.start_time || a.tanggalBooking);
-        const dateB = parseISO(b.rawBooking?.start_time || b.tanggalBooking);
+        const dateA = parseISO(a.created_at || a.rawBooking?.start_time || a.tanggalBooking);
+        const dateB = parseISO(b.created_at || b.rawBooking?.start_time || b.tanggalBooking);
 
         if (sortOrder === 'newest') {
           return dateB - dateA; // Newest first
@@ -247,17 +247,17 @@ const BookingRoomPage = () => {
               <button
                 onClick={handleSortToggle}
                 className="btn btn-outline btn-sm gap-2"
-                title={sortOrder === 'newest' ? 'Sort by Oldest First' : 'Sort by Newest First'}
+                title={sortOrder === 'newest' ? 'Sort by Oldest Created First' : 'Sort by Newest Created First'}
               >
                 {sortOrder === 'newest' ? (
                   <>
                     <ChevronDownIcon className="h-4 w-4" />
-                    Newest First
+                    Newest
                   </>
                 ) : (
                   <>
                     <ChevronUpIcon className="h-4 w-4" />
-                    Oldest First
+                    Oldest
                   </>
                 )}
               </button>

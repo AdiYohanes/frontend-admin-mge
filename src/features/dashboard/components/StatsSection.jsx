@@ -48,7 +48,7 @@ const StatsSection = () => {
             </div>
 
             {/* Grid komponen */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[350px]">
                 <MostPopular
                     sharedPeriod={sharedPeriod}
                     onPeriodChange={handlePeriodChange}

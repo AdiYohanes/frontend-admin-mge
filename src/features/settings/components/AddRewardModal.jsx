@@ -177,8 +177,8 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                         <label className="label"><span className="label-text">Reward Type <span className="text-error">*</span></span></label>
                         <select value={type} onChange={(e) => setType(e.target.value)} className="select select-bordered w-full cursor-pointer">
                             <option value="" disabled>Type</option>
-                            <option value="free_fnb">free_fnb</option>
-                            <option value="free_play">free_play</option>
+                            <option value="free_fnb">Food & Drink</option>
+                            <option value="free_play">Room</option>
                         </select>
                     </div>
 
@@ -219,14 +219,17 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                                                 <option key={`food-${i.id}`} value={i.id}>{i.name}</option>
                                             ))}
                                         </select>
-                                        <select value={row.qty} onChange={(e) => {
-                                            const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
-                                        }} className="select select-bordered w-full">
-                                            <option value="">Quantity</option>
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                        </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            value={row.qty}
+                                            onChange={(e) => {
+                                                const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
+                                            }}
+                                            placeholder="Qty"
+                                            className="input input-bordered w-full"
+                                        />
                                         <div className="flex justify-end">
                                             {idx === 0 ? (
                                                 <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setFoodRows((r) => [...r, { key: Date.now(), foodId: "", qty: "" }])} aria-label="Add food row">
@@ -257,14 +260,17 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                                                 <option key={`drink-${i.id}`} value={i.id}>{i.name}</option>
                                             ))}
                                         </select>
-                                        <select value={row.qty} onChange={(e) => {
-                                            const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
-                                        }} className="select select-bordered w-full">
-                                            <option value="">Quantity</option>
-                                            <option value="1">1</option>
-                                            <option value="2">2</option>
-                                            <option value="3">3</option>
-                                        </select>
+                                        <input
+                                            type="number"
+                                            min="1"
+                                            step="1"
+                                            value={row.qty}
+                                            onChange={(e) => {
+                                                const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
+                                            }}
+                                            placeholder="Qty"
+                                            className="input input-bordered w-full"
+                                        />
                                         <div className="flex justify-end">
                                             {idx === 0 ? (
                                                 <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setDrinkRows((r) => [...r, { key: Date.now(), drinkId: "", qty: "" }])} aria-label="Add drink row">

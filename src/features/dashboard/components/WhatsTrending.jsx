@@ -65,7 +65,7 @@ const WhatsTrending = ({ sharedPeriod, onPeriodChange }) => {
   }
 
   return (
-    <div className="card bg-base-100 shadow-md h-full">
+    <div className="card bg-base-100 shadow-md h-full min-h-[300px]">
       <div className="card-body">
         <div className="flex justify-between items-center mb-4">
           <h2 className="card-title">What's Trending</h2>

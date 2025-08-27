@@ -37,7 +37,7 @@ const MostPopular = ({ sharedPeriod, onPeriodChange }) => {
   });
 
   return (
-    <div className="card bg-base-100 shadow-md h-full">
+    <div className="card bg-base-100 shadow-md h-full min-h-[300px]">
       <div className="card-body flex flex-col">
         <div className="flex justify-between items-center mb-4 flex-shrink-0">
           <h2 className="card-title">Most Popular</h2>
@@ -47,11 +47,13 @@ const MostPopular = ({ sharedPeriod, onPeriodChange }) => {
         <div className="mt-4 flex flex-col gap-4 overflow-y-auto pr-2 flex-grow">
           {isLoading ? (
             // Tampilkan skeleton loading
-            Array.from({ length: 4 }).map((_, i) => (
-              <div key={i} className="skeleton h-20 w-48 min-w-[12rem]"></div>
-            ))
+            <div className="flex flex-col gap-4 flex-grow">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="skeleton h-20 w-48 min-w-[12rem]"></div>
+              ))}
+            </div>
           ) : isError ? (
-            <div className="text-center py-10 text-error min-w-full">
+            <div className="text-center py-10 text-error min-w-full flex-grow flex items-center justify-center">
               Gagal memuat data.
             </div>
           ) : data && data.length > 0 ? (
@@ -74,7 +76,7 @@ const MostPopular = ({ sharedPeriod, onPeriodChange }) => {
               </div>
             ))
           ) : (
-            <div className="text-center py-10 text-gray-500 min-w-full">
+            <div className="text-center py-10 text-gray-500 min-w-full flex-grow flex items-center justify-center">
               Tidak ada data popularitas untuk periode ini.
             </div>
           )}
