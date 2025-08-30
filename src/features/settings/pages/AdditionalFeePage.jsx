@@ -41,12 +41,35 @@ const AdditionalFeePage = () => {
                                 type="number"
                                 step="0.01"
                                 value={tax}
-                                onChange={(e) => setTax(e.target.value)}
+                                onChange={(e) => {
+                                    const value = e.target.value;
+                                    const numValue = Number(value);
+                                    if (numValue < 0) {
+                                        setTax("0");
+                                    } else if (numValue > 100) {
+                                        setTax("100");
+                                    } else {
+                                        setTax(value);
+                                    }
+                                }}
                                 className="input input-bordered w-full pr-10"
                                 min={0}
+                                max={100}
                                 aria-label="Tax percentage"
+                                tabIndex={0}
+                                onKeyDown={(e) => {
+                                    if (e.key === "Enter") {
+                                        e.target.blur();
+                                    }
+                                }}
                             />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 select-none" aria-hidden="true">%</span>
+                            {/* The % symbol is visually inside the input using absolute positioning */}
+                            <span
+                                className="absolute right-3 top-1/2 -translate-y-1/2 text-base-content/60 select-none pointer-events-none"
+                                aria-hidden="true"
+                            >
+                                %
+                            </span>
                         </div>
                     </div>
                     <div className="flex justify-end">
@@ -56,8 +79,8 @@ const AdditionalFeePage = () => {
                             onClick={async () => {
                                 try {
                                     const percentage = Number(tax);
-                                    if (Number.isNaN(percentage) || percentage < 0) {
-                                        toast.error("Percentage tidak valid");
+                                    if (Number.isNaN(percentage) || percentage < 0 || percentage > 100) {
+                                        toast.error("Percentage harus antara 0-100%");
                                         return;
                                     }
                                     await updateTax({ id: 1, percentage }).unwrap();

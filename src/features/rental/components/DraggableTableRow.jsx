@@ -54,6 +54,14 @@ const DraggableTableRow = ({
         </div>
       </td>
       <td className="font-semibold">{console.name}</td>
+      <td className="max-w-xs">
+        <div
+          className="text-sm text-gray-600 truncate max-w-xs"
+          title={console.description}
+        >
+          {console.description || "No description available"}
+        </div>
+      </td>
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">
           <div className="tooltip" data-tip="Edit">

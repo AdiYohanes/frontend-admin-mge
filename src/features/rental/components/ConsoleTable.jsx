@@ -38,6 +38,7 @@ const ConsoleTable = ({
             <th>No</th>
             <th>Image</th>
             <th>Name</th>
+            <th>Description</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>

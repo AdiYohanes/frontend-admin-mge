@@ -160,7 +160,7 @@ const TransactionListPage = () => {
             {pagination.total > 0 ? (
               `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} completed transactions`
             ) : (
-              "No completed transactions found"
+              ""
             )}
           </div>
         )}
