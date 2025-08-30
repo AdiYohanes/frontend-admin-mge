@@ -51,11 +51,34 @@ export const notificationApiSlice = apiSlice.injectEndpoints({
         { type: "Notification", id: arg },
       ],
     }),
+
+    // Delete single notification
+    deleteNotification: builder.mutation({
+      query: (id) => ({
+        url: `/api/admin/notifications/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (result, error, arg) => [
+        { type: "Notification", id: "LIST" },
+        { type: "Notification", id: arg },
+      ],
+    }),
+
+    // Delete all read notifications
+    deleteAllReadNotifications: builder.mutation({
+      query: () => ({
+        url: "/api/admin/notifications",
+        method: "DELETE",
+      }),
+      invalidatesTags: [{ type: "Notification", id: "LIST" }],
+    }),
   }),
 });
 
 export const {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
-  useMarkAsReadMutation
+  useMarkAsReadMutation,
+  useDeleteNotificationMutation,
+  useDeleteAllReadNotificationsMutation
 } = notificationApiSlice;

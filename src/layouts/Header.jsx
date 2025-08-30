@@ -7,7 +7,7 @@ import {
   UserCircleIcon,
   SunIcon,
   MoonIcon,
-  CheckIcon,
+  TrashIcon,
 } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -18,6 +18,8 @@ import {
   useGetNotificationsQuery,
   useMarkAllAsReadMutation,
   useMarkAsReadMutation,
+  useDeleteNotificationMutation,
+  useDeleteAllReadNotificationsMutation,
 } from "../features/notification/api/notificationApiSlice";
 
 const Header = () => {
@@ -38,9 +40,20 @@ const Header = () => {
   const [markAsRead, { isLoading: isMarkingSingleRead }] =
     useMarkAsReadMutation();
 
+  const [deleteNotification, { isLoading: isDeletingNotification }] =
+    useDeleteNotificationMutation();
+
+  const [deleteAllReadNotifications, { isLoading: isDeletingAllRead }] =
+    useDeleteAllReadNotificationsMutation();
+
   // Hitung notifikasi yang belum dibaca secara efisien dengan useMemo
   const unreadCount = useMemo(() => {
     return notificationsData?.notifications?.filter((n) => !n.read).length ?? 0;
+  }, [notificationsData]);
+
+  // Hitung notifikasi yang sudah dibaca untuk delete all functionality
+  const readCount = useMemo(() => {
+    return notificationsData?.notifications?.filter((n) => n.read).length ?? 0;
   }, [notificationsData]);
 
   const handleMarkAllRead = async () => {
@@ -57,6 +70,23 @@ const Header = () => {
       await markAsRead(notificationId).unwrap();
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
+    }
+  };
+
+  const handleDeleteNotification = async (notificationId) => {
+    try {
+      await deleteNotification(notificationId).unwrap();
+    } catch (err) {
+      console.error("Failed to delete notification:", err);
+    }
+  };
+
+  const handleDeleteAllReadNotifications = async () => {
+    if (readCount === 0) return;
+    try {
+      await deleteAllReadNotifications().unwrap();
+    } catch (err) {
+      console.error("Failed to delete all read notifications:", err);
     }
   };
 
@@ -168,8 +198,8 @@ const Header = () => {
                     <li
                       key={notif.id}
                       className={`p-3 rounded-lg border transition-all duration-200 ${!notif.read
-                          ? "bg-blue-50 border-blue-200 shadow-sm"
-                          : "bg-base-50 border-base-200"
+                        ? "bg-blue-50 border-blue-200 shadow-sm"
+                        : "bg-base-50 border-base-200"
                         }`}
                     >
                       <div className="flex items-start justify-between gap-3">
@@ -197,13 +227,32 @@ const Header = () => {
                               handleMarkAsRead(notif.id);
                             }}
                             disabled={isMarkingSingleRead}
-                            className="btn btn-xs btn-circle bg-blue-100 hover:bg-blue-200 text-blue-600 border-0 flex-shrink-0"
+                            className="btn btn-xs bg-blue-100 hover:bg-blue-200 text-blue-600 border-0 flex-shrink-0"
                             title="Mark as read"
                           >
                             {isMarkingSingleRead ? (
                               <span className="loading loading-spinner loading-xs"></span>
                             ) : (
-                              <CheckIcon className="h-3 w-3" />
+                              "Mark as read"
+                            )}
+                          </button>
+                        )}
+
+                        {/* Delete Button for Read Notifications */}
+                        {notif.read && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteNotification(notif.id);
+                            }}
+                            disabled={isDeletingNotification}
+                            className="btn btn-xs bg-red-100 hover:bg-red-200 text-red-600 border-0 flex-shrink-0"
+                            title="Delete notification"
+                          >
+                            {isDeletingNotification ? (
+                              <span className="loading loading-spinner loading-xs"></span>
+                            ) : (
+                              <TrashIcon className="h-3 w-3" />
                             )}
                           </button>
                         )}
@@ -216,7 +265,7 @@ const Header = () => {
                   </li>
                 )}
               </ul>
-              <div className="card-actions mt-4">
+              <div className="card-actions mt-4 space-y-2">
                 <button
                   className="btn bg-brand-gold btn-block text-white"
                   onClick={handleMarkAllRead}
@@ -228,6 +277,20 @@ const Header = () => {
                     "Tandai semua sudah dibaca"
                   )}
                 </button>
+
+                {readCount > 0 && (
+                  <button
+                    className="btn btn-outline btn-error btn-block"
+                    onClick={handleDeleteAllReadNotifications}
+                    disabled={isDeletingAllRead || readCount === 0}
+                  >
+                    {isDeletingAllRead ? (
+                      <span className="loading loading-spinner"></span>
+                    ) : (
+                      "Hapus semua yang sudah dibaca"
+                    )}
+                  </button>
+                )}
               </div>
             </div>
           </div>
