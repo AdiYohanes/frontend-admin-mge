@@ -35,6 +35,7 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
             <th>NO. TRANSAKSI</th>
             <th>TANGGAL</th>
             <th>ORDER</th>
+            <th>NOTES</th>
             <th className="text-center">VISITORS</th>
             <th className="text-center">TOTAL</th>
             <th>STATUS</th>
@@ -58,11 +59,15 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
                   <div className="font-medium text-sm max-w-xs">
                     {order.orderName}
                   </div>
-                  {order.notes && order.notes.trim() && (
-                    <div className="text-xs text-base-content/60 mt-1 italic">
-                      Note: {order.notes}
-                    </div>
-                  )}
+                </td>
+                <td>
+                  <div className="text-sm max-w-xs">
+                    {order.notes && order.notes.trim() ? (
+                      <span className="text-base-content/80">{order.notes}</span>
+                    ) : (
+                      <span className="text-base-content/40 italic">-</span>
+                    )}
+                  </div>
                 </td>
                 <td className="text-center font-bold">{order.quantity}</td>
                 <td className="text-center">
