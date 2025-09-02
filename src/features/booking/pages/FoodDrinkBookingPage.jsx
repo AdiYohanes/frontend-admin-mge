@@ -20,10 +20,10 @@ const FoodDrinkBookingPage = () => {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
-  // Load booking list - get all data for frontend pagination
+  // Load booking list with proper pagination
   const { data: apiResponse, isLoading, isFetching } = useGetFoodDrinkBookingsQuery({
-    page: 1, // Always get page 1
-    limit: 1000, // Get more data for frontend filtering
+    page: currentPage,
+    limit: limit,
     status: statusFilter,
   });
 
@@ -39,32 +39,16 @@ const FoodDrinkBookingPage = () => {
     });
   }, [apiResponse, isLoading, isFetching, currentPage, limit, statusFilter]);
 
-  // Merge booking list with details - gunakan data FnB items dari response API
-  const mergedBookings = useMemo(() => {
-    if (!apiResponse?.bookings) return [];
-
-    return apiResponse.bookings.map(booking => {
-      // Data FnB items sudah tersedia di booking.fnbItems dari API response
-      const fnbItems = booking.fnbItems || [];
-
-      // Create order name from FnB items - gunakan data yang sudah ada
-      const orderName = fnbItems.length > 0
-        ? fnbItems.map(item => `${item.name} (${item.quantity}x)`).join(', ')
-        : booking.orderName || 'F&B Order'; // Fallback ke orderName dari API
-
-      return {
-        ...booking,
-        orderName: orderName,
-        fnbItems: fnbItems,
-      };
-    });
+  // Use bookings directly from API response (already transformed)
+  const bookings = useMemo(() => {
+    return apiResponse?.bookings || [];
   }, [apiResponse?.bookings]);
 
-  // Debug: Log merged bookings
+  // Debug: Log bookings
   useEffect(() => {
-    console.log('🔍 DEBUG - Merged Bookings:', {
-      mergedBookingsCount: mergedBookings.length,
-      sampleMergedBookings: mergedBookings.slice(0, 2).map(b => ({
+    console.log('🔍 DEBUG - Bookings:', {
+      bookingsCount: bookings.length,
+      sampleBookings: bookings.slice(0, 2).map(b => ({
         id: b.id,
         noTransaction: b.noTransaction,
         name: b.name,
@@ -72,45 +56,42 @@ const FoodDrinkBookingPage = () => {
         fnbItemsCount: b.fnbItems?.length || 0
       }))
     });
-  }, [mergedBookings]);
+  }, [bookings]);
 
-  // Filter data berdasarkan search term di frontend dan pastikan hanya FNB
+  // Filter data berdasarkan search term di frontend
   const filteredBookings = useMemo(() => {
-    if (!mergedBookings) return [];
+    if (!bookings) return [];
 
     // Debug: Log sebelum filtering
     console.log('🔍 DEBUG - FoodDrinkBooking filtering:', {
-      totalBookings: mergedBookings.length,
+      totalBookings: bookings.length,
       searchTerm: debouncedSearchTerm,
-      sampleBookings: mergedBookings.slice(0, 3).map(b => ({
+      sampleBookings: bookings.slice(0, 3).map(b => ({
         id: b.id,
         noTransaction: b.noTransaction,
         name: b.name
       }))
     });
 
-    const fnbOnlyBookings = mergedBookings.filter(booking => booking.noTransaction?.startsWith('FNB'));
+    // Filter berdasarkan search term
+    const filtered = bookings.filter(booking =>
+      booking.noTransaction.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      booking.orderName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (booking.notes && booking.notes.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+    );
 
-    // Debug: Log setelah FNB filter
-    console.log('🔍 DEBUG - After FNB filter:', {
-      fnbBookingsCount: fnbOnlyBookings.length,
-      sampleFnbBookings: fnbOnlyBookings.slice(0, 3).map(b => ({
+    // Debug: Log setelah filtering
+    console.log('🔍 DEBUG - After search filter:', {
+      filteredBookingsCount: filtered.length,
+      sampleFilteredBookings: filtered.slice(0, 3).map(b => ({
         id: b.id,
         noTransaction: b.noTransaction,
         name: b.name
       }))
     });
 
-    return fnbOnlyBookings
-      // Filter berdasarkan search term
-      .filter(booking =>
-        booking.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        booking.noTransaction.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        booking.orderName.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        booking.phoneNumber.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
-        booking.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
-      );
-  }, [mergedBookings, debouncedSearchTerm]);
+    return filtered;
+  }, [bookings, debouncedSearchTerm]);
 
   // Debug: Log final filtered bookings
   useEffect(() => {
@@ -125,19 +106,15 @@ const FoodDrinkBookingPage = () => {
     });
   }, [filteredBookings]);
 
-  // Frontend pagination untuk filtered data
-  const paginatedBookings = useMemo(() => {
-    const startIndex = (currentPage - 1) * limit;
-    const endIndex = startIndex + limit;
-    return filteredBookings.slice(startIndex, endIndex);
-  }, [filteredBookings, currentPage, limit]);
-
-  const paginationData = {
-    currentPage: currentPage,
-    totalPages: Math.ceil(filteredBookings.length / limit),
-    total: filteredBookings.length,
-    perPage: limit
-  };
+  // Use pagination data from API response
+  const paginationData = useMemo(() => {
+    return apiResponse?.pagination || {
+      currentPage: 1,
+      totalPages: 1,
+      total: 0,
+      perPage: limit
+    };
+  }, [apiResponse?.pagination, limit]);
 
   // Debug: Log pagination data
   useEffect(() => {
@@ -171,7 +148,7 @@ const FoodDrinkBookingPage = () => {
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, statusFilter]);
+  }, [statusFilter]);
 
   // Reset to page 1 when search term changes
   useEffect(() => {
@@ -224,14 +201,14 @@ const FoodDrinkBookingPage = () => {
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
                 showMonthFilter={false}
-                searchPlaceholder="Search ..."
+                searchPlaceholder="Search by invoice number or order..."
               />
             </div>
 
             {/* Table */}
             <div className="mb-6">
               <FoodDrinkTable
-                orders={paginatedBookings}
+                orders={filteredBookings}
                 isLoading={isLoading || isFetching}
                 page={currentPage}
                 limit={limit}

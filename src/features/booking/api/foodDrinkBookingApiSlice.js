@@ -84,27 +84,17 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
         const transformedBookings = response.data.map(booking => {
           const createdDate = booking.created_at ? parseISO(booking.created_at) : new Date();
 
-          // Extract FnB items information
-          const fnbItems = booking.fnbs?.map(fnb => ({
-            id: fnb.id,
-            name: fnb.name,
-            price: parseFloat(fnb.price) || 0,
-            quantity: fnb.pivot?.quantity || 1,
-            totalPrice: parseFloat(fnb.pivot?.price) || 0,
-          })) || [];
-
-          // Create order summary with just names
-          const orderSummary = fnbItems.length > 0
-            ? fnbItems.map(item => `${item.name} (${item.quantity}x)`).join(', ')
-            : 'F&B Order';
+          // For F&B only bookings, create a simple order summary
+          const orderSummary = booking.notes || 'F&B Order';
 
           return {
             id: booking.id,
             noTransaction: booking.invoice_number,
-            name: booking.bookable?.name || 'N/A',
-            phoneNumber: booking.bookable?.phone || '-',
-            email: booking.bookable?.email || '-',
+            name: 'Guest', // Default name since bookable info might not be included
+            phoneNumber: '-',
+            email: '-',
             orderName: orderSummary,
+            notes: booking.notes, // Include notes for display
             quantity: booking.total_visitors || 1,
             totalPembayaran: parseFloat(booking.total_price) || 0,
             metodePembayaran: 'QRIS', // Default payment method
@@ -121,7 +111,9 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
             eventId: booking.event_id || null,
             promoId: booking.promo_id || null,
             reminderSent: booking.reminder_sent || false,
-            fnbItems: fnbItems, // Include full FnB items data
+            taxAmount: parseFloat(booking.tax_amount) || 0,
+            serviceFeeAmount: parseFloat(booking.service_fee_amount) || 0,
+            fnbItems: [], // Will be populated from detail API if needed
             rawBooking: booking, // Simpan data mentah untuk referensi
           };
         });

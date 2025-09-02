@@ -7,14 +7,12 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
   const getStatusBadge = (status) => {
     const baseClasses = 'badge font-semibold capitalize';
     switch (status?.toLowerCase()) {
-      case 'complete':
+      case 'completed':
       case 'confirmed':
         return `${baseClasses} badge-success`;
-      case 'booking berjalan':
       case 'ongoing':
         return `${baseClasses} badge-info`;
       case 'pending':
-      case 'waiting for payment':
         return `${baseClasses} badge-warning`;
       case 'cancelled':
         return `${baseClasses} badge-error`;
@@ -36,10 +34,8 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
             <th className="text-center">NO.</th>
             <th>NO. TRANSAKSI</th>
             <th>TANGGAL</th>
-            <th>CUSTOMER</th>
-            <th>NO HP</th>
             <th>ORDER</th>
-            <th className="text-center">QTY</th>
+            <th className="text-center">VISITORS</th>
             <th className="text-center">TOTAL</th>
             <th>STATUS</th>
             <th className="text-center">AKSI</th>
@@ -59,16 +55,14 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
                   {order.tanggalTransaksi}
                 </td>
                 <td>
-                  <div className="font-semibold">{order.name}</div>
-                  <div className="text-xs text-base-content/60">
-                    {order.email}
-                  </div>
-                </td>
-                <td className="text-sm">{order.phoneNumber}</td>
-                <td>
                   <div className="font-medium text-sm max-w-xs">
                     {order.orderName}
                   </div>
+                  {order.notes && order.notes !== 'F&B Order' && (
+                    <div className="text-xs text-base-content/60 mt-1">
+                      {order.notes}
+                    </div>
+                  )}
                 </td>
                 <td className="text-center font-bold">{order.quantity}</td>
                 <td className="text-center">
