@@ -14,7 +14,9 @@ const promoSchema = z.object({
   promo_code: z
     .string()
     .min(5, "Kode promo minimal 5 karakter")
-    .regex(/^[A-Z0-9]+$/, "Gunakan huruf kapital dan angka"),
+    .regex(/^[A-Za-z0-9]+$/, "Hanya huruf dan angka, tidak boleh ada spasi")
+    .refine((val) => !/\s/.test(val), "Kode promo tidak boleh mengandung spasi")
+    .transform((val) => val.toUpperCase()), // Transform ke uppercase untuk API
   percentage: z
     .number()
     .min(1, "Persentase minimal 1%")
@@ -52,6 +54,7 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(promoSchema),
@@ -136,7 +139,12 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
               {...register("promo_code")}
               className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.promo_code ? "input-error" : ""
                 }`}
-              placeholder="Contoh: DISKON10"
+              placeholder="Contoh: diskon10 atau DISKON10"
+              onChange={(e) => {
+                // Hapus spasi dari input
+                const cleanValue = e.target.value.replace(/\s/g, '');
+                setValue("promo_code", cleanValue);
+              }}
             />
             {errors.promo_code && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
