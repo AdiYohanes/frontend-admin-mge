@@ -58,9 +58,9 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
                   <div className="font-medium text-sm max-w-xs">
                     {order.orderName}
                   </div>
-                  {order.notes && order.notes !== 'F&B Order' && (
-                    <div className="text-xs text-base-content/60 mt-1">
-                      {order.notes}
+                  {order.notes && order.notes.trim() && (
+                    <div className="text-xs text-base-content/60 mt-1 italic">
+                      Note: {order.notes}
                     </div>
                   )}
                 </td>

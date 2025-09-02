@@ -94,7 +94,7 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
             phoneNumber: '-',
             email: '-',
             orderName: orderSummary,
-            notes: booking.notes, // Include notes for display
+            notes: booking.notes || '', // Include notes for display
             quantity: booking.total_visitors || 1,
             totalPembayaran: parseFloat(booking.total_price) || 0,
             metodePembayaran: 'QRIS', // Default payment method
