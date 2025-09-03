@@ -175,10 +175,11 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Banner Endpoints ===
     getBanners: builder.query({
-      query: () => ({ url: "/api/admin/banners" }),
+      query: () => ({ url: "/api/public/banners" }),
       transformResponse: (response) => ({
         banners: response.data.map((banner) => ({
           ...banner,
+          title: banner.title || banner.description, // Use title if available, fallback to description
           isActive: banner.is_active,
           imageUrl: banner.image
             ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${banner.image}`
@@ -200,8 +201,10 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
         const formData = new FormData();
         formData.append("title", item.title);
         formData.append("description", item.description);
+        formData.append("is_active", "1"); // Always active when creating
         if (item.image && item.image.length > 0)
           formData.append("image", item.image[0]);
+
         return { url: "/api/admin/banners", method: "POST", body: formData };
       },
       invalidatesTags: [{ type: "Banner", id: "LIST" }],
@@ -318,22 +321,34 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Rewards (Admin) ===
     addReward: builder.mutation({
-      query: (payload) => ({
+      query: (formData) => ({
         url: "/api/admin/rewards",
         method: "POST",
-        body: payload,
+        body: formData,
+        // Don't set Content-Type header, let browser set it with boundary for FormData
       }),
       invalidatesTags: [{ type: "Rewards", id: "LIST" }],
     }),
     updateReward: builder.mutation({
-      query: ({ id, ...payload }) => ({
+      query: ({ id, formData }) => ({
         url: `/api/admin/rewards/${id}`,
         method: "POST",
-        body: payload,
+        body: formData,
+        // Don't set Content-Type header, let browser set it with boundary for FormData
       }),
       invalidatesTags: (r, e, arg) => [
         { type: "Rewards", id: "LIST" },
         { type: "Rewards", id: arg.id },
+      ],
+    }),
+    deleteReward: builder.mutation({
+      query: (id) => ({
+        url: `/api/admin/rewards/${id}`,
+        method: "DELETE",
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: "Rewards", id: "LIST" },
+        { type: "Rewards", id: arg },
       ],
     }),
 
@@ -427,6 +442,7 @@ export const {
   useGetRewardsQuery,
   useAddRewardMutation,
   useUpdateRewardMutation,
+  useDeleteRewardMutation,
   useGetPromosQuery,
   useAddPromoMutation,
   useUpdatePromoMutation,

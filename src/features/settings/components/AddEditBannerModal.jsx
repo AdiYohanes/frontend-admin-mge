@@ -14,8 +14,8 @@ import { toast } from "react-hot-toast";
 // Kita buat fungsi untuk menghasilkan skema secara dinamis
 const createBannerSchema = (isEditMode = false) =>
   z.object({
-    title: z.string().min(5, "Judul minimal 5 karakter"),
-    description: z.string().min(10, "Deskripsi minimal 10 karakter"),
+    title: z.string().min(3, "Judul minimal 3 karakter"),
+    description: z.string().min(5, "Deskripsi minimal 5 karakter"),
     // Logika validasi gambar sekarang kondisional
     image: z
       .any()
@@ -45,6 +45,8 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
   } = useForm({
     resolver: zodResolver(createBannerSchema(isEditMode)),
   });
+
+
 
   const watchedImage = watch("image");
 
@@ -84,11 +86,18 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
         await updateBanner({ id: editingData.id, ...formData }).unwrap();
         toast.success("Banner berhasil diperbarui!");
       } else {
+        // Validate required fields before submission
+        if (!formData.title || !formData.description) {
+          toast.error("Title dan description wajib diisi!");
+          return;
+        }
+
         await addBanner(formData).unwrap();
         toast.success("Banner baru berhasil ditambahkan!");
       }
       onClose();
     } catch (err) {
+      console.error("Banner submission error:", err);
       toast.error(err.data?.message || "Gagal memproses data banner.");
     }
   };
@@ -143,7 +152,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
           </div>
 
           {/* Description */}
-          <div className="form-control">
+          <div className="form-control flex flex-col gap-2">
             <label className="label">
               <span className="label-text font-medium flex items-center gap-2">
                 <FiFileText className="h-4 w-4 text-brand-gold" />

@@ -35,7 +35,8 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
         <thead className="bg-base-200">
           <tr>
             <th>Image</th>
-            <th>Details</th>
+            <th>Title</th>
+            <th>Description</th>
             <th>Status</th>
             <th className="text-center">Actions</th>
           </tr>
@@ -43,7 +44,7 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
         <tbody>
           {(!banners || banners.length === 0) ? (
             <tr>
-              <td colSpan="4" className="text-center py-8 text-base-content/60">
+              <td colSpan="5" className="text-center py-8 text-base-content/60">
                 Tidak ada data banner yang ditemukan.
               </td>
             </tr>
@@ -58,8 +59,10 @@ const BannerTable = ({ banners, isLoading, onEdit, onDelete }) => {
                   </div>
                 </td>
                 <td>
-                  <div className="font-bold">{banner.title}</div>
-                  <div className="text-xs opacity-70 max-w-md truncate">
+                  <div className="font-bold text-sm">{banner.title}</div>
+                </td>
+                <td>
+                  <div className="text-sm max-w-xs truncate">
                     {banner.description}
                   </div>
                 </td>

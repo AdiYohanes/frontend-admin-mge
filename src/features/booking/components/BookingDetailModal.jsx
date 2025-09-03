@@ -27,16 +27,7 @@ const BookingDetailModal = ({ isOpen, onClose, bookingData, isLoading, error }) 
         if (!dateString) return '-';
         try {
             return format(parseISO(dateString), 'dd MMM yyyy, HH:mm');
-        } catch (error) {
-            return dateString;
-        }
-    };
-
-    const formatTime = (dateString) => {
-        if (!dateString) return '-';
-        try {
-            return format(parseISO(dateString), 'HH:mm');
-        } catch (error) {
+        } catch {
             return dateString;
         }
     };
@@ -48,7 +39,7 @@ const BookingDetailModal = ({ isOpen, onClose, bookingData, isLoading, error }) 
             const end = parseISO(endTime);
             const diffInHours = (end - start) / (1000 * 60 * 60);
             return `${diffInHours.toFixed(1)} hours`;
-        } catch (error) {
+        } catch {
             return '-';
         }
     };
@@ -100,200 +91,269 @@ const BookingDetailModal = ({ isOpen, onClose, bookingData, isLoading, error }) 
 
     return (
         <div className="modal modal-open">
-            <div className="modal-box max-w-md max-h-[80vh] overflow-y-auto">
+            <div className="modal-box w-11/12 max-w-7xl h-[95vh] overflow-hidden flex flex-col">
                 {/* Header */}
-                <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center justify-between mb-4 flex-shrink-0">
                     <div>
-                        <h3 className="text-lg font-bold">Booking Details</h3>
-                        <p className="text-xs text-gray-500">Invoice: {bookingData.invoiceNumber}</p>
+                        <h3 className="text-2xl font-bold text-base-content">Booking Details</h3>
+                        <p className="text-sm text-base-content/70 mt-1">Invoice: {bookingData.invoiceNumber}</p>
                     </div>
                     <button
                         onClick={onClose}
-                        className="btn btn-ghost btn-xs btn-circle"
+                        className="btn btn-ghost btn-md btn-circle hover:bg-base-300"
                     >
-                        <XMarkIcon className="h-4 w-4" />
+                        <XMarkIcon className="h-6 w-6" />
                     </button>
                 </div>
 
                 {/* Status & Type */}
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-3 mb-4 flex-shrink-0">
                     <span className={getStatusBadge(bookingData.status)}>
                         {bookingData.status}
                     </span>
-                    <span className="badge badge-outline badge-xs">{bookingData.type}</span>
+                    <span className="badge badge-outline badge-lg">{bookingData.type}</span>
                 </div>
 
-                {/* Compact Layout */}
-                <div className="space-y-3">
-                    {/* Customer Info */}
-                    <div className="bg-base-200 p-3 rounded">
-                        <div className="flex items-center gap-2 mb-2">
-                            <UserIcon className="h-3 w-3 text-blue-500" />
-                            <h4 className="font-semibold text-xs">Customer</h4>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                            <div>
-                                <span className="text-gray-600">Name:</span>
-                                <div className="font-medium truncate">{bookingData.bookable?.name || 'N/A'}</div>
+                {/* Flex Layout */}
+                <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 flex-1 overflow-y-auto">
+                    {/* Left Column */}
+                    <div className="space-y-2">
+                        {/* Customer Info */}
+                        <div className="bg-base-200 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <UserIcon className="h-5 w-5 text-primary" />
+                                <h4 className="font-semibold text-base">Customer Info</h4>
                             </div>
-                            <div>
-                                <span className="text-gray-600">Phone:</span>
-                                <div className="font-medium">{bookingData.bookable?.phone || 'N/A'}</div>
-                            </div>
-                            <div className="col-span-2">
-                                <span className="text-gray-600">Email:</span>
-                                <div className="font-medium truncate">{bookingData.bookable?.email || 'N/A'}</div>
-                            </div>
-                            <div>
-                                <span className="text-gray-600">Points:</span>
-                                <div className="font-medium">{bookingData.bookable?.total_points || 0} pts</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Booking Info */}
-                    <div className="bg-base-200 p-3 rounded">
-                        <div className="flex items-center gap-2 mb-2">
-                            <CalendarIcon className="h-3 w-3 text-green-500" />
-                            <h4 className="font-semibold text-xs">Booking Info</h4>
-                        </div>
-                        <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                            <div>
-                                <span className="text-gray-600">Created:</span>
-                                <div className="font-medium">{formatDate(bookingData.createdAt)}</div>
-                            </div>
-                            <div>
-                                <span className="text-gray-600">Visitors:</span>
-                                <div className="font-medium">{bookingData.totalVisitors || 1}</div>
-                            </div>
-                            {bookingData.notes && (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Name:</span>
+                                    <div className="font-semibold text-base truncate">{bookingData.bookable?.name || '-'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Username:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookable?.username || '-'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Phone:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookable?.phone || '-'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Role:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookable?.role || '-'}</div>
+                                </div>
                                 <div className="col-span-2">
-                                    <span className="text-gray-600">Notes:</span>
-                                    <div className="font-medium">{bookingData.notes}</div>
+                                    <span className="text-base-content/70 text-sm font-medium">Email:</span>
+                                    <div className="font-semibold text-base truncate">{bookingData.bookable?.email || '-'}</div>
                                 </div>
-                            )}
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Points:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookable?.total_points || 0} pts</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Total Spend:</span>
+                                    <div className="font-semibold text-base">{formatCurrency(parseFloat(bookingData.bookable?.total_spend || 0))}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Booking Hours:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookable?.total_booking_hours || 0} hours</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Booking Info */}
+                        <div className="bg-base-200 p-3 rounded-lg">
+                            <div className="flex items-center gap-2 mb-2">
+                                <CalendarIcon className="h-5 w-5 text-primary" />
+                                <h4 className="font-semibold text-base">Booking Info</h4>
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Booking ID:</span>
+                                    <div className="font-semibold text-base">{bookingData.id}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Invoice:</span>
+                                    <div className="font-semibold text-base font-mono">{bookingData.invoiceNumber}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Created:</span>
+                                    <div className="font-semibold text-base">{formatDate(bookingData.createdAt)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Updated:</span>
+                                    <div className="font-semibold text-base">{formatDate(bookingData.updatedAt)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Visitors:</span>
+                                    <div className="font-semibold text-base">{bookingData.totalVisitors || 1}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Booking Type:</span>
+                                    <div className="font-semibold text-base">{bookingData.bookableType?.includes('Guest') ? 'OTS' : 'Online'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Created By:</span>
+                                    <div className="font-semibold text-base">{bookingData.createdByAdmin?.name || 'System'}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Start Time:</span>
+                                    <div className="font-semibold text-base">{formatDate(bookingData.startTime)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">End Time:</span>
+                                    <div className="font-semibold text-base">{formatDate(bookingData.endTime)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Duration:</span>
+                                    <div className="font-semibold text-base">{calculateDuration(bookingData.startTime, bookingData.endTime)}</div>
+                                </div>
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Event ID:</span>
+                                    <div className="font-semibold text-base">{bookingData.eventId || '-'}</div>
+                                </div>
+                                {bookingData.notes && (
+                                    <div className="col-span-2">
+                                        <span className="text-base-content/70 text-sm font-medium">Notes:</span>
+                                        <div className="font-semibold text-base">{bookingData.notes}</div>
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     </div>
 
-                    {/* Time Info */}
-                    <div className="bg-base-200 p-3 rounded">
-                        <div className="flex items-center gap-2 mb-2">
-                            <ClockIcon className="h-3 w-3 text-orange-500" />
-                            <h4 className="font-semibold text-xs">Time Details</h4>
-                        </div>
-                        <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-xs">
-                            <div>
-                                <span className="text-gray-600">Start:</span>
-                                <div className="font-medium">{formatTime(bookingData.startTime)}</div>
-                            </div>
-                            <div>
-                                <span className="text-gray-600">End:</span>
-                                <div className="font-medium">{formatTime(bookingData.endTime)}</div>
-                            </div>
-                            <div>
-                                <span className="text-gray-600">Duration:</span>
-                                <div className="font-medium">{calculateDuration(bookingData.startTime, bookingData.endTime)}</div>
-                            </div>
-                        </div>
-                    </div>
+                    {/* Right Column */}
+                    <div className="space-y-2">
 
-                    {/* Room Info (if available) */}
-                    {bookingData.unit && (
-                        <div className="bg-base-200 p-3 rounded">
-                            <div className="flex items-center gap-2 mb-2">
-                                <BuildingOfficeIcon className="h-3 w-3 text-purple-500" />
-                                <h4 className="font-semibold text-xs">Room Details</h4>
-                            </div>
-                            <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                                <div>
-                                    <span className="text-gray-600">Room:</span>
-                                    <div className="font-medium">{bookingData.unit.room?.name || 'N/A'}</div>
+                        {/* Room Info (if available) */}
+                        {bookingData.unit && (
+                            <div className="bg-base-200 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <BuildingOfficeIcon className="h-5 w-5 text-primary" />
+                                    <h4 className="font-semibold text-base">Room Details</h4>
                                 </div>
-                                <div>
-                                    <span className="text-gray-600">Unit:</span>
-                                    <div className="font-medium">{bookingData.unit.name || 'N/A'}</div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Unit ID:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.id}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Room ID:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.room_id}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Room:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.room?.name || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Unit:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.name || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Description:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.description || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Max Visitors:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.max_visitors || '-'}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Price/Hour:</span>
+                                        <div className="font-semibold text-base">{formatCurrency(parseFloat(bookingData.unit.price || 0))}</div>
+                                    </div>
+                                    <div>
+                                        <span className="text-base-content/70 text-sm font-medium">Points/Hour:</span>
+                                        <div className="font-semibold text-base">{bookingData.unit.points_per_hour || 0} pts</div>
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="text-gray-600">Max Visitors:</span>
-                                    <div className="font-medium">{bookingData.unit.max_visitors || 'N/A'}</div>
-                                </div>
-                                <div>
-                                    <span className="text-gray-600">Price:</span>
-                                    <div className="font-medium">{formatCurrency(parseFloat(bookingData.unit.price || 0))}</div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
 
-                    {/* F&B Items (if available) */}
-                    {bookingData.fnbs && bookingData.fnbs.length > 0 && (
-                        <div className="bg-base-200 p-3 rounded">
-                            <div className="flex items-center gap-2 mb-2">
-                                <ShoppingBagIcon className="h-3 w-3 text-red-500" />
-                                <h4 className="font-semibold text-xs">Food & Beverage</h4>
+                                {/* Selected Game Info */}
+                                {bookingData.game && (
+                                    <div className="mt-3 pt-3 border-t border-base-300">
+                                        <div className="text-sm text-base-content/70 font-medium mb-2">Selected Game:</div>
+                                        <div className="font-semibold text-base">{bookingData.game.title}</div>
+                                    </div>
+                                )}
                             </div>
-                            <div className="space-y-1">
-                                {bookingData.fnbs.map((fnb, index) => (
-                                    <div key={index} className="flex items-center justify-between p-1 bg-base-100 rounded text-xs">
-                                        <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate">{fnb.name}</div>
-                                            <div className="text-gray-500 truncate">{fnb.description}</div>
+                        )}
+
+                        {/* F&B Items (if available) */}
+                        {bookingData.fnbs && bookingData.fnbs.length > 0 && (
+                            <div className="bg-base-200 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <ShoppingBagIcon className="h-5 w-5 text-primary" />
+                                    <h4 className="font-semibold text-base">Food & Beverage</h4>
+                                </div>
+                                <div className="space-y-2">
+                                    {bookingData.fnbs.map((fnb, index) => (
+                                        <div key={index} className="flex items-center justify-between p-1 bg-base-100 rounded text-xs">
+                                            <div className="flex-1 min-w-0">
+                                                <div className="font-semibold text-base truncate">{fnb.name}</div>
+                                                <div className="text-gray-500 truncate">{fnb.description}</div>
+                                            </div>
+                                            <div className="text-right ml-2">
+                                                <div className="font-semibold text-base">{fnb.pivot?.quantity || 1}x</div>
+                                                <div className="text-gray-500">{formatCurrency(parseFloat(fnb.pivot?.price || fnb.price || 0))}</div>
+                                            </div>
                                         </div>
-                                        <div className="text-right ml-2">
-                                            <div className="font-medium">{fnb.pivot?.quantity || 1}x</div>
-                                            <div className="text-gray-500">{formatCurrency(parseFloat(fnb.pivot?.price || fnb.price || 0))}</div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Payment Info (if available) */}
+                        {bookingData.transactions && bookingData.transactions.length > 0 && (
+                            <div className="bg-base-200 p-3 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                    <CreditCardIcon className="h-5 w-5 text-primary" />
+                                    <h4 className="font-semibold text-base">Payment</h4>
+                                </div>
+                                {bookingData.transactions.map((transaction, index) => (
+                                    <div key={index} className="space-y-2">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                                            <div>
+                                                <span className="text-base-content/70 text-sm font-medium">Method:</span>
+                                                <div className="font-semibold text-base capitalize">{transaction.payment_method || '-'}</div>
+                                            </div>
+                                            <div className='flex flex-col'>
+                                                <span className="text-base-content/70 text-sm font-medium">Status:</span>
+                                                <span className={`badge badge-xs ${transaction.status === 'success' ? 'badge-success' : 'badge-error'}`}>
+                                                    {transaction.status}
+                                                </span>
+                                            </div>
+                                            <div>
+                                                <span className="text-base-content/70 text-sm font-medium">Amount:</span>
+                                                <div className="font-semibold text-base">{formatCurrency(parseFloat(transaction.amount || 0))}</div>
+                                            </div>
+                                            <div>
+                                                <span className="text-base-content/70 text-sm font-medium">Type:</span>
+                                                <div className="font-semibold text-base capitalize">{transaction.type || '-'}</div>
+                                            </div>
                                         </div>
+
+
                                     </div>
                                 ))}
                             </div>
-                        </div>
-                    )}
+                        )}
 
-                    {/* Payment Info (if available) */}
-                    {bookingData.transactions && bookingData.transactions.length > 0 && (
-                        <div className="bg-base-200 p-3 rounded">
+                        {/* Total Amount */}
+                        <div className="bg-success/10 p-3 rounded-lg border border-success/20">
                             <div className="flex items-center gap-2 mb-2">
-                                <CreditCardIcon className="h-3 w-3 text-green-500" />
-                                <h4 className="font-semibold text-xs">Payment</h4>
+                                <CurrencyDollarIcon className="h-5 w-5 text-success" />
+                                <h4 className="font-semibold text-base">Total Amount</h4>
                             </div>
-                            {bookingData.transactions.map((transaction, index) => (
-                                <div key={index} className="space-y-1">
-                                    <div className="grid grid-cols-2 gap-x-3 gap-y-1 text-xs">
-                                        <div>
-                                            <span className="text-gray-600">Method:</span>
-                                            <div className="font-medium capitalize">{transaction.payment_method || 'N/A'}</div>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-600">Status:</span>
-                                            <span className={`badge badge-xs ${transaction.status === 'success' ? 'badge-success' : 'badge-error'}`}>
-                                                {transaction.status}
-                                            </span>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-600">Amount:</span>
-                                            <div className="font-medium">{formatCurrency(parseFloat(transaction.amount || 0))}</div>
-                                        </div>
-                                        <div>
-                                            <span className="text-gray-600">Transaction ID:</span>
-                                            <div className="font-medium font-mono text-xs truncate">{transaction.gateway_transaction_id || 'N/A'}</div>
-                                        </div>
-                                    </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-3 gap-y-1 text-sm">
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Total Price:</span>
+                                    <div className="font-semibold text-lg text-success">{formatCurrency(bookingData.totalPrice)}</div>
                                 </div>
-                            ))}
-                        </div>
-                    )}
-
-                    {/* Total Amount */}
-                    <div className="bg-success/10 p-3 rounded border border-success/20">
-                        <div className="flex items-center justify-between">
-                            <h4 className="font-semibold text-xs">Total Amount</h4>
-                            <div className="text-right">
-                                <div className="text-lg font-bold text-success">
-                                    {formatCurrency(bookingData.totalPrice)}
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Tax:</span>
+                                    <div className="font-semibold text-base">{formatCurrency(bookingData.taxAmount)}</div>
                                 </div>
-                                <div className="text-xs text-gray-500">
-                                    Tax: {formatCurrency(bookingData.taxAmount)} |
-                                    Service Fee: {formatCurrency(bookingData.serviceFeeAmount)}
+                                <div>
+                                    <span className="text-base-content/70 text-sm font-medium">Service Fee:</span>
+                                    <div className="font-semibold text-base">{formatCurrency(bookingData.serviceFeeAmount)}</div>
                                 </div>
                             </div>
                         </div>
@@ -301,8 +361,8 @@ const BookingDetailModal = ({ isOpen, onClose, bookingData, isLoading, error }) 
                 </div>
 
                 {/* Modal Actions */}
-                <div className="modal-action">
-                    <button className="btn btn-outline btn-sm" onClick={onClose}>
+                <div className="modal-action mt-4 flex-shrink-0">
+                    <button className="btn btn-primary btn-md" onClick={onClose}>
                         Close
                     </button>
                 </div>

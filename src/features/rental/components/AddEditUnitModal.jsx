@@ -104,7 +104,7 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
     const selectedConsoles = field.value || [];
 
     return (
-      <div className="form-control">
+      <div className={`form-control flex flex-col transition-all duration-300 ${isDropdownOpen ? 'flex-1' : 'flex-shrink-0'}`}>
         <label className="label">
           <span className="label-text font-medium">
             Consoles <span className="text-error">*</span>
@@ -112,7 +112,7 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
         </label>
 
         {/* Dropdown Trigger */}
-        <div className="relative">
+        <div className="relative flex-shrink-0">
           <button
             type="button"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -128,9 +128,9 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
             <ChevronDownIcon className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
           </button>
 
-          {/* Dropdown Menu */}
+          {/* Dropdown Menu - Dynamic Height */}
           {isDropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 h-48 overflow-y-auto">
               {consolesData?.map(console => (
                 <label
                   key={console.id}
@@ -149,30 +149,32 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
           )}
         </div>
 
-        {/* Selected Items Display */}
-        {selectedConsoles.length > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {selectedConsoles.map(consoleId => {
-              const console = consolesData?.find(c => c.id === consoleId);
-              return console ? (
-                <div key={consoleId} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
-                  <CpuChipIcon className="h-3 w-3" />
-                  {console.name}
-                  <button
-                    type="button"
-                    className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
-                    onClick={() => handleConsoleToggle(field, consoleId)}
-                  >
-                    <XMarkIcon className="h-3 w-3" />
-                  </button>
-                </div>
-              ) : null;
-            })}
-          </div>
-        )}
+        {/* Selected Items Display - Dynamic Space */}
+        <div className={`mt-2 transition-all duration-300 ${isDropdownOpen ? 'flex-1 overflow-y-auto' : 'flex-shrink-0'}`}>
+          {selectedConsoles.length > 0 && (
+            <div className="flex flex-wrap gap-1">
+              {selectedConsoles.map(consoleId => {
+                const console = consolesData?.find(c => c.id === consoleId);
+                return console ? (
+                  <div key={consoleId} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
+                    <CpuChipIcon className="h-3 w-3" />
+                    {console.name}
+                    <button
+                      type="button"
+                      className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
+                      onClick={() => handleConsoleToggle(field, consoleId)}
+                    >
+                      <XMarkIcon className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : null;
+              })}
+            </div>
+          )}
+        </div>
 
         {errors.console_ids && (
-          <span className="text-xs text-error mt-1">
+          <span className="text-xs text-error mt-1 flex-shrink-0">
             {errors.console_ids.message}
           </span>
         )}
@@ -182,8 +184,9 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
 
   return (
     <div className={`modal ${isOpen ? "modal-open" : ""}`}>
-      <div className="modal-box w-11/12 max-w-lg max-h-[90vh] overflow-y-auto">
-        <div className="flex items-center justify-between pb-3 border-b border-base-300">
+      <div className={`modal-box w-11/12 max-w-xl flex flex-col p-0 transition-all duration-300 ${isDropdownOpen ? 'h-[85vh]' : 'h-auto max-h-[70vh]'}`}>
+        {/* Header - Fixed */}
+        <div className="flex items-center justify-between p-4 pb-3 border-b border-base-300 flex-shrink-0">
           <div className="flex items-center gap-2">
             <BuildingOfficeIcon className="h-5 w-5 text-brand-gold" />
             <h3 className="text-lg font-bold">
@@ -195,161 +198,172 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4 mt-4">
-          {/* Basic Info */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Name <span className="text-error">*</span>
-                </span>
-              </label>
-              <input
-                type="text"
-                {...register('name')}
-                placeholder="Unit name"
-                className={`input input-bordered input-sm ${errors.name ? 'input-error' : ''}`}
+        {/* Form Content - Dynamic Layout */}
+        <div className={`p-4 transition-all duration-300 ${isDropdownOpen ? 'flex-1 overflow-hidden' : 'flex-shrink-0'}`}>
+          <form onSubmit={handleSubmit(onSubmit)} className={`flex flex-col transition-all duration-300 ${isDropdownOpen ? 'h-full' : 'h-auto'}`}>
+            {/* Fixed Form Fields */}
+            <div className="space-y-4 flex-shrink-0">
+              {/* Basic Info */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Name <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <input
+                    type="text"
+                    {...register('name')}
+                    placeholder="Unit name"
+                    className={`input input-bordered input-sm ${errors.name ? 'input-error' : ''}`}
+                  />
+                  {errors.name && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.name.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Room <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <select
+                    {...register('room_id')}
+                    className={`select select-bordered select-sm ${errors.room_id ? 'select-error' : ''}`}
+                  >
+                    <option value="">Select room...</option>
+                    {roomsData?.map(r => (
+                      <option key={r.id} value={r.id}>{r.name}</option>
+                    ))}
+                  </select>
+                  {errors.room_id && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.room_id.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Capacity & Price */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Max Visitors <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <UsersIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                    <input
+                      type="number"
+                      {...register('max_visitors')}
+                      placeholder="0"
+                      min="0"
+                      className={`input input-bordered input-sm w-full ${errors.max_visitors ? 'input-error' : ''}`}
+                    />
+                  </div>
+                  {errors.max_visitors && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.max_visitors.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Price/Hour <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <CurrencyDollarIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                    <input
+                      type="number"
+                      {...register('price')}
+                      placeholder="0"
+                      min="0"
+                      className={`input input-bordered input-sm w-full ${errors.price ? 'input-error' : ''}`}
+                    />
+                  </div>
+                  {errors.price && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.price.message}
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Status & Description */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Status <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <select
+                    {...register('status')}
+                    className={`select select-bordered select-sm ${errors.status ? 'select-error' : ''}`}
+                  >
+                    <option value="available">Available</option>
+                    <option value="booked">Booked</option>
+                    <option value="maintenance">Maintenance</option>
+                  </select>
+                  {errors.status && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.status.message}
+                    </span>
+                  )}
+                </div>
+
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">Description</span>
+                  </label>
+                  <textarea
+                    {...register('description')}
+                    placeholder="Unit description..."
+                    className="textarea textarea-bordered textarea-sm h-16"
+                  ></textarea>
+                </div>
+              </div>
+            </div>
+
+            {/* Console Selector - Dynamic Space */}
+            <div className={`transition-all duration-300 ${isDropdownOpen ? 'flex-1' : 'flex-shrink-0'}`}>
+              <Controller
+                name="console_ids"
+                control={control}
+                defaultValue={[]}
+                render={({ field }) => renderConsoleSelector(field)}
               />
-              {errors.name && (
-                <span className="text-xs text-error mt-1">
-                  {errors.name.message}
-                </span>
-              )}
             </div>
 
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Room <span className="text-error">*</span>
-                </span>
-              </label>
-              <select
-                {...register('room_id')}
-                className={`select select-bordered select-sm ${errors.room_id ? 'select-error' : ''}`}
-              >
-                <option value="">Select room...</option>
-                {roomsData?.map(r => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-              {errors.room_id && (
-                <span className="text-xs text-error mt-1">
-                  {errors.room_id.message}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Capacity & Price */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Max Visitors <span className="text-error">*</span>
-                </span>
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <UsersIcon className="h-4 w-4 text-gray-400" />
-                </span>
-                <input
-                  type="number"
-                  {...register('max_visitors')}
-                  placeholder="0"
-                  min="0"
-                  className={`input input-bordered input-sm w-full ${errors.max_visitors ? 'input-error' : ''}`}
-                />
+            {/* Footer - Always at Bottom */}
+            <div className="pt-2 border-t border-base-300 bg-base-100 flex-shrink-0">
+              <div className="flex justify-end gap-2">
+                <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-sm bg-brand-gold hover:bg-amber-600 text-white"
+                  disabled={isLoading}
+                >
+                  {isLoading && <span className="loading loading-spinner loading-xs"></span>}
+                  {isEditMode ? 'Save' : 'Add'}
+                </button>
               </div>
-              {errors.max_visitors && (
-                <span className="text-xs text-error mt-1">
-                  {errors.max_visitors.message}
-                </span>
-              )}
             </div>
-
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Price/Hour <span className="text-error">*</span>
-                </span>
-              </label>
-              <div className="relative">
-                <span className="absolute inset-y-0 left-0 flex items-center pl-3">
-                  <CurrencyDollarIcon className="h-4 w-4 text-gray-400" />
-                </span>
-                <input
-                  type="number"
-                  {...register('price')}
-                  placeholder="0"
-                  min="0"
-                  className={`input input-bordered input-sm w-full ${errors.price ? 'input-error' : ''}`}
-                />
-              </div>
-              {errors.price && (
-                <span className="text-xs text-error mt-1">
-                  {errors.price.message}
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Status & Description */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Status <span className="text-error">*</span>
-                </span>
-              </label>
-              <select
-                {...register('status')}
-                className={`select select-bordered select-sm ${errors.status ? 'select-error' : ''}`}
-              >
-                <option value="available">Available</option>
-                <option value="booked">Booked</option>
-                <option value="maintenance">Maintenance</option>
-              </select>
-              {errors.status && (
-                <span className="text-xs text-error mt-1">
-                  {errors.status.message}
-                </span>
-              )}
-            </div>
-
-            <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">Description</span>
-              </label>
-              <textarea
-                {...register('description')}
-                placeholder="Unit description..."
-                className="textarea textarea-bordered textarea-sm h-16"
-              ></textarea>
-            </div>
-          </div>
-
-          {/* Consoles */}
-          <Controller
-            name="console_ids"
-            control={control}
-            defaultValue={[]}
-            render={({ field }) => renderConsoleSelector(field)}
-          />
-
-          <div className="modal-action pt-3 border-t border-base-300 sticky bottom-0 bg-base-100">
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="btn btn-sm bg-brand-gold hover:bg-amber-600 text-white"
-              disabled={isLoading}
-            >
-              {isLoading && <span className="loading loading-spinner loading-xs"></span>}
-              {isEditMode ? 'Save' : 'Add'}
-            </button>
-          </div>
-        </form>
+          </form>
+        </div>
       </div>
     </div>
   );

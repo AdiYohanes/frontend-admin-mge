@@ -35,9 +35,9 @@ const promoSchema = z.object({
     .number()
     .min(1, "Batas penggunaan per user minimal 1"),
 }).refine((data) => {
-  return new Date(data.end_date) > new Date(data.start_date);
+  return new Date(data.end_date) >= new Date(data.start_date);
 }, {
-  message: "Tanggal berakhir harus setelah tanggal mulai",
+  message: "Tanggal berakhir harus sama atau setelah tanggal mulai",
   path: ["end_date"],
 });
 
@@ -64,8 +64,13 @@ const AddEditPromoModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
-        // Mode Edit: isi form dengan data yang ada
-        reset(editingData);
+        // Mode Edit: isi form dengan data yang ada dan konversi format tanggal
+        const formattedData = {
+          ...editingData,
+          start_date: editingData.start_date ? new Date(editingData.start_date).toISOString().split('T')[0] : "",
+          end_date: editingData.end_date ? new Date(editingData.end_date).toISOString().split('T')[0] : "",
+        };
+        reset(formattedData);
       } else {
         // Mode Tambah: reset ke form kosong dengan nilai default
         reset({

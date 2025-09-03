@@ -159,11 +159,69 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
 
-    // Endpoint yang masih menggunakan mock data
+    // Endpoint untuk Order Summary Chart
     getOrderSummaryData: builder.query({
-      queryFn: (arg) => {
-        const { period = "daily" } = arg || {};
-        return { data: mockOrderSummaryData[period] || { rental: 0, foodDrink: 0 } };
+      query: ({ period = "daily" }) => ({
+        url: "/api/admin/analytics/order",
+        method: "POST",
+        body: { period },
+      }),
+      transformResponse: (response, meta, arg) => {
+        const { period } = arg;
+
+        if (!response) {
+          return {
+            type: "error",
+            message: "No response from server"
+          };
+        }
+
+        if (period === "monthly") {
+          // Handle monthly period - show weekly breakdown
+          const weeklyBreakdown = response.current_month?.weekly_breakdown || [];
+          return {
+            type: "chart",
+            data: weeklyBreakdown.map((item) => ({
+              name: item.week,
+              "Unit Booking": item.unit_booking_count || 0,
+              "F&B Booking": item.fnb_booking_count || 0,
+            })),
+            current_month: response.current_month,
+            previous_month: response.previous_month,
+          };
+        } else if (period === "weekly") {
+          // Handle weekly period - show daily breakdown
+          const dailyBreakdown = response.current_week?.daily_breakdown || [];
+          return {
+            type: "chart",
+            data: dailyBreakdown.map((item) => ({
+              name: item.day_name,
+              "Unit Booking": item.unit_booking_count || 0,
+              "F&B Booking": item.fnb_booking_count || 0,
+            })),
+            current_week: response.current_week,
+            previous_week: response.previous_week,
+          };
+        } else if (period === "daily") {
+          // Handle daily period - show hourly breakdown
+          const hourlyBreakdown = response.today?.hourly_breakdown || [];
+          return {
+            type: "chart",
+            data: hourlyBreakdown.map((item) => ({
+              name: item.hour,
+              "Unit Booking": item.unit_booking_count || 0,
+              "F&B Booking": item.fnb_booking_count || 0,
+            })),
+            today: response.today,
+            yesterday: response.yesterday,
+          };
+        }
+
+        // Fallback for unknown periods
+        return {
+          type: "error",
+          message: "Invalid period specified"
+        };
       },
       providesTags: ["Dashboard"],
     }),

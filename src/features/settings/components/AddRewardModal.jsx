@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useDropzone } from "react-dropzone";
 import { FiUpload } from "react-icons/fi";
 import { PlusIcon, TrashIcon } from "@heroicons/react/24/outline";
@@ -17,6 +17,7 @@ import { useAddRewardMutation, useUpdateRewardMutation } from "../api/settingsAp
 const AddRewardModal = ({ isOpen, onClose, editingData }) => {
     const [voucher, setVoucher] = useState("");
     const [preview, setPreview] = useState(null);
+    const [imageFile, setImageFile] = useState(null);
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [type, setType] = useState("");
@@ -26,11 +27,33 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
     const [foodRows, setFoodRows] = useState([{ key: 1, foodId: "", qty: "" }]);
     const [drinkRows, setDrinkRows] = useState([{ key: 1, drinkId: "", qty: "" }]);
 
+    // Fetch units and FNB categories for selects
+    const { data: unitsData } = useGetUnitsQuery({ page: 1, limit: 9999, search: "" });
+    const { data: fnbItemsData } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
+    const fnbItems = useMemo(() => fnbItemsData?.items || [], [fnbItemsData?.items]);
+
+    const getCategoryType = (item) => {
+        const raw = item?.fnb_category?.type
+            ?? item?.fnb_category?.category
+            ?? item?.category?.type
+            ?? item?.category
+            ?? "";
+        return String(raw).toLowerCase();
+    };
+
+    const foodItems = useMemo(() => fnbItems.filter((i) => getCategoryType(i).includes("food")), [fnbItems]);
+    const drinkItems = useMemo(() => fnbItems.filter((i) => getCategoryType(i).includes("drink")), [fnbItems]);
+
     useEffect(() => {
         if (isOpen) {
             setVoucher(generateVoucher());
             setPreview(null);
+            setImageFile(null);
             if (editingData) {
+                // Set preview for existing image when editing
+                if (editingData.imageUrl) {
+                    setPreview(editingData.imageUrl);
+                }
                 setName(editingData.name || "");
                 setDescription(editingData.description || "");
                 setType(editingData.rewardType || editingData.effects?.type || "");
@@ -40,9 +63,29 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                     setDuration(String(editingData.effects?.duration_hours || ""));
                 } else if ((editingData.effects?.type || editingData.rewardType) === "free_fnb") {
                     const fnbs = editingData.effects?.fnbs || [];
-                    const foods = fnbs.filter((f) => f.fnb_id && f.quantity);
-                    setFoodRows(foods.length ? foods.map((f, idx) => ({ key: idx + 1, foodId: String(f.fnb_id), qty: String(f.quantity) })) : [{ key: 1, foodId: "", qty: "" }]);
-                    setDrinkRows([{ key: 1, drinkId: "", qty: "" }]);
+                    console.log("Editing FNB data:", fnbs);
+
+                    // Separate food and drink items
+                    const foodItemsData = [];
+                    const drinkItemsData = [];
+
+                    fnbs.forEach((f) => {
+                        if (f.fnb_id && f.quantity) {
+                            // Check if this item is food or drink by looking at the item data
+                            const item = fnbItems.find(item => item.id === f.fnb_id);
+                            if (item) {
+                                const categoryType = getCategoryType(item);
+                                if (categoryType.includes("food")) {
+                                    foodItemsData.push({ key: Date.now() + Math.random(), foodId: String(f.fnb_id), qty: String(f.quantity) });
+                                } else if (categoryType.includes("drink")) {
+                                    drinkItemsData.push({ key: Date.now() + Math.random(), drinkId: String(f.fnb_id), qty: String(f.quantity) });
+                                }
+                            }
+                        }
+                    });
+
+                    setFoodRows(foodItemsData.length ? foodItemsData : [{ key: 1, foodId: "", qty: "" }]);
+                    setDrinkRows(drinkItemsData.length ? drinkItemsData : [{ key: 1, drinkId: "", qty: "" }]);
                 }
             } else {
                 setName("");
@@ -55,10 +98,29 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                 setDrinkRows([{ key: 1, drinkId: "", qty: "" }]);
             }
         }
-    }, [isOpen, editingData]);
+    }, [isOpen, editingData, fnbItems]);
 
     const onDrop = useCallback((files) => {
-        if (files?.[0]) setPreview(URL.createObjectURL(files[0]));
+        if (files?.[0]) {
+            const file = files[0];
+
+            // Validate file type
+            const validTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+            if (!validTypes.includes(file.type)) {
+                alert('Please upload a valid image file (JPEG, JPG, or PNG)');
+                return;
+            }
+
+            // Validate file size (max 5MB)
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            if (file.size > maxSize) {
+                alert('Image file size must be less than 5MB');
+                return;
+            }
+
+            setImageFile(file);
+            setPreview(URL.createObjectURL(file));
+        }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
@@ -67,51 +129,109 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
         maxFiles: 1,
     });
 
-    // Fetch units and FNB categories for selects
-    const { data: unitsData } = useGetUnitsQuery({ page: 1, limit: 9999, search: "" });
-    const { data: fnbItemsData } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
-    const fnbItems = fnbItemsData?.items || [];
-    const getCategoryType = (item) => {
-        const raw = item?.fnb_category?.type
-            ?? item?.fnb_category?.category
-            ?? item?.category?.type
-            ?? item?.category
-            ?? "";
-        return String(raw).toLowerCase();
-    };
-    const foodItems = fnbItems.filter((i) => getCategoryType(i).includes("food"));
-    const drinkItems = fnbItems.filter((i) => getCategoryType(i).includes("drink"));
-
     const [addReward, { isLoading: isAdding }] = useAddRewardMutation();
     const [updateReward, { isLoading: isUpdating }] = useUpdateRewardMutation();
 
     const handleSubmit = async () => {
-        const base = {
-            name,
-            description,
-            points_required: Number(points) || 0,
-        };
-        let effects = {};
+        // Validation
+        if (!name.trim()) {
+            alert("Name is required");
+            return;
+        }
+        if (!description.trim()) {
+            alert("Description is required");
+            return;
+        }
+        if (!type) {
+            alert("Reward type is required");
+            return;
+        }
+        if (points <= 0) {
+            alert("Points required must be greater than 0");
+            return;
+        }
+        if (!imageFile && !editingData?.imageUrl) {
+            alert("Image is required");
+            return;
+        }
+
+        let effects = [];
+
         if (type === "free_play") {
-            effects = { type, unit_id: Number(unitId), duration_hours: Number(duration) };
+            if (!unitId) {
+                alert("Unit is required for room reward");
+                return;
+            }
+            if (!duration || Number(duration) <= 0) {
+                alert("Duration must be greater than 0");
+                return;
+            }
+            effects = [{ type, unit_id: Number(unitId), duration_hours: Number(duration) }];
         } else if (type === "free_fnb") {
             const fnbs = [
                 ...foodRows.filter((r) => r.foodId && r.qty).map((r) => ({ fnb_id: Number(r.foodId), quantity: Number(r.qty) })),
                 ...drinkRows.filter((r) => r.drinkId && r.qty).map((r) => ({ fnb_id: Number(r.drinkId), quantity: Number(r.qty) })),
             ];
-            effects = { type, fnbs };
+
+            if (fnbs.length === 0) {
+                alert("Please select at least one food or drink item");
+                return;
+            }
+
+            effects = [{ type, fnbs }];
         }
-        const payload = { ...base, effects };
+
+        // Create FormData for file upload
+        const formData = new FormData();
+
+        // Add basic data
+        formData.append('name', name);
+        formData.append('description', description);
+        formData.append('points_required', points);
+
+        // Add effects as individual fields
+        if (effects.length > 0) {
+            const effect = effects[0]; // Take first effect
+            formData.append('effects[type]', effect.type);
+            if (effect.unit_id) {
+                formData.append('effects[unit_id]', effect.unit_id);
+            }
+            if (effect.duration_hours) {
+                formData.append('effects[duration_hours]', effect.duration_hours);
+            }
+            if (effect.fnbs) {
+                effect.fnbs.forEach((fnb, fnbIndex) => {
+                    formData.append(`effects[fnbs][${fnbIndex}][fnb_id]`, fnb.fnb_id);
+                    formData.append(`effects[fnbs][${fnbIndex}][quantity]`, fnb.quantity);
+                });
+            }
+        }
+
+        // Add image if provided
+        if (imageFile) {
+            formData.append('image', imageFile);
+        }
+
+        console.log("Submitting reward:", {
+            name,
+            description,
+            points_required: points,
+            effects,
+            hasImage: !!imageFile,
+            imageType: imageFile?.type,
+            imageSize: imageFile?.size
+        });
 
         try {
             if (editingData?.id) {
-                await updateReward({ id: editingData.id, ...payload }).unwrap();
+                await updateReward({ id: editingData.id, formData }).unwrap();
             } else {
-                await addReward(payload).unwrap();
+                await addReward(formData).unwrap();
             }
             onClose();
         } catch (e) {
             console.error("Failed to save reward", e);
+            alert("Failed to save reward. Please try again.");
         }
     };
 
@@ -204,7 +324,13 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                     {/* Conditional: free_fnb (Food & Drink) */}
                     {type === "free_fnb" && (
                         <div className="space-y-4">
+                            <div className="alert alert-info">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" className="stroke-current shrink-0 w-6 h-6"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                <span>You can add food items, drink items, or both. At least one item is required.</span>
+                            </div>
+
                             <div>
+                                <h4 className="text-lg font-semibold mb-2">Food Items</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <label className="label"><span className="label-text">Food</span></label>
                                     <label className="label"><span className="label-text">Quantity</span></label>
@@ -246,6 +372,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                             </div>
 
                             <div>
+                                <h4 className="text-lg font-semibold mb-2">Drink Items</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <label className="label"><span className="label-text">Drink</span></label>
                                     <label className="label"><span className="label-text">Quantity</span></label>
@@ -312,5 +439,3 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
 };
 
 export default AddRewardModal;
-
-

@@ -1,10 +1,9 @@
 import React, { useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate, Link } from "react-router";
+import { useNavigate } from "react-router";
 import {
   ArrowLeftStartOnRectangleIcon,
   BellIcon,
-  UserCircleIcon,
   SunIcon,
   MoonIcon,
   TrashIcon,
@@ -108,12 +107,7 @@ const Header = () => {
     navigate("/login");
   };
 
-  const getInitials = (name) => {
-    if (!name) return "A";
-    const names = name.split(" ");
-    const initials = names.map((n) => n[0]).join("");
-    return initials.slice(0, 2).toUpperCase();
-  };
+
 
   const handleThemeToggle = () => {
     toggleTheme();
@@ -316,11 +310,7 @@ const Header = () => {
                 {user?.profile_photo_url ? (
                   <img src={user.profile_photo_url} alt="Profil" />
                 ) : (
-                  <div className="avatar placeholder">
-                    <div className="bg-neutral-focus text-neutral-content rounded-full w-12">
-                      <span className="text-xl">{getInitials(user?.name)}</span>
-                    </div>
-                  </div>
+                  <img src="/images/admin-profile.png" alt="Admin Profile" className="w-12 h-12 rounded-full object-cover" />
                 )}
               </div>
             </div>
@@ -336,12 +326,6 @@ const Header = () => {
             </li>
             {/* Ukuran font item menu diperbesar dan diberi ikon */}
             <li className="text-base mt-1">
-              <Link to="/profile">
-                <UserCircleIcon className="h-5 w-5" />
-                Profile
-              </Link>
-            </li>
-            <li className="text-base">
               <a onClick={handleLogout}>
                 <ArrowLeftStartOnRectangleIcon className="h-5 w-5" />
                 Logout

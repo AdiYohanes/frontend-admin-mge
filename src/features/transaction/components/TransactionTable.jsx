@@ -61,96 +61,150 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
         <thead className="bg-base-200">
           <tr>
             <th className="text-center">NO</th>
-            <th>NO. TRANSAKSI</th>
-            <th>BOOKING TYPE</th>
-            <th>TYPE</th>
+            <th>NO TRANSAKSI</th>
             <th>NAME</th>
             <th>PHONE NUMBER</th>
-            <th>DETAILS</th>
-            <th>QUANTITY</th>
+            <th>BOOKING TYPE</th>
+            <th>TYPE</th>
             <th>TANGGAL BOOKING</th>
+            <th>UNIT</th>
+            <th>DURATION</th>
+            <th>SUBTOTAL ROOM</th>
+            <th>FOOD & DRINK</th>
+            <th>SUBTOTAL FOOD&DRINK</th>
+            <th>PB1</th>
+            <th>SERVICE FEE</th>
             <th>TOTAL PEMBAYARAN</th>
             <th>METODE PEMBAYARAN</th>
             <th>TANGGAL PEMBAYARAN</th>
             <th>STATUS</th>
-
           </tr>
         </thead>
         <tbody>
           {transactions.map((tx, index) => (
             <tr key={tx.id} className="hover">
+              {/* 1. NO */}
               <td className="text-center font-bold">{(page - 1) * limit + index + 1}</td>
+
+              {/* 2. NO TRANSAKSI */}
               <td>
                 <div className="font-mono text-xs font-bold">{tx.noTransaction}</div>
               </td>
+
+              {/* 3. NAME */}
+              <td>
+                <div className="font-semibold text-sm">{tx.name}</div>
+              </td>
+
+              {/* 4. PHONE NUMBER */}
+              <td>
+                <div className="text-sm">{tx.phoneNumber}</div>
+              </td>
+
+              {/* 5. BOOKING TYPE */}
               <td>
                 <span className={getBookingTypeBadge(tx.bookingType || "Manual (OTS)")}>
                   {tx.bookingType || "Manual (OTS)"}
                 </span>
               </td>
+
+              {/* 6. TYPE */}
               <td>
                 <span className={getTypeBadge(tx.type)}>{tx.type}</span>
               </td>
-              <td>
-                <div className="font-semibold text-sm">{tx.name}</div>
-              </td>
-              <td>
-                <div className="text-sm">{tx.phoneNumber}</div>
-              </td>
-              <td>
-                <div className="font-semibold text-sm min-w-[200px] max-w-[300px]">
-                  {tx.type === "Food & Drink" ? (
-                    <span title={tx.details}>{tx.details}</span>
-                  ) : (
-                    <div className="space-y-1">
-                      {tx.rawBooking?.unit?.name && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-500 min-w-[40px]">Unit:</span>
-                          <span className="text-sm font-semibold">{tx.rawBooking.unit.name}</span>
-                        </div>
-                      )}
-                      {tx.rawBooking?.unit?.room?.name && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-500 min-w-[40px]">Room:</span>
-                          <span className="text-sm font-semibold">{tx.rawBooking.unit.room.name}</span>
-                        </div>
-                      )}
-                      {tx.rawBooking?.unit?.consoles?.[0]?.name && (
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-medium text-gray-500 min-w-[40px]">Console:</span>
-                          <span className="text-sm font-semibold">{tx.rawBooking.unit.consoles[0].name}</span>
-                        </div>
-                      )}
-                      {!tx.rawBooking?.unit?.name && !tx.rawBooking?.unit?.room?.name && !tx.rawBooking?.unit?.consoles?.[0]?.name && (
-                        <span className="text-sm text-gray-500">{tx.details}</span>
-                      )}
-                    </div>
-                  )}
-                </div>
-              </td>
-              <td>
-                <div className="text-sm">
-                  {tx.quantity} {tx.quantityUnit}
-                </div>
-              </td>
+
+              {/* 7. TANGGAL BOOKING */}
               <td>
                 <div className="text-sm">{tx.tanggalBooking}</div>
               </td>
+
+              {/* 8. UNIT */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.unit?.name || "-"}
+                </div>
+              </td>
+
+              {/* 9. DURATION */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.duration_hours ? `${tx.rawBooking.duration_hours} jam` : "-"}
+                </div>
+              </td>
+
+              {/* 10. SUBTOTAL ROOM */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.subtotal_room ? formatCurrency(tx.rawBooking.subtotal_room) : "-"}
+                </div>
+              </td>
+
+              {/* 11. FOOD & DRINK */}
+              <td>
+                <div className="text-sm max-w-[200px]">
+                  {tx.type === "Food & Drink" ? (
+                    <span title={tx.details}>{tx.details}</span>
+                  ) : (
+                    tx.rawBooking?.fnb_items?.length > 0 ? (
+                      <div className="space-y-1">
+                        {tx.rawBooking.fnb_items.slice(0, 2).map((item, idx) => (
+                          <div key={idx} className="text-xs">
+                            {item.name} x{item.quantity}
+                          </div>
+                        ))}
+                        {tx.rawBooking.fnb_items.length > 2 && (
+                          <div className="text-xs text-gray-500">
+                            +{tx.rawBooking.fnb_items.length - 2} lainnya
+                          </div>
+                        )}
+                      </div>
+                    ) : "-"
+                  )}
+                </div>
+              </td>
+
+              {/* 12. SUBTOTAL FOOD&DRINK */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.subtotal_fnb ? formatCurrency(tx.rawBooking.subtotal_fnb) : "-"}
+                </div>
+              </td>
+
+              {/* 13. PB1 */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.pb1 ? formatCurrency(tx.rawBooking.pb1) : "-"}
+                </div>
+              </td>
+
+              {/* 14. SERVICE FEE */}
+              <td>
+                <div className="text-sm">
+                  {tx.rawBooking?.service_fee ? formatCurrency(tx.rawBooking.service_fee) : "-"}
+                </div>
+              </td>
+
+              {/* 15. TOTAL PEMBAYARAN */}
               <td>
                 <div className="font-bold text-success text-sm">
                   {formatCurrency(tx.totalPembayaran)}
                 </div>
               </td>
+
+              {/* 16. METODE PEMBAYARAN */}
               <td>
                 <div className="text-sm">{tx.metodePembayaran}</div>
               </td>
+
+              {/* 17. TANGGAL PEMBAYARAN */}
               <td>
-                <div className="text-sm">{tx.tanggalBooking}</div>
+                <div className="text-sm">{tx.tanggalPembayaran || tx.tanggalBooking}</div>
               </td>
+
+              {/* 18. STATUS */}
               <td>
                 <span className={getStatusBadge(tx.status)}>{tx.status}</span>
               </td>
-
             </tr>
           ))}
         </tbody>
