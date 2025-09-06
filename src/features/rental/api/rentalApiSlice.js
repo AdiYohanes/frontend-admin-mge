@@ -292,6 +292,22 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       query: () => "/api/public/rooms?per_page=9999",
       transformResponse: (response) => response.data,
     }),
+    getAllUnitsAdmin: builder.query({
+      query: (params = {}) => {
+        const { room_name, ...otherParams } = params;
+        const queryParams = new URLSearchParams({
+          per_page: "9999",
+          ...otherParams,
+        });
+
+        if (room_name) {
+          queryParams.append("room_name", room_name);
+        }
+
+        return `/api/admin/units?${queryParams.toString()}`;
+      },
+      transformResponse: (response) => response.data,
+    }),
     addGame: builder.mutation({
       query: (newGame) => {
         const formData = new FormData();
@@ -413,6 +429,7 @@ export const {
   useDeleteGameMutation,
   useGetAllRoomsQuery,
   useGetAllConsolesQuery,
+  useGetAllUnitsAdminQuery,
   useGetGenresQuery,
   useAddGenreMutation,
   useUpdateGenreMutation,

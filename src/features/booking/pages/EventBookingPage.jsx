@@ -9,7 +9,7 @@ import { toast } from "react-hot-toast";
 import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import EventBookingTable from "../components/EventBookingTable";
-import AddEventModal from "../components/AddEventModal";
+import AddEditEventModal from "../components/AddEditEventModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
 
 const EventBookingPage = () => {
@@ -26,9 +26,9 @@ const EventBookingPage = () => {
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const statusTabs = [
     "All",
-    "Confirmed",
-    "Pending",
-    "Cancelled",
+    "confirmed",
+    "pending",
+    "cancelled",
   ];
 
   const { data, isLoading, isFetching } = useGetEventBookingsQuery({
@@ -52,18 +52,24 @@ const EventBookingPage = () => {
       return { filteredEvents: [], paginatedEvents: [], totalPages: 1 };
     }
 
-    // Filter berdasarkan search term
+    // Filter berdasarkan search term dan status
     let filtered = [...data.bookings];
 
+    // Filter by status
+    if (statusFilter !== "All") {
+      filtered = filtered.filter(event =>
+        event.statusBooking?.toLowerCase() === statusFilter.toLowerCase()
+      );
+    }
+
+    // Filter by search term
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter(event =>
         event.eventName?.toLowerCase().includes(searchLower) ||
-        event.customerName?.toLowerCase().includes(searchLower) ||
-        event.phone?.toLowerCase().includes(searchLower) ||
-        event.email?.toLowerCase().includes(searchLower) ||
-        event.organizerName?.toLowerCase().includes(searchLower) ||
-        event.eventType?.toLowerCase().includes(searchLower)
+        event.eventDescription?.toLowerCase().includes(searchLower) ||
+        event.unit?.toLowerCase().includes(searchLower) ||
+        event.noTransaction?.toLowerCase().includes(searchLower)
       );
     }
 
@@ -126,7 +132,7 @@ const EventBookingPage = () => {
                   }`}
                 onClick={() => setStatusFilter(tab)}
               >
-                {tab}
+                {tab === "All" ? "All" : tab.charAt(0).toUpperCase() + tab.slice(1)}
               </a>
             ))}
           </div>
@@ -162,7 +168,7 @@ const EventBookingPage = () => {
           />
         </div>
       </div>
-      <AddEventModal
+      <AddEditEventModal
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         editingData={editingData}

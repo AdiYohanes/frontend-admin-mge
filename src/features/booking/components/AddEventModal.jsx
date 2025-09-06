@@ -16,7 +16,7 @@ import { CalendarDaysIcon, ChevronUpIcon, ChevronDownIcon } from "@heroicons/rea
 const eventSchema = z.object({
   eventName: z.string().min(1, { message: "Nama event harus diisi" }),
   eventDescription: z.string().optional().default(""),
-  unitId: z.number().min(1, { message: "Pilih unit" }),
+  unitIds: z.array(z.number()).min(1, { message: "Pilih minimal satu unit" }),
   totalPerson: z.number().min(1, { message: "Jumlah orang minimal 1" }),
   tanggalBooking: z.date({ required_error: "Tanggal booking harus diisi" }),
   startTime: z.string().min(1, { message: "Waktu mulai harus diisi" }),
@@ -110,7 +110,7 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
         const editData = {
           eventName: editingData.eventName || "",
           eventDescription: editingData.eventDescription || "",
-          unitId: editingData.unitId || 1,
+          unitIds: editingData.unitIds || [editingData.unitId || 1],
           totalPerson: editingData.totalPerson || 10,
           startTime: startTimeString,
           duration: calculatedDuration,
@@ -124,7 +124,7 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
         const defaultData = {
           eventName: "",
           eventDescription: "",
-          unitId: 1,
+          unitIds: [1],
           totalPerson: 10,
           startTime: "19:00",
           duration: 1,
@@ -156,10 +156,10 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
       console.log('Form data values:', Object.values(formData));
 
       // Validate required fields
-      if (!formData.eventName || !formData.unitId || !formData.totalPerson || !formData.tanggalBooking || !formData.startTime || !formData.duration) {
+      if (!formData.eventName || !formData.unitIds || formData.unitIds.length === 0 || !formData.totalPerson || !formData.tanggalBooking || !formData.startTime || !formData.duration) {
         console.error('Missing required fields:', {
           eventName: !!formData.eventName,
-          unitId: !!formData.unitId,
+          unitIds: !!formData.unitIds && formData.unitIds.length > 0,
           totalPerson: !!formData.totalPerson,
           tanggalBooking: !!formData.tanggalBooking,
           startTime: !!formData.startTime,
@@ -191,8 +191,7 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
         description: formData.eventDescription || "",
         start_time: formatDateTimeForAPI(startTimeDate),
         end_time: formatDateTimeForAPI(endTimeDate),
-        total_visitors: formData.totalPerson,
-        unit_id: formData.unitId,
+        unit_ids: formData.unitIds,
       };
 
       console.log('Payload to API:', finalData);
@@ -310,27 +309,43 @@ const AddEventModal = ({ isOpen, onClose, editingData }) => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="form-control">
                 <label className="label">
-                  <span className="label-text font-medium">Unit *</span>
+                  <span className="label-text font-medium">Units *</span>
                 </label>
-                <select
-                  {...register("unitId", { valueAsNumber: true })}
-                  className={`select select-bordered focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.unitId ? "select-error" : ""
-                    }`}
-                >
-                  <option value="">Select unit...</option>
-                  {unitOptions.map((unit) => (
-                    <option key={unit.id} value={unit.id}>
-                      {unit.name}
-                    </option>
-                  ))}
-                </select>
-                {errors.unitId && (
-                  <label className="label">
-                    <span className="label-text-alt text-error">
-                      {errors.unitId.message}
-                    </span>
-                  </label>
-                )}
+                <Controller
+                  name="unitIds"
+                  control={control}
+                  render={({ field }) => (
+                    <div className="space-y-2">
+                      <div className="grid grid-cols-2 gap-2">
+                        {unitOptions.map((unit) => (
+                          <label key={unit.id} className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-sm"
+                              checked={field.value?.includes(unit.id) || false}
+                              onChange={(e) => {
+                                const currentValues = field.value || [];
+                                if (e.target.checked) {
+                                  field.onChange([...currentValues, unit.id]);
+                                } else {
+                                  field.onChange(currentValues.filter(id => id !== unit.id));
+                                }
+                              }}
+                            />
+                            <span className="text-sm">{unit.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                      {errors.unitIds && (
+                        <label className="label">
+                          <span className="label-text-alt text-error">
+                            {errors.unitIds.message}
+                          </span>
+                        </label>
+                      )}
+                    </div>
+                  )}
+                />
               </div>
 
               <div className="form-control">

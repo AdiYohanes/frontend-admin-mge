@@ -14,14 +14,22 @@ const EventBookingTable = ({
   console.log('EventBookingTable - isLoading:', isLoading);
 
   const getStatusBadge = (status) => {
-    const baseClasses = "badge font-semibold";
-    switch (status) {
-      case "Confirmed":
+    const baseClasses = "badge font-semibold text-xs";
+    switch (status?.toLowerCase()) {
+      case "confirmed":
         return `${baseClasses} badge-success`;
-      case "Pending":
+      case "pending":
         return `${baseClasses} badge-warning`;
-      case "Cancelled":
+      case "cancelled":
         return `${baseClasses} badge-error`;
+      case "berjalan":
+        return `${baseClasses} badge-info`;
+      case "selesai":
+        return `${baseClasses} badge-accent`;
+      case "berhasil":
+        return `${baseClasses} badge-success`;
+      case "menunggu payment":
+        return `${baseClasses} badge-warning`;
       default:
         return `${baseClasses} badge-ghost`;
     }
@@ -65,11 +73,19 @@ const EventBookingTable = ({
           <thead className="bg-base-200">
             <tr>
               <th>No</th>
-              <th>Event Details</th>
-              <th>Rental Info</th>
-              <th>Schedule</th>
-              <th>Status</th>
-              <th className="text-center">Actions</th>
+              <th>No Transaction</th>
+              <th>Event Name</th>
+              <th>Event Description</th>
+              <th>Console</th>
+              <th>Room</th>
+              <th>Unit</th>
+              <th>Total Person</th>
+              <th>Tanggal Booking</th>
+              <th>Start Time</th>
+              <th>End Time</th>
+              <th>Durasi</th>
+              <th>Status Booking</th>
+              <th className="text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -77,36 +93,48 @@ const EventBookingTable = ({
               <tr key={event.id} className="hover">
                 <th>{(page - 1) * limit + index + 1}</th>
                 <td>
-                  <div className="font-bold">{event.eventName}</div>
-                  <div className="text-xs opacity-70 max-w-xs truncate">
-                    {event.eventDescription}
-                  </div>
-                  <div className="font-mono text-xs opacity-60 mt-1">
+                  <div className="font-mono text-xs">
                     {event.noTransaction}
                   </div>
                 </td>
                 <td>
-                  <ul className="list-disc list-inside text-sm">
-                    <li>
-                      <span className="font-semibold">Unit:</span> {event.unit}
-                    </li>
-                    <li>
-                      <span className="font-semibold">Total Person:</span> {event.totalPerson} orang
-                    </li>
-                    <li>
-                      <span className="font-semibold">Customer:</span> {event.bookable?.name || "N/A"}
-                    </li>
-                  </ul>
+                  <div className="font-bold text-sm">{event.eventName}</div>
                 </td>
                 <td>
-                  <div className="font-semibold">
+                  <div className="text-xs opacity-70 max-w-xs truncate">
+                    {event.eventDescription}
+                  </div>
+                </td>
+                <td>
+                  <div className="text-sm">{event.console || "Playstation 4"}</div>
+                </td>
+                <td>
+                  <div className="text-sm">{event.room || "Regular"}</div>
+                </td>
+                <td>
+                  <div className="text-sm">{event.unit}</div>
+                </td>
+                <td>
+                  <div className="text-sm">{event.totalPerson}</div>
+                </td>
+                <td>
+                  <div className="text-sm">
                     {formatDate(event.tanggalBooking)}
                   </div>
-                  <div className="text-xs opacity-70">
-                    {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                </td>
+                <td>
+                  <div className="text-sm">
+                    {formatTime(event.startTime)}
                   </div>
-                  <div className="text-xs">
-                    Duration: {event.duration} jam
+                </td>
+                <td>
+                  <div className="text-sm">
+                    {formatTime(event.endTime)}
+                  </div>
+                </td>
+                <td>
+                  <div className="text-sm">
+                    {event.duration} jam
                   </div>
                 </td>
                 <td>
@@ -158,8 +186,17 @@ const EventBookingTable = ({
               <p className="text-xs font-mono">{event.noTransaction}</p>
               <div className="text-sm mt-2 space-y-1">
                 <div>
+                  <strong>No Transaction:</strong> {event.noTransaction}
+                </div>
+                <div>
                   <strong>Jadwal:</strong> {formatDate(event.tanggalBooking)},{" "}
                   {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                </div>
+                <div>
+                  <strong>Console:</strong> {event.console}
+                </div>
+                <div>
+                  <strong>Room:</strong> {event.room}
                 </div>
                 <div>
                   <strong>Unit:</strong> {event.unit}
@@ -168,7 +205,7 @@ const EventBookingTable = ({
                   <strong>Peserta:</strong> {event.totalPerson} orang
                 </div>
                 <div>
-                  <strong>Customer:</strong> {event.bookable?.name || "N/A"}
+                  <strong>Durasi:</strong> {event.duration} jam
                 </div>
               </div>
               <div className="card-actions justify-end mt-2">
