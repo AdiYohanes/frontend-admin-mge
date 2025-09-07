@@ -13,6 +13,7 @@ const TableControls = ({
   showMonthFilter = true,
   showSearch = true,
   searchPlaceholder = "Search ...",
+  exportButton,
 }) => {
   // Generate last 12 months including current month, dynamically
   const monthOptions = Array.from({ length: 12 }, (_, idx) => {
@@ -42,6 +43,9 @@ const TableControls = ({
       </div>
 
       <div className="flex items-center gap-2">
+        {/* Export Button di sebelah kiri search */}
+        {exportButton}
+
         {/* Search Input with Icon */}
         {showSearch && (
           <div className="relative">

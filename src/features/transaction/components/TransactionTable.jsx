@@ -110,7 +110,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
 
               {/* 6. TYPE */}
               <td>
-                <span className={getTypeBadge(tx.type)}>{tx.type}</span>
+                <div className="text-sm">{tx.type}</div>
               </td>
 
               {/* 7. TANGGAL BOOKING */}
@@ -121,7 +121,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
               {/* 8. UNIT */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.unit?.name || "-"}
+                  {tx.rawBooking?.unit_name || "-"}
                 </div>
               </td>
 
@@ -143,7 +143,18 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
               <td>
                 <div className="text-sm max-w-[200px]">
                   {tx.type === "Food & Drink" ? (
-                    <span title={tx.details}>{tx.details}</span>
+                    <div className="space-y-1">
+                      {tx.rawBooking?.fnb_items?.slice(0, 2).map((item, idx) => (
+                        <div key={idx} className="text-xs">
+                          {item.name} x{item.quantity}
+                        </div>
+                      ))}
+                      {tx.rawBooking?.fnb_items?.length > 2 && (
+                        <div className="text-xs text-gray-500">
+                          +{tx.rawBooking.fnb_items.length - 2} lainnya
+                        </div>
+                      )}
+                    </div>
                   ) : (
                     tx.rawBooking?.fnb_items?.length > 0 ? (
                       <div className="space-y-1">
@@ -173,14 +184,14 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
               {/* 13. PB1 */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.pb1 ? formatCurrency(tx.rawBooking.pb1) : "-"}
+                  {tx.rawBooking?.promo_percentage ? `${tx.rawBooking.promo_percentage}%` : "-"}
                 </div>
               </td>
 
               {/* 14. SERVICE FEE */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.service_fee ? formatCurrency(tx.rawBooking.service_fee) : "-"}
+                  {tx.rawBooking?.service_fee_amount ? formatCurrency(tx.rawBooking.service_fee_amount) : "-"}
                 </div>
               </td>
 

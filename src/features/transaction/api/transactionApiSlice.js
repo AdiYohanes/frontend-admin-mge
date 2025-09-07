@@ -7,19 +7,19 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
         const params = {
           page,
           per_page: limit,
-          status,
         };
 
         if (search) params.search = search;
+        if (status) params.status = status;
 
         return {
-          url: '/api/admin/bookings',
+          url: '/api/admin/transactions',
           params: params,
         };
       },
       transformResponse: (response) => {
         // Handle paginated response structure
-        const bookingsData = response.data || [];
+        const transactionsData = response.data || [];
         const paginationInfo = {
           current_page: response.current_page || 1,
           total: response.total || 0,
@@ -29,83 +29,55 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
           prev_page_url: response.prev_page_url
         };
 
-        // Transform booking data to transaction format
-        const transformedData = bookingsData.map(booking => {
-          const isFnb = booking.invoice_number?.startsWith("FNB");
-          const customerName = booking.bookable?.name || "Guest";
-          const customerPhone = booking.bookable?.phone || "-";
+        // Transform transaction data to match table structure
+        const transformedData = transactionsData.map(transaction => {
+          const isFnb = transaction.transaction_type === "F&B";
+          const isRoom = transaction.transaction_type === "Room";
 
-          // Determine booking type (Online vs Manual/OTS)
-          const bookingType = booking.bookable_type?.includes('Guest') ? 'Manual (OTS)' : 'Online';
+          // Determine booking type
+          const bookingType = transaction.booking_type === "Online" ? "Online" : "Manual (OTS)";
 
-          // Determine payment method based on booking type
-          const metodePembayaran = bookingType === 'Manual (OTS)' ? 'Cash' : 'QRIS';
+          // Determine payment method
+          const metodePembayaran = transaction.payment_method === "midtrans" ? "QRIS" :
+            transaction.payment_method === "cash" ? "Cash" :
+              transaction.payment_method || "Unknown";
 
-          // Determine booking details
-          let details = "";
-          let quantity = "";
-          let quantityUnit = "";
+          // Format booking date
+          const tanggalBooking = new Date(transaction.booking_date).toLocaleDateString("id-ID", {
+            day: "2-digit",
+            month: "2-digit",
+            year: "numeric",
+          });
 
-          if (isFnb) {
-            details = booking.notes || "Food & Drink Order";
-            quantity = booking.total_visitors || 1;
-            quantityUnit = "pcs";
-          } else {
-            // Extract unit, console, and room information
-            const unitName = booking.unit?.name || "";
-            const consoleName = booking.unit?.consoles?.[0]?.name || "";
-            const roomName = booking.unit?.room?.name || "";
-
-            // Build details string with unit, console, and room information
-            const detailsParts = [];
-            if (unitName) detailsParts.push(unitName);
-            if (consoleName) detailsParts.push(consoleName);
-            if (roomName) detailsParts.push(roomName);
-
-            details = detailsParts.length > 0 ? detailsParts.join(" - ") : "Room Booking";
-
-            if (booking.start_time && booking.end_time) {
-              const start = new Date(booking.start_time);
-              const end = new Date(booking.end_time);
-              const hours = Math.ceil((end - start) / (1000 * 60 * 60));
-              quantity = hours;
-              quantityUnit = "hrs";
-            } else {
-              quantity = booking.total_visitors || 1;
-              quantityUnit = "visitors";
-            }
-          }
-
-          // Determine status with refund details
-          let status = booking.status || "Unknown";
-          let totalRefund = null;
-
-          if (booking.status === "refunded" || booking.status === "cancelled") {
-            // Determine if full or partial refund (you can adjust this logic)
-            const refundAmount = parseFloat(booking.total_price) * 0.5; // 50% refund for example
-            totalRefund = refundAmount;
-          }
-
-          return {
-            id: booking.id,
-            noTransaction: booking.invoice_number,
-            bookingType: bookingType,
-            type: isFnb ? "Food & Drink" : "Room",
-            name: customerName,
-            phoneNumber: customerPhone,
-            details: details,
-            quantity: quantity,
-            quantityUnit: quantityUnit,
-            tanggalBooking: new Date(booking.created_at).toLocaleDateString("id-ID", {
+          // Format payment date
+          const tanggalPembayaran = transaction.payment_date ?
+            new Date(transaction.payment_date).toLocaleDateString("id-ID", {
               day: "2-digit",
               month: "2-digit",
               year: "numeric",
-            }),
-            totalPembayaran: parseFloat(booking.total_price),
+            }) : null;
+
+          // Format F&B items for display
+          const fnbItems = transaction.fnb_items || [];
+          const fnbDisplay = fnbItems.length > 0 ?
+            fnbItems.map(item => `${item.name} x${item.quantity}`).join(", ") : "-";
+
+          return {
+            id: transaction.id,
+            noTransaction: transaction.invoice_number,
+            bookingType: bookingType,
+            type: isFnb ? "Food & Drink" : "Room",
+            name: transaction.customer_name,
+            phoneNumber: transaction.customer_phone,
+            details: isFnb ? fnbDisplay : `${transaction.unit_name || "-"} - ${transaction.console_names?.join(", ") || "-"}`,
+            quantity: isFnb ? fnbItems.reduce((sum, item) => sum + item.quantity, 0) : transaction.duration_hours || 1,
+            quantityUnit: isFnb ? "pcs" : "hrs",
+            tanggalBooking: tanggalBooking,
+            totalPembayaran: parseFloat(transaction.final_amount),
             metodePembayaran: metodePembayaran,
-            status: status,
-            totalRefund: totalRefund,
-            rawBooking: booking,
+            status: transaction.status,
+            tanggalPembayaran: tanggalPembayaran,
+            rawBooking: transaction,
           };
         });
 

@@ -4,6 +4,7 @@ import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import TransactionTable from "../components/TransactionTable";
 import { useGetTransactionsQuery } from "../api/transactionApiSlice";
+import * as XLSX from 'xlsx';
 
 const TransactionListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -11,6 +12,7 @@ const TransactionListPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // Use RTK Query hook for API calls
@@ -18,17 +20,26 @@ const TransactionListPage = () => {
     page: currentPage,
     limit: limit,
     search: debouncedSearchTerm,
-    status: "completed"
+    status: "pending"
   });
 
   // Extract data from API response
-  const transactions = data?.transactions || [];
-  const pagination = data?.pagination || {
+  const transactions = useMemo(() => data?.transactions || [], [data?.transactions]);
+  const pagination = useMemo(() => data?.pagination || {
     current_page: 1,
     total: 0,
     per_page: 10, // Changed default to 10
     last_page: 1
-  };
+  }, [data?.pagination]);
+
+  // Debug logging
+  console.log('TransactionListPage Debug:', {
+    data,
+    transactions,
+    pagination,
+    isLoading,
+    error
+  });
 
   // Filter transactions by month if monthFilter is set
   const filteredTransactions = useMemo(() => {
@@ -59,6 +70,88 @@ const TransactionListPage = () => {
       console.error('Refresh failed:', error);
     } finally {
       setIsRefreshing(false);
+    }
+  };
+
+  // Handle export to Excel
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Fetch all data without pagination for export
+      const exportData = await refetch({
+        page: 1,
+        limit: 1000, // Large number to get all data
+        search: debouncedSearchTerm,
+        status: "pending"
+      });
+
+      const transactionsToExport = exportData.data?.transactions || [];
+
+      // Prepare data for Excel
+      const excelData = transactionsToExport.map((tx, index) => ({
+        'No': index + 1,
+        'No Transaksi': tx.noTransaction,
+        'Nama': tx.name,
+        'No Telepon': tx.phoneNumber,
+        'Booking Type': tx.bookingType,
+        'Type': tx.type,
+        'Tanggal Booking': tx.tanggalBooking,
+        'Unit': tx.rawBooking?.unit_name || '-',
+        'Duration': tx.rawBooking?.duration_hours ? `${tx.rawBooking.duration_hours} jam` : '-',
+        'Subtotal Room': tx.rawBooking?.subtotal_room || '0.00',
+        'Food & Drink': tx.type === "Food & Drink" ?
+          (tx.rawBooking?.fnb_items?.map(item => `${item.name} x${item.quantity}`).join(', ') || '-') : '-',
+        'Subtotal Food&Drink': tx.rawBooking?.subtotal_fnb || '0.00',
+        'Promo (%)': tx.rawBooking?.promo_percentage ? `${tx.rawBooking.promo_percentage}%` : '-',
+        'Service Fee': tx.rawBooking?.service_fee_amount || '0.00',
+        'Total Pembayaran': tx.totalPembayaran,
+        'Metode Pembayaran': tx.metodePembayaran,
+        'Tanggal Pembayaran': tx.tanggalPembayaran || '-',
+        'Status': tx.status
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(excelData);
+
+      // Set column widths
+      const colWidths = [
+        { wch: 5 },   // No
+        { wch: 20 },  // No Transaksi
+        { wch: 15 },  // Nama
+        { wch: 15 },  // No Telepon
+        { wch: 12 },  // Booking Type
+        { wch: 12 },  // Type
+        { wch: 15 },  // Tanggal Booking
+        { wch: 15 },  // Unit
+        { wch: 10 },  // Duration
+        { wch: 15 },  // Subtotal Room
+        { wch: 30 },  // Food & Drink
+        { wch: 18 },  // Subtotal Food&Drink
+        { wch: 10 },  // Promo (%)
+        { wch: 12 },  // Service Fee
+        { wch: 15 },  // Total Pembayaran
+        { wch: 15 },  // Metode Pembayaran
+        { wch: 15 },  // Tanggal Pembayaran
+        { wch: 10 }   // Status
+      ];
+      ws['!cols'] = colWidths;
+
+      // Add worksheet to workbook
+      XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
+
+      // Generate filename with current date
+      const currentDate = new Date().toISOString().split('T')[0];
+      const filename = `transactions_${currentDate}.xlsx`;
+
+      // Save file
+      XLSX.writeFile(wb, filename);
+
+    } catch (error) {
+      console.error('Export failed:', error);
+      alert('Gagal mengekspor data. Silakan coba lagi.');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -99,7 +192,7 @@ const TransactionListPage = () => {
           <div>
             <h2 className="card-title text-2xl">Transaction History</h2>
             <p className="text-sm opacity-70 mt-1">
-              Menampilkan transaksi dengan status Completed
+              Menampilkan transaksi dengan status Pending
             </p>
           </div>
 
@@ -111,6 +204,7 @@ const TransactionListPage = () => {
                 <span>{isRefreshing ? 'Refreshing...' : 'Loading...'}</span>
               </div>
             )}
+
 
             {/* Refresh button */}
             <button
@@ -145,6 +239,38 @@ const TransactionListPage = () => {
           setMonthFilter={setMonthFilter}
           showMonthFilter={true}
           searchPlaceholder="Search ..."
+          exportButton={
+            <button
+              onClick={handleExportExcel}
+              className="btn btn-outline btn-sm"
+              title="Export to Excel"
+              disabled={isLoading || isRefreshing || isExporting || transactions.length === 0}
+            >
+              {isExporting ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                  Exporting...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                    />
+                  </svg>
+                  Export
+                </>
+              )}
+            </button>
+          }
         />
 
         <TransactionTable
@@ -158,7 +284,7 @@ const TransactionListPage = () => {
         {!debouncedSearchTerm.trim() && !monthFilter && (
           <div className="text-sm text-gray-600 mt-2 text-center">
             {pagination.total > 0 ? (
-              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} completed transactions`
+              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} pending transactions`
             ) : (
               ""
             )}
@@ -169,11 +295,11 @@ const TransactionListPage = () => {
         {(debouncedSearchTerm.trim() || monthFilter) && (
           <div className="text-sm text-gray-600 mt-2 text-center">
             {debouncedSearchTerm.trim() && monthFilter ? (
-              `Found ${filteredTransactions.length} completed transactions matching "${debouncedSearchTerm}" in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+              `Found ${filteredTransactions.length} pending transactions matching "${debouncedSearchTerm}" in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
             ) : debouncedSearchTerm.trim() ? (
-              `Found ${filteredTransactions.length} completed transactions matching "${debouncedSearchTerm}"`
+              `Found ${filteredTransactions.length} pending transactions matching "${debouncedSearchTerm}"`
             ) : (
-              `Found ${filteredTransactions.length} completed transactions in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+              `Found ${filteredTransactions.length} pending transactions in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
             )}
           </div>
         )}
