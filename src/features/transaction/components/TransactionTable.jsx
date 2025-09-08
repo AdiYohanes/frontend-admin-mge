@@ -36,9 +36,10 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
 
   const getTypeBadge = (type) => {
     const baseClasses = "badge badge-sm";
-    return type === "Food & Drink"
-      ? `${baseClasses} badge-accent`
-      : `${baseClasses} badge-info`;
+    if (type === "Food & Drink") return `${baseClasses} badge-accent`;
+    if (type === "Room") return `${baseClasses} badge-info`;
+    if (type === "Room & F&B") return `${baseClasses} badge-secondary`;
+    return `${baseClasses} badge-neutral`;
   };
 
   if (isLoading)

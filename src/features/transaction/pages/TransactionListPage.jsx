@@ -20,7 +20,7 @@ const TransactionListPage = () => {
     page: currentPage,
     limit: limit,
     search: debouncedSearchTerm,
-    status: "pending"
+    status: "confirmed"
   });
 
   // Extract data from API response
@@ -82,7 +82,7 @@ const TransactionListPage = () => {
         page: 1,
         limit: 1000, // Large number to get all data
         search: debouncedSearchTerm,
-        status: "pending"
+        status: "confirmed"
       });
 
       const transactionsToExport = exportData.data?.transactions || [];
@@ -192,7 +192,7 @@ const TransactionListPage = () => {
           <div>
             <h2 className="card-title text-2xl">Transaction History</h2>
             <p className="text-sm opacity-70 mt-1">
-              Menampilkan transaksi dengan status Pending
+              Menampilkan transaksi dengan status Confirmed
             </p>
           </div>
 
@@ -284,7 +284,7 @@ const TransactionListPage = () => {
         {!debouncedSearchTerm.trim() && !monthFilter && (
           <div className="text-sm text-gray-600 mt-2 text-center">
             {pagination.total > 0 ? (
-              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} pending transactions`
+              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} confirmed transactions`
             ) : (
               ""
             )}
@@ -295,11 +295,11 @@ const TransactionListPage = () => {
         {(debouncedSearchTerm.trim() || monthFilter) && (
           <div className="text-sm text-gray-600 mt-2 text-center">
             {debouncedSearchTerm.trim() && monthFilter ? (
-              `Found ${filteredTransactions.length} pending transactions matching "${debouncedSearchTerm}" in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+              `Found ${filteredTransactions.length} confirmed transactions matching "${debouncedSearchTerm}" in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
             ) : debouncedSearchTerm.trim() ? (
-              `Found ${filteredTransactions.length} pending transactions matching "${debouncedSearchTerm}"`
+              `Found ${filteredTransactions.length} confirmed transactions matching "${debouncedSearchTerm}"`
             ) : (
-              `Found ${filteredTransactions.length} pending transactions in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+              `Found ${filteredTransactions.length} confirmed transactions in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
             )}
           </div>
         )}

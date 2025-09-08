@@ -31,8 +31,8 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
 
         // Transform transaction data to match table structure
         const transformedData = transactionsData.map(transaction => {
-          const isFnb = transaction.transaction_type === "F&B";
-          const isRoom = transaction.transaction_type === "Room";
+          const isFnb = transaction.transaction_type === "F&B" || transaction.transaction_type === "Room & F&B";
+          const isRoom = transaction.transaction_type === "Room" || transaction.transaction_type === "Room & F&B";
 
           // Determine booking type
           const bookingType = transaction.booking_type === "Online" ? "Online" : "Manual (OTS)";
@@ -66,7 +66,9 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
             id: transaction.id,
             noTransaction: transaction.invoice_number,
             bookingType: bookingType,
-            type: isFnb ? "Food & Drink" : "Room",
+            type: transaction.transaction_type === "F&B" ? "Food & Drink" :
+              transaction.transaction_type === "Room" ? "Room" :
+                transaction.transaction_type === "Room & F&B" ? "Room & F&B" : "Unknown",
             name: transaction.customer_name,
             phoneNumber: transaction.customer_phone,
             details: isFnb ? fnbDisplay : `${transaction.unit_name || "-"} - ${transaction.console_names?.join(", ") || "-"}`,
