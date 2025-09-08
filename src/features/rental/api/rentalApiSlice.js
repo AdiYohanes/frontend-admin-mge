@@ -310,10 +310,22 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
     }),
     addGame: builder.mutation({
       query: (newGame) => {
+
         const formData = new FormData();
         formData.append("title", newGame.title);
         formData.append("genre_id", parseInt(newGame.genre) || newGame.genre); // Ensure it's a number
         formData.append("description", newGame.description || "");
+        formData.append("is_active", "1"); // Add is_active field as required
+
+        // Add console IDs
+        if (newGame.consoles && newGame.consoles.length > 0) {
+          newGame.consoles.forEach((consoleId) => {
+            formData.append(`console_ids[]`, consoleId);
+          });
+        } else {
+          console.log("AddGame - No consoles found in data");
+        }
+
         if (newGame.image && newGame.image.length > 0) {
           formData.append("image", newGame.image[0]);
         }
@@ -328,6 +340,15 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
         formData.append("title", patch.title);
         formData.append("genre_id", parseInt(patch.genre) || patch.genre); // Ensure it's a number
         formData.append("description", patch.description || "");
+        formData.append("is_active", "1"); // Add is_active field as required
+
+        // Add console IDs
+        if (patch.consoles && patch.consoles.length > 0) {
+          patch.consoles.forEach((consoleId) => {
+            formData.append(`console_ids[]`, consoleId);
+          });
+        }
+
         if (patch.image && patch.image.length > 0) {
           formData.append("image", patch.image[0]);
         }

@@ -2,15 +2,10 @@ import React from "react";
 import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
-  // Debug log untuk memastikan props diterima dengan benar
-  console.log('🔍 DEBUG - Pagination props:', { currentPage, totalPages });
 
   if (totalPages <= 1) {
-    console.log('🔍 DEBUG - Pagination tidak ditampilkan karena totalPages <= 1');
     return null;
   }
-
-  console.log('🔍 DEBUG - Rendering pagination buttons:', { currentPage, totalPages });
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);
 

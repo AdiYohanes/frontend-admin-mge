@@ -26,12 +26,7 @@ const gameSchema = z.object({
   ]).refine((val) => val && val.toString().trim() !== "", {
     message: "Genre harus dipilih"
   }),
-  console: z.union([
-    z.string().nonempty("Console harus dipilih"),
-    z.number().min(1, "Console harus dipilih")
-  ]).refine((val) => val && val.toString().trim() !== "", {
-    message: "Console harus dipilih"
-  }),
+  consoles: z.array(z.number()).min(1, "Minimal satu console harus dipilih"),
   description: z.string().optional().or(z.literal("")),
   image: z.any().optional(), // Lebih fleksibel untuk image
 });
@@ -58,34 +53,26 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     search: "",
   });
 
-  // Debug: Log console data
-  useEffect(() => {
-    console.log('Consoles Data:', consolesData);
-    console.log('Is Loading Consoles:', isLoadingConsoles);
-    console.log('Consoles Error:', consolesError);
-    console.log('Consoles Data Type:', typeof consolesData);
-    console.log('Consoles Data Length:', consolesData?.consoles?.length);
-    if (consolesData?.consoles && consolesData.consoles.length > 0) {
-      console.log('First Console:', consolesData.consoles[0]);
-    }
-  }, [consolesData, isLoadingConsoles, consolesError]);
 
   const {
     register,
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(gameSchema),
     defaultValues: {
       title: "",
       genre: "",
-      console: "",
+      consoles: [],
       description: "",
       image: null,
     },
   });
+
+  const selectedConsoles = watch("consoles");
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -108,7 +95,6 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
       if (isEditMode && editingData) {
         // Handle genre and console properly - extract ID if it's an object, or use as is if it's a number
         let genreValue = "";
-        let consoleValue = "";
 
         if (editingData.genre) {
           if (typeof editingData.genre === 'string') {
@@ -122,25 +108,27 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
           }
         }
 
-        // Handle console data
+        // Handle console data - now support multiple consoles
+        let consoleValues = [];
         if (editingData.consoles && editingData.consoles.length > 0) {
-          // If consoles is an array, take the first one
-          const firstConsole = editingData.consoles[0];
-          if (typeof firstConsole === 'string') {
-            // If it's a string, find the console ID by name
-            const selectedConsole = consolesData?.consoles?.find(c => c.name === firstConsole);
-            consoleValue = selectedConsole ? selectedConsole.id.toString() : "";
-          } else if (firstConsole && typeof firstConsole === 'object' && firstConsole.id) {
-            consoleValue = firstConsole.id.toString();
-          } else if (typeof firstConsole === 'number') {
-            consoleValue = firstConsole.toString();
-          }
+          consoleValues = editingData.consoles.map(console => {
+            if (typeof console === 'string') {
+              // If it's a string, find the console ID by name
+              const selectedConsole = consolesData?.consoles?.find(c => c.name === console);
+              return selectedConsole ? selectedConsole.id : null;
+            } else if (console && typeof console === 'object' && console.id) {
+              return console.id;
+            } else if (typeof console === 'number') {
+              return console;
+            }
+            return null;
+          }).filter(Boolean); // Remove null values
         }
 
         reset({
           title: editingData.name || editingData.title || "",
           genre: genreValue, // This will be the genre ID
-          console: consoleValue, // This will be the console ID
+          consoles: consoleValues, // This will be the console IDs array
           description: editingData.description || "",
           image: null,
         });
@@ -149,7 +137,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
         reset({
           title: "",
           genre: "",
-          console: "",
+          consoles: [],
           description: "",
           image: null,
         });
@@ -163,30 +151,53 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     setValue("image", null);
   };
 
+  const handleConsoleChange = (consoleId, isChecked) => {
+    const currentConsoles = selectedConsoles || [];
+    if (isChecked) {
+      setValue("consoles", [...currentConsoles, consoleId], { shouldValidate: true });
+    } else {
+      setValue("consoles", currentConsoles.filter(id => id !== consoleId), { shouldValidate: true });
+    }
+  };
+
   const onSubmit = async (formData) => {
     try {
+
+      // Use selectedConsoles from watch instead of formData.consoles
+      const consolesToSubmit = selectedConsoles || formData.consoles || [];
+
       // Validate genre and console selection
       if (!formData.genre) {
         toast.error("Genre harus dipilih!");
         return;
       }
-      if (!formData.console) {
-        toast.error("Console harus dipilih!");
+      if (!consolesToSubmit || consolesToSubmit.length === 0) {
+        toast.error("Minimal satu console harus dipilih!");
         return;
       }
 
+      // Create the data object with correct consoles
+      const submitData = {
+        ...formData,
+        consoles: consolesToSubmit
+      };
+
+
       if (isEditMode) {
-        if (!formData.image || formData.image.length === 0) {
-          delete formData.image;
+        if (!submitData.image || submitData.image.length === 0) {
+          delete submitData.image;
         }
-        await updateGame({ id: editingData.id, ...formData }).unwrap();
+        await updateGame({ id: editingData.id, ...submitData }).unwrap();
         toast.success("Game berhasil diperbarui!");
       } else {
-        await addGame(formData).unwrap();
+        await addGame(submitData).unwrap();
         toast.success("Game baru berhasil ditambahkan!");
       }
       onClose();
     } catch (err) {
+      console.error("Error details:", err);
+      console.error("Error data:", err.data);
+      console.error("Error message:", err.message);
       toast.error(err.data?.message || "Gagal memproses data game.");
     }
   };
@@ -332,37 +343,40 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
           <div className="form-control flex flex-col">
             <label className="label">
               <span className="label-text font-medium">
-                Console <span className="text-error">*</span>
+                Consoles <span className="text-error">*</span>
               </span>
             </label>
-            <select
-              {...register("console")}
-              className={`select select-bordered ${errors.console ? "select-error" : ""
-                }`}
-              disabled={isLoadingConsoles}
-            >
-              <option value="">
-                {isLoadingConsoles ? "Loading consoles..." : "Select Console..."}
-              </option>
-              {consolesData?.consoles?.map((console) => (
-                <option key={console.id} value={console.id}>
-                  {console.name}
-                </option>
-              ))}
-            </select>
-            {errors.console && (
-              <span className="text-xs text-error mt-1">
-                {errors.console.message}
-              </span>
-            )}
-            {consolesError && (
-              <span className="text-xs text-error mt-1">
+            {isLoadingConsoles ? (
+              <div className="flex items-center gap-2">
+                <span className="loading loading-spinner loading-sm"></span>
+                <span className="text-sm">Loading consoles...</span>
+              </div>
+            ) : consolesError ? (
+              <span className="text-xs text-error">
                 Error loading consoles: {consolesError?.data?.message || consolesError?.message || 'Unknown error'}
               </span>
-            )}
-            {!isLoadingConsoles && !consolesError && (!consolesData?.consoles || consolesData.consoles.length === 0) && (
-              <span className="text-xs text-warning mt-1">
+            ) : !consolesData?.consoles || consolesData.consoles.length === 0 ? (
+              <span className="text-xs text-warning">
                 No consoles available
+              </span>
+            ) : (
+              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border border-base-300 rounded-lg p-3">
+                {consolesData.consoles.map((console) => (
+                  <label key={console.id} className="flex items-center gap-2 cursor-pointer hover:bg-base-100 p-2 rounded">
+                    <input
+                      type="checkbox"
+                      checked={selectedConsoles?.includes(console.id) || false}
+                      onChange={(e) => handleConsoleChange(console.id, e.target.checked)}
+                      className="checkbox checkbox-sm"
+                    />
+                    <span className="text-sm">{console.name}</span>
+                  </label>
+                ))}
+              </div>
+            )}
+            {errors.consoles && (
+              <span className="text-xs text-error mt-1">
+                {errors.consoles.message}
               </span>
             )}
           </div>
