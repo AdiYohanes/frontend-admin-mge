@@ -29,7 +29,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
 
     // Fetch units and FNB categories for selects
     const { data: unitsData } = useGetUnitsQuery({ page: 1, limit: 9999, search: "" });
-    const { data: fnbItemsData } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
+    const { data: fnbItemsData, isLoading: isLoadingFnbItems } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
     const fnbItems = useMemo(() => fnbItemsData?.items || [], [fnbItemsData?.items]);
 
     const getCategoryType = (item) => {
@@ -62,30 +62,46 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                     setUnitId(String(editingData.effects?.unit_id || editingData.unit?.id || ""));
                     setDuration(String(editingData.effects?.duration_hours || ""));
                 } else if ((editingData.effects?.type || editingData.rewardType) === "free_fnb") {
-                    const fnbs = editingData.effects?.fnbs || [];
-                    console.log("Editing FNB data:", fnbs);
+                    // Only process FNB data if FNB items are loaded
+                    if (!isLoadingFnbItems && fnbItems.length > 0) {
+                        const fnbs = editingData.effects?.fnbs || [];
+                        console.log("Editing FNB data:", fnbs);
+                        console.log("Available FNB items:", fnbItems);
 
-                    // Separate food and drink items
-                    const foodItemsData = [];
-                    const drinkItemsData = [];
+                        // Separate food and drink items
+                        const foodItemsData = [];
+                        const drinkItemsData = [];
 
-                    fnbs.forEach((f) => {
-                        if (f.fnb_id && f.quantity) {
-                            // Check if this item is food or drink by looking at the item data
-                            const item = fnbItems.find(item => item.id === f.fnb_id);
-                            if (item) {
-                                const categoryType = getCategoryType(item);
-                                if (categoryType.includes("food")) {
-                                    foodItemsData.push({ key: Date.now() + Math.random(), foodId: String(f.fnb_id), qty: String(f.quantity) });
-                                } else if (categoryType.includes("drink")) {
-                                    drinkItemsData.push({ key: Date.now() + Math.random(), drinkId: String(f.fnb_id), qty: String(f.quantity) });
+                        fnbs.forEach((f) => {
+                            if (f.fnb_id && f.quantity) {
+                                // Check if this item is food or drink by looking at the item data
+                                const item = fnbItems.find(item => item.id === f.fnb_id);
+                                console.log(`Processing FNB item ${f.fnb_id}:`, item);
+                                if (item) {
+                                    const categoryType = getCategoryType(item);
+                                    console.log(`Category type for item ${f.fnb_id}:`, categoryType);
+                                    if (categoryType.includes("food")) {
+                                        foodItemsData.push({ key: Date.now() + Math.random(), foodId: String(f.fnb_id), qty: String(f.quantity) });
+                                    } else if (categoryType.includes("drink")) {
+                                        drinkItemsData.push({ key: Date.now() + Math.random(), drinkId: String(f.fnb_id), qty: String(f.quantity) });
+                                    }
+                                } else {
+                                    console.warn(`FNB item with ID ${f.fnb_id} not found in available items`);
                                 }
                             }
-                        }
-                    });
+                        });
 
-                    setFoodRows(foodItemsData.length ? foodItemsData : [{ key: 1, foodId: "", qty: "" }]);
-                    setDrinkRows(drinkItemsData.length ? drinkItemsData : [{ key: 1, drinkId: "", qty: "" }]);
+                        console.log("Processed food items:", foodItemsData);
+                        console.log("Processed drink items:", drinkItemsData);
+
+                        setFoodRows(foodItemsData.length ? foodItemsData : [{ key: 1, foodId: "", qty: "" }]);
+                        setDrinkRows(drinkItemsData.length ? drinkItemsData : [{ key: 1, drinkId: "", qty: "" }]);
+                    } else {
+                        // If FNB items are still loading, set default empty rows
+                        console.log("FNB items still loading, setting default rows");
+                        setFoodRows([{ key: 1, foodId: "", qty: "" }]);
+                        setDrinkRows([{ key: 1, drinkId: "", qty: "" }]);
+                    }
                 }
             } else {
                 setName("");
@@ -98,7 +114,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                 setDrinkRows([{ key: 1, drinkId: "", qty: "" }]);
             }
         }
-    }, [isOpen, editingData, fnbItems]);
+    }, [isOpen, editingData, fnbItems, isLoadingFnbItems]);
 
     const onDrop = useCallback((files) => {
         if (files?.[0]) {
@@ -315,7 +331,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                                 </select>
                             </div>
                             <div className="form-control flex flex-col">
-                                <label className="label"><span className="label-text">Duration <span className="text-error">*</span></span></label>
+                                <label className="label"><span className="label-text">Duration (hours)<span className="text-error">*</span></span></label>
                                 <input type="number" min={0} step="1" value={duration} onChange={(e) => setDuration(e.target.value)} placeholder="Duration" className="input input-bordered w-full" />
                             </div>
                         </div>
@@ -329,89 +345,98 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                                 <span>You can add food items, drink items, or both. At least one item is required.</span>
                             </div>
 
-                            <div>
-                                <h4 className="text-lg font-semibold mb-2">Food Items</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label className="label"><span className="label-text">Food</span></label>
-                                    <label className="label"><span className="label-text">Quantity</span></label>
+                            {isLoadingFnbItems ? (
+                                <div className="flex items-center justify-center py-8">
+                                    <span className="loading loading-spinner loading-md"></span>
+                                    <span className="ml-2">Loading food & drink items...</span>
                                 </div>
-                                {foodRows.map((row, idx) => (
-                                    <div key={row.key} className="grid grid-cols-[1fr_1fr_auto] md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
-                                        <select value={row.foodId} onChange={(e) => {
-                                            const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, foodId: v } : rr));
-                                        }} className="select select-bordered w-full">
-                                            <option value="">Food</option>
-                                            {foodItems?.map((i) => (
-                                                <option key={`food-${i.id}`} value={i.id}>{i.name}</option>
-                                            ))}
-                                        </select>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            value={row.qty}
-                                            onChange={(e) => {
-                                                const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
-                                            }}
-                                            placeholder="Qty"
-                                            className="input input-bordered w-full"
-                                        />
-                                        <div className="flex justify-end">
-                                            {idx === 0 ? (
-                                                <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setFoodRows((r) => [...r, { key: Date.now(), foodId: "", qty: "" }])} aria-label="Add food row">
-                                                    <PlusIcon className="h-4 w-4" />
-                                                </button>
-                                            ) : (
-                                                <button type="button" className="btn btn-square btn-outline btn-error" onClick={() => setFoodRows((r) => r.filter(rr => rr.key !== row.key))} aria-label="Remove food row">
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
+                            ) : (
+                                <>
+                                    <div>
+                                        <h4 className="text-lg font-semibold mb-2">Food Items</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <label className="label"><span className="label-text">Food</span></label>
+                                            <label className="label"><span className="label-text">Quantity</span></label>
                                         </div>
+                                        {foodRows.map((row, idx) => (
+                                            <div key={row.key} className="grid grid-cols-[1fr_1fr_auto] md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+                                                <select value={row.foodId} onChange={(e) => {
+                                                    const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, foodId: v } : rr));
+                                                }} className="select select-bordered w-full">
+                                                    <option value="">Food</option>
+                                                    {foodItems?.map((i) => (
+                                                        <option key={`food-${i.id}`} value={i.id}>{i.name}</option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    step="1"
+                                                    value={row.qty}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value; setFoodRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
+                                                    }}
+                                                    placeholder="Qty"
+                                                    className="input input-bordered w-full"
+                                                />
+                                                <div className="flex justify-end">
+                                                    {idx === 0 ? (
+                                                        <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setFoodRows((r) => [...r, { key: Date.now(), foodId: "", qty: "" }])} aria-label="Add food row">
+                                                            <PlusIcon className="h-4 w-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button type="button" className="btn btn-square btn-outline btn-error" onClick={() => setFoodRows((r) => r.filter(rr => rr.key !== row.key))} aria-label="Remove food row">
+                                                            <TrashIcon className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
 
-                            <div>
-                                <h4 className="text-lg font-semibold mb-2">Drink Items</h4>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <label className="label"><span className="label-text">Drink</span></label>
-                                    <label className="label"><span className="label-text">Quantity</span></label>
-                                </div>
-                                {drinkRows.map((row, idx) => (
-                                    <div key={row.key} className="grid grid-cols-[1fr_1fr_auto] md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
-                                        <select value={row.drinkId} onChange={(e) => {
-                                            const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, drinkId: v } : rr));
-                                        }} className="select select-bordered w-full">
-                                            <option value="">Drink</option>
-                                            {drinkItems?.map((i) => (
-                                                <option key={`drink-${i.id}`} value={i.id}>{i.name}</option>
-                                            ))}
-                                        </select>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            step="1"
-                                            value={row.qty}
-                                            onChange={(e) => {
-                                                const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
-                                            }}
-                                            placeholder="Qty"
-                                            className="input input-bordered w-full"
-                                        />
-                                        <div className="flex justify-end">
-                                            {idx === 0 ? (
-                                                <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setDrinkRows((r) => [...r, { key: Date.now(), drinkId: "", qty: "" }])} aria-label="Add drink row">
-                                                    <PlusIcon className="h-4 w-4" />
-                                                </button>
-                                            ) : (
-                                                <button type="button" className="btn btn-square btn-outline btn-error" onClick={() => setDrinkRows((r) => r.filter(rr => rr.key !== row.key))} aria-label="Remove drink row">
-                                                    <TrashIcon className="h-4 w-4" />
-                                                </button>
-                                            )}
+                                    <div>
+                                        <h4 className="text-lg font-semibold mb-2">Drink Items</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            <label className="label"><span className="label-text">Drink</span></label>
+                                            <label className="label"><span className="label-text">Quantity</span></label>
                                         </div>
+                                        {drinkRows.map((row, idx) => (
+                                            <div key={row.key} className="grid grid-cols-[1fr_1fr_auto] md:grid-cols-[1fr_1fr_auto] gap-3 items-center">
+                                                <select value={row.drinkId} onChange={(e) => {
+                                                    const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, drinkId: v } : rr));
+                                                }} className="select select-bordered w-full">
+                                                    <option value="">Drink</option>
+                                                    {drinkItems?.map((i) => (
+                                                        <option key={`drink-${i.id}`} value={i.id}>{i.name}</option>
+                                                    ))}
+                                                </select>
+                                                <input
+                                                    type="number"
+                                                    min="1"
+                                                    step="1"
+                                                    value={row.qty}
+                                                    onChange={(e) => {
+                                                        const v = e.target.value; setDrinkRows((r) => r.map(rr => rr.key === row.key ? { ...rr, qty: v } : rr));
+                                                    }}
+                                                    placeholder="Qty"
+                                                    className="input input-bordered w-full"
+                                                />
+                                                <div className="flex justify-end">
+                                                    {idx === 0 ? (
+                                                        <button type="button" className="btn btn-square bg-brand-gold hover:bg-amber-600 text-white" onClick={() => setDrinkRows((r) => [...r, { key: Date.now(), drinkId: "", qty: "" }])} aria-label="Add drink row">
+                                                            <PlusIcon className="h-4 w-4" />
+                                                        </button>
+                                                    ) : (
+                                                        <button type="button" className="btn btn-square btn-outline btn-error" onClick={() => setDrinkRows((r) => r.filter(rr => rr.key !== row.key))} aria-label="Remove drink row">
+                                                            <TrashIcon className="h-4 w-4" />
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
                                     </div>
-                                ))}
-                            </div>
+                                </>
+                            )}
                         </div>
                     )}
 

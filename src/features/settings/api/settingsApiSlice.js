@@ -294,9 +294,9 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "FeaturedGame", id: "LIST" }],
     }),
 
-    // === Rewards (Public) ===
+    // === Rewards (Admin) ===
     getRewards: builder.query({
-      query: () => "/api/public/rewards",
+      query: () => "/api/admin/rewards",
       transformResponse: (response) => ({
         rewards: Array.isArray(response)
           ? response.map((r) => ({
@@ -310,6 +310,7 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
             pointsRequired: Number(r.points_required ?? 0),
             effects: r.effects || {},
             unit: r.unit || null,
+            isActive: Boolean(r.is_active),
           }))
           : [],
       }),
@@ -349,6 +350,17 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: (r, e, arg) => [
         { type: "Rewards", id: "LIST" },
         { type: "Rewards", id: arg },
+      ],
+    }),
+    updateRewardStatus: builder.mutation({
+      query: ({ id, isActive }) => ({
+        url: `/api/admin/rewards/${id}`,
+        method: "POST",
+        body: { is_active: isActive },
+      }),
+      invalidatesTags: (r, e, arg) => [
+        { type: "Rewards", id: "LIST" },
+        { type: "Rewards", id: arg.id },
       ],
     }),
 
@@ -443,6 +455,7 @@ export const {
   useAddRewardMutation,
   useUpdateRewardMutation,
   useDeleteRewardMutation,
+  useUpdateRewardStatusMutation,
   useGetPromosQuery,
   useAddPromoMutation,
   useUpdatePromoMutation,

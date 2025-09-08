@@ -29,9 +29,10 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
 
   const getBookingTypeBadge = (bookingType) => {
     const baseClasses = "badge badge-sm";
-    return bookingType === "Online"
-      ? `${baseClasses} badge-primary`
-      : `${baseClasses} badge-secondary`;
+    if (bookingType === "Online") return `${baseClasses} badge-primary`;
+    if (bookingType === "Guest") return `${baseClasses} badge-accent`;
+    if (bookingType === "Manual (OTS)") return `${baseClasses} badge-secondary`;
+    return `${baseClasses} badge-neutral`;
   };
 
   const getTypeBadge = (type) => {
@@ -104,95 +105,86 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
 
               {/* 5. BOOKING TYPE */}
               <td>
-                <span className={getBookingTypeBadge(tx.bookingType || "Manual (OTS)")}>
-                  {tx.bookingType || "Manual (OTS)"}
+                <span className={getBookingTypeBadge(tx.bookingType)}>
+                  {tx.bookingType}
                 </span>
               </td>
 
               {/* 6. TYPE */}
               <td>
-                <div className="text-sm">{tx.type}</div>
+                <div className="text-sm">{tx.transactionType}</div>
               </td>
 
               {/* 7. TANGGAL BOOKING */}
               <td>
-                <div className="text-sm">{tx.tanggalBooking}</div>
+                <div className="text-sm">
+                  {tx.bookingDate ? new Date(tx.bookingDate).toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  }) : "-"}
+                </div>
               </td>
 
               {/* 8. UNIT */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.unit_name || "-"}
+                  {tx.unitName || "-"}
                 </div>
               </td>
 
               {/* 9. DURATION */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.duration_hours ? `${tx.rawBooking.duration_hours} jam` : "-"}
+                  {tx.durationHours ? `${tx.durationHours} jam` : "-"}
                 </div>
               </td>
 
               {/* 10. SUBTOTAL ROOM */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.subtotal_room ? formatCurrency(tx.rawBooking.subtotal_room) : "-"}
+                  {tx.subtotalRoom ? formatCurrency(parseFloat(tx.subtotalRoom)) : "-"}
                 </div>
               </td>
 
               {/* 11. FOOD & DRINK */}
               <td>
                 <div className="text-sm max-w-[200px]">
-                  {tx.type === "Food & Drink" ? (
+                  {tx.fnbItems?.length > 0 ? (
                     <div className="space-y-1">
-                      {tx.rawBooking?.fnb_items?.slice(0, 2).map((item, idx) => (
+                      {tx.fnbItems.slice(0, 2).map((item, idx) => (
                         <div key={idx} className="text-xs">
                           {item.name} x{item.quantity}
                         </div>
                       ))}
-                      {tx.rawBooking?.fnb_items?.length > 2 && (
+                      {tx.fnbItems.length > 2 && (
                         <div className="text-xs text-gray-500">
-                          +{tx.rawBooking.fnb_items.length - 2} lainnya
+                          +{tx.fnbItems.length - 2} lainnya
                         </div>
                       )}
                     </div>
-                  ) : (
-                    tx.rawBooking?.fnb_items?.length > 0 ? (
-                      <div className="space-y-1">
-                        {tx.rawBooking.fnb_items.slice(0, 2).map((item, idx) => (
-                          <div key={idx} className="text-xs">
-                            {item.name} x{item.quantity}
-                          </div>
-                        ))}
-                        {tx.rawBooking.fnb_items.length > 2 && (
-                          <div className="text-xs text-gray-500">
-                            +{tx.rawBooking.fnb_items.length - 2} lainnya
-                          </div>
-                        )}
-                      </div>
-                    ) : "-"
-                  )}
+                  ) : "-"}
                 </div>
               </td>
 
               {/* 12. SUBTOTAL FOOD&DRINK */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.subtotal_fnb ? formatCurrency(tx.rawBooking.subtotal_fnb) : "-"}
+                  {tx.subtotalFnb ? formatCurrency(parseFloat(tx.subtotalFnb)) : "-"}
                 </div>
               </td>
 
               {/* 13. PB1 */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.promo_percentage ? `${tx.rawBooking.promo_percentage}%` : "-"}
+                  {tx.taxAmount ? formatCurrency(parseFloat(tx.taxAmount)) : "-"}
                 </div>
               </td>
 
               {/* 14. SERVICE FEE */}
               <td>
                 <div className="text-sm">
-                  {tx.rawBooking?.service_fee_amount ? formatCurrency(tx.rawBooking.service_fee_amount) : "-"}
+                  {tx.serviceFeeAmount ? formatCurrency(parseFloat(tx.serviceFeeAmount)) : "-"}
                 </div>
               </td>
 
@@ -205,12 +197,18 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
 
               {/* 16. METODE PEMBAYARAN */}
               <td>
-                <div className="text-sm">{tx.metodePembayaran}</div>
+                <div className="text-sm">{tx.paymentMethod}</div>
               </td>
 
               {/* 17. TANGGAL PEMBAYARAN */}
               <td>
-                <div className="text-sm">{tx.tanggalPembayaran || tx.tanggalBooking}</div>
+                <div className="text-sm">
+                  {tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString("id-ID", {
+                    day: "2-digit",
+                    month: "2-digit",
+                    year: "numeric",
+                  }) : "-"}
+                </div>
               </td>
 
               {/* 18. STATUS */}

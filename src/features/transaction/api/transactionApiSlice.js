@@ -29,56 +29,49 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
           prev_page_url: response.prev_page_url
         };
 
-        // Transform transaction data to match table structure
+        // Transform transaction data - ambil semua data langsung dari API response
         const transformedData = transactionsData.map(transaction => {
-          const isFnb = transaction.transaction_type === "F&B" || transaction.transaction_type === "Room & F&B";
-          const isRoom = transaction.transaction_type === "Room" || transaction.transaction_type === "Room & F&B";
-
-          // Determine booking type
-          const bookingType = transaction.booking_type === "Online" ? "Online" : "Manual (OTS)";
-
-          // Determine payment method
-          const metodePembayaran = transaction.payment_method === "midtrans" ? "QRIS" :
-            transaction.payment_method === "cash" ? "Cash" :
-              transaction.payment_method || "Unknown";
-
-          // Format booking date
-          const tanggalBooking = new Date(transaction.booking_date).toLocaleDateString("id-ID", {
-            day: "2-digit",
-            month: "2-digit",
-            year: "numeric",
-          });
-
-          // Format payment date
-          const tanggalPembayaran = transaction.payment_date ?
-            new Date(transaction.payment_date).toLocaleDateString("id-ID", {
-              day: "2-digit",
-              month: "2-digit",
-              year: "numeric",
-            }) : null;
-
-          // Format F&B items for display
-          const fnbItems = transaction.fnb_items || [];
-          const fnbDisplay = fnbItems.length > 0 ?
-            fnbItems.map(item => `${item.name} x${item.quantity}`).join(", ") : "-";
-
           return {
+            // Field utama dari API response
             id: transaction.id,
+            bookingId: transaction.booking_id,
+            invoiceNumber: transaction.invoice_number,
+            customerName: transaction.customer_name,
+            customerPhone: transaction.customer_phone,
+            bookingType: transaction.booking_type,
+            transactionType: transaction.transaction_type,
+            bookingDate: transaction.booking_date,
+            startTime: transaction.start_time,
+            endTime: transaction.end_time,
+            durationHours: transaction.duration_hours,
+            unitName: transaction.unit_name,
+            consoleNames: transaction.console_names,
+            gameName: transaction.game_name,
+            fnbItems: transaction.fnb_items,
+            subtotalRoom: transaction.subtotal_room,
+            subtotalFnb: transaction.subtotal_fnb,
+            promoCode: transaction.promo_code,
+            promoPercentage: transaction.promo_percentage,
+            rewardVoucherCode: transaction.reward_voucher_code,
+            discountAmount: transaction.discount_amount,
+            taxAmount: transaction.tax_amount,
+            serviceFeeAmount: transaction.service_fee_amount,
+            finalAmount: transaction.final_amount,
+            paymentMethod: transaction.payment_method,
+            paymentDate: transaction.payment_date,
+            gatewayTransactionId: transaction.gateway_transaction_id,
+            status: transaction.status,
+            payload: transaction.payload,
+            createdAt: transaction.created_at,
+            updatedAt: transaction.updated_at,
+            deletedAt: transaction.deleted_at,
+            booking2: transaction.booking2,
+
+            // Field untuk kompatibilitas dengan UI yang sudah ada
             noTransaction: transaction.invoice_number,
-            bookingType: bookingType,
-            type: transaction.transaction_type === "F&B" ? "Food & Drink" :
-              transaction.transaction_type === "Room" ? "Room" :
-                transaction.transaction_type === "Room & F&B" ? "Room & F&B" : "Unknown",
             name: transaction.customer_name,
             phoneNumber: transaction.customer_phone,
-            details: isFnb ? fnbDisplay : `${transaction.unit_name || "-"} - ${transaction.console_names?.join(", ") || "-"}`,
-            quantity: isFnb ? fnbItems.reduce((sum, item) => sum + item.quantity, 0) : transaction.duration_hours || 1,
-            quantityUnit: isFnb ? "pcs" : "hrs",
-            tanggalBooking: tanggalBooking,
             totalPembayaran: parseFloat(transaction.final_amount),
-            metodePembayaran: metodePembayaran,
-            status: transaction.status,
-            tanggalPembayaran: tanggalPembayaran,
             rawBooking: transaction,
           };
         });

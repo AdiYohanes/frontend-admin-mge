@@ -6,7 +6,8 @@ import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import AddRewardModal from "../components/AddRewardModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
-import { useGetRewardsQuery, useDeleteRewardMutation } from "../api/settingsApiSlice";
+import { useGetRewardsQuery, useDeleteRewardMutation, useUpdateRewardStatusMutation } from "../api/settingsApiSlice";
+import { useGetFoodDrinkItemsQuery } from "../../food-drink/api/foodDrinkApiSlice";
 
 // Server provides full list; we do client-side search/pagination for now
 
@@ -32,20 +33,56 @@ const RewardsListPage = () => {
     };
 
     const { data, isLoading } = useGetRewardsQuery();
+    const { data: fnbItemsData } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
     const [deleteReward, { isLoading: isDeleting }] = useDeleteRewardMutation();
+    const [updateRewardStatus, { isLoading: isUpdatingStatus }] = useUpdateRewardStatusMutation();
 
     const rows = useMemo(() => {
         const rewards = data?.rewards || [];
-        return rewards.map((r) => ({
-            id: r.id,
-            image: r.imageUrl,
-            name: r.name,
-            description: r.description,
-            rewardType: r.rewardType,
-            pointsRequired: r.pointsRequired,
-            raw: r,
-        }));
-    }, [data?.rewards]);
+        const fnbItems = fnbItemsData?.items || [];
+
+        console.log("DEBUG: All FNB Items from API (fnbItemsData.items):", fnbItems);
+        console.log("DEBUG: FNB Items Data structure:", fnbItemsData);
+
+        return rewards.map((r) => {
+            console.log(`DEBUG: Processing reward: ${r.name}`);
+            console.log(`DEBUG: Reward effects:`, r.effects);
+            console.log(`DEBUG: Reward FNB items:`, r.effects?.fnbs);
+
+            // Process FNB items to include names
+            const processedFnbItems = (r.effects?.fnbs || []).map(fnbItem => {
+                console.log(`DEBUG: Processing fnbItem with fnb_id: ${fnbItem.fnb_id} for reward: ${r.name}`);
+                console.log(`DEBUG: fnbItem structure:`, fnbItem);
+
+                const matchedItem = fnbItems.find(item => {
+                    console.log(`DEBUG: Comparing item.id (${item.id}, type: ${typeof item.id}) with fnbItem.fnb_id (${fnbItem.fnb_id}, type: ${typeof fnbItem.fnb_id})`);
+                    return String(item.id) === String(fnbItem.fnb_id);
+                });
+
+                console.log(`DEBUG: Matched item for fnb_id ${fnbItem.fnb_id}:`, matchedItem);
+
+                return {
+                    ...fnbItem,
+                    name: matchedItem?.name || `Item ${fnbItem.fnb_id}`,
+                    category: matchedItem?.fnb_category?.type || matchedItem?.category?.type || 'unknown'
+                };
+            });
+
+            return {
+                id: r.id,
+                image: r.imageUrl,
+                name: r.name,
+                description: r.description,
+                rewardType: r.rewardType,
+                pointsRequired: r.pointsRequired,
+                isActive: r.isActive,
+                unit: r.unit,
+                durationHours: r.effects?.duration_hours,
+                fnbItems: processedFnbItems,
+                raw: r,
+            };
+        });
+    }, [data?.rewards, fnbItemsData?.items]);
 
     const filtered = rows.filter((row) =>
         row.name.toLowerCase().includes(searchTerm.toLowerCase())
@@ -72,6 +109,19 @@ const RewardsListPage = () => {
         } catch (error) {
             toast.error("Gagal menghapus reward. Silakan coba lagi.");
             console.error("Delete reward error:", error);
+        }
+    };
+
+    const handleStatusToggle = async (reward) => {
+        try {
+            await updateRewardStatus({
+                id: reward.id,
+                isActive: !reward.isActive
+            }).unwrap();
+            toast.success(`Reward ${!reward.isActive ? 'diaktifkan' : 'dinonaktifkan'}!`);
+        } catch (error) {
+            toast.error("Gagal mengubah status reward. Silakan coba lagi.");
+            console.error("Update reward status error:", error);
         }
     };
 
@@ -104,19 +154,23 @@ const RewardsListPage = () => {
                                 <th>Name</th>
                                 <th>Description</th>
                                 <th>Reward Type</th>
+                                <th>Unit</th>
+                                <th>Duration</th>
+                                <th>FNB Items</th>
+                                <th className="text-center">Activation</th>
                                 <th className="text-center">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {isLoading ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8">
+                                    <td colSpan={11} className="text-center py-8">
                                         <span className="loading loading-spinner"></span>
                                     </td>
                                 </tr>
                             ) : pageRows.length === 0 ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-8">No rewards found.</td>
+                                    <td colSpan={11} className="text-center py-8">No rewards found.</td>
                                 </tr>
                             ) : pageRows.map((row, idx) => (
                                 <tr key={row.id}>
@@ -144,6 +198,52 @@ const RewardsListPage = () => {
                                     </td>
                                     <td>
                                         <span className="font-medium">{formatRewardType(row.rewardType)}</span>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm">
+                                            {row.unit?.name || '-'}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm">
+                                            {row.durationHours ? `${row.durationHours} jam` : '-'}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div className="text-sm max-w-xs">
+                                            {row.fnbItems && row.fnbItems.length > 0 ? (
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    {row.fnbItems.map((item, index) => (
+                                                        <li key={index} className="text-xs">
+                                                            {item.name} ({item.quantity})
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            ) : (
+                                                <span className="text-gray-500">-</span>
+                                            )}
+                                        </div>
+                                    </td>
+                                    <td className="text-center">
+                                        <div className="flex items-center justify-center gap-3">
+                                            <label className="relative inline-flex cursor-pointer items-center">
+                                                <input
+                                                    id={`switch-${row.id}`}
+                                                    type="checkbox"
+                                                    className="peer sr-only"
+                                                    checked={row.isActive}
+                                                    onChange={() => handleStatusToggle(row)}
+                                                    disabled={isUpdatingStatus}
+                                                />
+                                                <div className="peer h-5 w-9 rounded-full bg-gray-300 transition-colors duration-200 peer-checked:bg-green-500 peer-disabled:opacity-50">
+                                                    <div className="absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform duration-200 peer-checked:translate-x-4"></div>
+                                                </div>
+                                            </label>
+                                            <span className={`text-sm font-medium ${row.isActive ? 'text-green-600' : 'text-gray-500'
+                                                }`}>
+                                                {row.isActive ? 'Active' : 'Inactive'}
+                                            </span>
+                                        </div>
                                     </td>
                                     <td className="text-center">
                                         <div className="flex items-center justify-center gap-2">

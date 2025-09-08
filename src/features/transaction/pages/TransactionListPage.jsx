@@ -90,23 +90,31 @@ const TransactionListPage = () => {
       // Prepare data for Excel
       const excelData = transactionsToExport.map((tx, index) => ({
         'No': index + 1,
-        'No Transaksi': tx.noTransaction,
-        'Nama': tx.name,
-        'No Telepon': tx.phoneNumber,
+        'No Transaksi': tx.invoiceNumber,
+        'Nama': tx.customerName,
+        'No Telepon': tx.customerPhone,
         'Booking Type': tx.bookingType,
-        'Type': tx.type,
-        'Tanggal Booking': tx.tanggalBooking,
-        'Unit': tx.rawBooking?.unit_name || '-',
-        'Duration': tx.rawBooking?.duration_hours ? `${tx.rawBooking.duration_hours} jam` : '-',
-        'Subtotal Room': tx.rawBooking?.subtotal_room || '0.00',
-        'Food & Drink': tx.type === "Food & Drink" ?
-          (tx.rawBooking?.fnb_items?.map(item => `${item.name} x${item.quantity}`).join(', ') || '-') : '-',
-        'Subtotal Food&Drink': tx.rawBooking?.subtotal_fnb || '0.00',
-        'Promo (%)': tx.rawBooking?.promo_percentage ? `${tx.rawBooking.promo_percentage}%` : '-',
-        'Service Fee': tx.rawBooking?.service_fee_amount || '0.00',
-        'Total Pembayaran': tx.totalPembayaran,
-        'Metode Pembayaran': tx.metodePembayaran,
-        'Tanggal Pembayaran': tx.tanggalPembayaran || '-',
+        'Type': tx.transactionType,
+        'Tanggal Booking': tx.bookingDate ? new Date(tx.bookingDate).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }) : '-',
+        'Unit': tx.unitName || '-',
+        'Duration': tx.durationHours ? `${tx.durationHours} jam` : '-',
+        'Subtotal Room': tx.subtotalRoom || '0.00',
+        'Food & Drink': tx.fnbItems?.length > 0 ?
+          (tx.fnbItems.map(item => `${item.name} x${item.quantity}`).join(', ')) : '-',
+        'Subtotal Food&Drink': tx.subtotalFnb || '0.00',
+        'PB1': tx.taxAmount || '0.00',
+        'Service Fee': tx.serviceFeeAmount || '0.00',
+        'Total Pembayaran': tx.finalAmount,
+        'Metode Pembayaran': tx.paymentMethod,
+        'Tanggal Pembayaran': tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString("id-ID", {
+          day: "2-digit",
+          month: "2-digit",
+          year: "numeric",
+        }) : '-',
         'Status': tx.status
       }));
 
