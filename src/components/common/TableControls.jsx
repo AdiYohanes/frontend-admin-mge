@@ -8,21 +8,42 @@ const TableControls = ({
   setSearchTerm,
   monthFilter,
   setMonthFilter,
+  yearFilter,
+  setYearFilter,
   onAddClick,
   addButtonText,
   showMonthFilter = true,
+  showYearFilter = true,
   showSearch = true,
   searchPlaceholder = "Search ...",
   exportButton,
 }) => {
-  // Generate last 12 months including current month, dynamically
-  const monthOptions = Array.from({ length: 12 }, (_, idx) => {
-    const now = new Date();
-    const date = new Date(now.getFullYear(), now.getMonth() - idx, 1);
-    const label = date.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-    const value = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    return { label, value };
-  }).reverse();
+  // Generate month options (1-12)
+  const monthOptions = [
+    { value: "", label: "All months" },
+    { value: "01", label: "January" },
+    { value: "02", label: "February" },
+    { value: "03", label: "March" },
+    { value: "04", label: "April" },
+    { value: "05", label: "May" },
+    { value: "06", label: "June" },
+    { value: "07", label: "July" },
+    { value: "08", label: "August" },
+    { value: "09", label: "September" },
+    { value: "10", label: "October" },
+    { value: "11", label: "November" },
+    { value: "12", label: "December" },
+  ];
+
+  // Generate year options (current year and 5 years before)
+  const currentYear = new Date().getFullYear();
+  const yearOptions = [
+    { value: "", label: "All years" },
+    ...Array.from({ length: 6 }, (_, idx) => {
+      const year = currentYear - idx;
+      return { value: year.toString(), label: year.toString() };
+    }),
+  ];
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -60,7 +81,7 @@ const TableControls = ({
           </div>
         )}
 
-        {/* Month Filter di sebelah search */}
+        {/* Month Filter */}
         {showMonthFilter && (
           <select
             className="select select-bordered select-sm"
@@ -68,8 +89,23 @@ const TableControls = ({
             onChange={(e) => setMonthFilter(e.target.value)}
             aria-label="Filter by month"
           >
-            <option value="">All months</option>
             {monthOptions.map((opt) => (
+              <option key={opt.value} value={opt.value}>
+                {opt.label}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Year Filter */}
+        {showYearFilter && (
+          <select
+            className="select select-bordered select-sm"
+            value={yearFilter}
+            onChange={(e) => setYearFilter(e.target.value)}
+            aria-label="Filter by year"
+          >
+            {yearOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}
               </option>

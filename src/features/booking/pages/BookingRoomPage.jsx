@@ -18,6 +18,7 @@ const BookingRoomPage = () => {
   const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
   const [monthFilter, setMonthFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
 
@@ -33,6 +34,9 @@ const BookingRoomPage = () => {
   const statusTabs = ['All', 'Confirmed', 'Pending', 'Completed'];
 
   // --- RTK QUERY HOOKS ---
+  // Combine month and year filters for API call
+  const combinedMonthFilter = monthFilter && yearFilter ? `${yearFilter}-${monthFilter}` : '';
+
   const {
     data: apiResponse,
     isLoading,
@@ -40,7 +44,7 @@ const BookingRoomPage = () => {
     refetch
   } = useGetBookingsQuery(
     {
-      month: monthFilter,
+      month: combinedMonthFilter,
       status: statusFilter,
       page: currentPage,
       per_page: limit,
@@ -69,7 +73,7 @@ const BookingRoomPage = () => {
   // Debug: Log data yang diterima dari API
   useEffect(() => {
     // noop: keep effect for potential future side-effects
-  }, [allBookings, paginationInfo, monthFilter, statusFilter]);
+  }, [allBookings, paginationInfo, monthFilter, yearFilter, statusFilter]);
 
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
   const { paginatedBookings, totalPages, totalFiltered } = useMemo(() => {
@@ -81,18 +85,24 @@ const BookingRoomPage = () => {
     let filtered = [...allBookings];
 
     // Debug: Log sebelum filtering
-    // Client-side filter by selected month if backend doesn't filter
-    if (monthFilter) {
-      const [year, month] = monthFilter.split('-');
+    // Client-side filter by selected month and year if backend doesn't filter
+    if (monthFilter || yearFilter) {
       filtered = filtered.filter((booking) => {
         try {
           const date = booking.rawBooking?.start_time
             ? parseISO(booking.rawBooking.start_time)
             : null;
           if (!date) return false;
+
           const bYear = String(date.getFullYear());
           const bMonth = String(date.getMonth() + 1).padStart(2, '0');
-          return bYear === year && bMonth === month;
+
+          // Check year filter
+          const yearMatch = !yearFilter || bYear === yearFilter;
+          // Check month filter
+          const monthMatch = !monthFilter || bMonth === monthFilter;
+
+          return yearMatch && monthMatch;
         } catch {
           return false;
         }
@@ -128,8 +138,8 @@ const BookingRoomPage = () => {
       }
     });
 
-    // PERBAIKAN: Gunakan pagination dari backend hanya jika tidak ada search term dan tidak ada month filter
-    if (!debouncedSearchTerm.trim() && !monthFilter) {
+    // PERBAIKAN: Gunakan pagination dari backend hanya jika tidak ada search term dan tidak ada month/year filter
+    if (!debouncedSearchTerm.trim() && !monthFilter && !yearFilter) {
       // Jika tidak ada search, gunakan data langsung dari API (sudah dipaginasi di backend)
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
 
@@ -140,7 +150,7 @@ const BookingRoomPage = () => {
       };
     }
 
-    // Jika ada search term atau month filter (client-side), lakukan pagination di frontend
+    // Jika ada search term atau month/year filter (client-side), lakukan pagination di frontend
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
 
@@ -149,7 +159,7 @@ const BookingRoomPage = () => {
       totalPages: total,
       totalFiltered: filtered.length
     };
-  }, [allBookings, debouncedSearchTerm, monthFilter, currentPage, limit, sortOrder, paginationInfo]);
+  }, [allBookings, debouncedSearchTerm, monthFilter, yearFilter, currentPage, limit, sortOrder, paginationInfo]);
 
   // Debug: Log totalPages untuk memastikan tombol pagination muncul
   useEffect(() => {
@@ -159,7 +169,7 @@ const BookingRoomPage = () => {
   // Debug: Log perubahan limit dan currentPage
   useEffect(() => {
     // noop: keep effect for potential future side-effects
-  }, [limit, currentPage, monthFilter, statusFilter]);
+  }, [limit, currentPage, monthFilter, yearFilter, statusFilter]);
 
   // Auto-refresh status indicator
   useEffect(() => {
@@ -208,7 +218,7 @@ const BookingRoomPage = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, monthFilter, statusFilter, sortOrder]);
+  }, [limit, debouncedSearchTerm, monthFilter, yearFilter, statusFilter, sortOrder]);
 
   return (
     <>
@@ -273,6 +283,7 @@ const BookingRoomPage = () => {
           <TableControls
             limit={limit} setLimit={setLimit} searchTerm={searchTerm} setSearchTerm={setSearchTerm}
             monthFilter={monthFilter} setMonthFilter={setMonthFilter}
+            yearFilter={yearFilter} setYearFilter={setYearFilter}
             onAddClick={handleOpenAddModal} addButtonText="Add OTS Booking"
           />
 
@@ -286,15 +297,19 @@ const BookingRoomPage = () => {
           />
 
           {/* Show total count from API */}
-          {!debouncedSearchTerm.trim() && paginationInfo.total > 0 && (
+          {!debouncedSearchTerm.trim() && !monthFilter && !yearFilter && paginationInfo.total > 0 && (
             <div className="text-sm text-gray-600 mt-2 text-center">
               Showing {allBookings.length} of {paginationInfo.total} bookings
             </div>
           )}
-          {/* Show filtered count when searching */}
-          {debouncedSearchTerm.trim() && (
+          {/* Show filtered count when searching or filtering */}
+          {(debouncedSearchTerm.trim() || monthFilter || yearFilter) && (
             <div className="text-sm text-gray-600 mt-2 text-center">
-              Found {totalFiltered || 0} bookings matching "{debouncedSearchTerm}"
+              {debouncedSearchTerm.trim() ? (
+                <>Found {totalFiltered || 0} bookings matching "{debouncedSearchTerm}"</>
+              ) : (
+                <>Found {totalFiltered || 0} bookings for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
+              )}
             </div>
           )}
 
