@@ -9,6 +9,7 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
     switch (status?.toLowerCase()) {
       case 'finished':
       case 'complete':
+      case 'completed':
       case 'confirmed':
         return `${baseClasses} badge-success`;
       case 'pending':
@@ -22,6 +23,21 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
         return `${baseClasses} badge-accent`;
       default:
         return `${baseClasses} badge-ghost`;
+    }
+  };
+
+  // Fungsi helper untuk menentukan warna badge booking type
+  const getBookingTypeBadge = (bookingType) => {
+    const baseClasses = 'badge font-medium text-xs';
+    switch (bookingType?.toLowerCase()) {
+      case 'guest':
+        return `${baseClasses} bg-slate-100 text-slate-700 border-slate-200`;
+      case 'ots':
+        return `${baseClasses} bg-orange-50 text-orange-700 border-orange-200`;
+      case 'online':
+        return `${baseClasses} bg-blue-50 text-blue-700 border-blue-200`;
+      default:
+        return `${baseClasses} bg-gray-50 text-gray-600 border-gray-200`;
     }
   };
 
@@ -100,7 +116,7 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
               <th>{rowStartIndex + index + 1}</th>
               <td><div className="font-bold">{booking.name}</div><div className="text-xs opacity-60">{booking.phoneNumber}</div></td>
               <td><div className="font-mono text-xs">{booking.noTransaction}</div></td>
-              <td><div className="badge badge-outline badge-info">{booking.bookingType}</div></td>
+              <td><div className={getBookingTypeBadge(booking.bookingType)}>{booking.bookingType}</div></td>
               <td>
                 <ul className="list-disc list-inside text-sm">
                   <li><span className="font-semibold">Room:</span> {booking.room}</li>

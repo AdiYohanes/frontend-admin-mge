@@ -77,6 +77,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
             <th>PB1</th>
             <th>SERVICE FEE</th>
             <th>TOTAL PEMBAYARAN</th>
+            <th>TOTAL DISCOUNT</th>
             <th>METODE PEMBAYARAN</th>
             <th>TANGGAL PEMBAYARAN</th>
             <th>STATUS</th>
@@ -195,12 +196,19 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
                 </div>
               </td>
 
-              {/* 16. METODE PEMBAYARAN */}
+              {/* 16. TOTAL DISCOUNT */}
+              <td>
+                <div className="text-sm">
+                  {tx.discountAmount ? formatCurrency(parseFloat(tx.discountAmount)) : "-"}
+                </div>
+              </td>
+
+              {/* 17. METODE PEMBAYARAN */}
               <td>
                 <div className="text-sm">{tx.paymentMethod}</div>
               </td>
 
-              {/* 17. TANGGAL PEMBAYARAN */}
+              {/* 18. TANGGAL PEMBAYARAN */}
               <td>
                 <div className="text-sm">
                   {tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString("id-ID", {
@@ -211,7 +219,7 @@ const TransactionTable = ({ transactions, isLoading, page, limit }) => {
                 </div>
               </td>
 
-              {/* 18. STATUS */}
+              {/* 19. STATUS */}
               <td>
                 <span className={getStatusBadge(tx.status)}>{tx.status}</span>
               </td>

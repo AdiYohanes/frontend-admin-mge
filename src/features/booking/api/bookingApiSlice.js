@@ -1,18 +1,19 @@
-/* eslint-disable no-unused-vars */
 import { apiSlice } from "../../../store/api/apiSlice";
 import { format, parseISO, differenceInHours } from "date-fns";
 
 export const bookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBookings: builder.query({
-      query: ({ month = '', status = '', page = 1, per_page = 10 }) => {
+      query: ({ month = '', year = '', status = '', page = 1, per_page = 10, sort_direction = 'desc' }) => {
         const params = {
           page,
-          per_page
+          per_page,
+          sort_direction
         };
         // Hanya kirim parameter yang relevan ke backend
         if (month) params.month = month;
-        if (status && status !== 'All') params.status = status.toLowerCase();
+        if (year) params.year = year;
+        if (status && status !== 'All') params.status = status;
 
         console.log('🔍 DEBUG - API Query params:', params);
 
@@ -46,7 +47,7 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
             return {
               id: booking.id,
               noTransaction: booking.invoice_number,
-              bookingType: booking.bookable_type?.includes('Guest') ? 'OTS' : 'Online',
+              bookingType: booking.booking_type || 'N/A',
               name: booking.bookable?.name || 'N/A',
               phoneNumber: booking.bookable?.phone || '-',
               console: booking.unit?.consoles?.[0]?.name || 'N/A',
@@ -58,7 +59,7 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
               endTime: endTime ? format(endTime, 'HH:mm') : '-',
               tanggalBooking: startTime ? format(startTime, 'dd MMMM yyyy') : 'N/A',
               totalPembayaran: parseFloat(booking.total_price) || 0,
-              metodePembayaran: 'QRIS',
+              metodePembayaran: booking.payment_method || 'N/A',
               statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : 'Unknown',
               rawBooking: booking,
             }

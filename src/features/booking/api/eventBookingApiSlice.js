@@ -31,12 +31,10 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
               noTransaction: booking.invoice_number,
               eventName: event.name,
               eventDescription: event.description,
-              console: booking.unit?.console?.name || "Playstation 4", // Add console info
               room: booking.unit?.room?.name || "Regular", // Add room info
               unit: booking.unit?.name || "N/A",
               unitId: booking.unit?.id || 1, // Add unitId for editing
               unitIds: [booking.unit?.id || 1], // Add unitIds array for editing
-              totalPerson: booking.total_visitors || 0,
               tanggalBooking: booking.created_at,
               startTime: booking.start_time,
               duration: durationHours,
@@ -88,10 +86,8 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
             noTransaction: booking.invoice_number,
             eventName: event.name,
             eventDescription: event.description,
-            console: booking.unit?.name || "N/A",
-            room: "Event Area",
+            room: booking.unit?.room?.name || "Event Area",
             unit: booking.unit?.name || "N/A",
-            totalPerson: booking.total_visitors || 0,
             tanggalBooking: booking.created_at,
             startTime: booking.start_time,
             duration: 4,

@@ -4,23 +4,81 @@ import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import TransactionTable from "../components/TransactionTable";
 import { useGetTransactionsQuery } from "../api/transactionApiSlice";
+import { useSearchParams } from 'react-router';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
 
 const TransactionListPage = () => {
+  // --- URL PARAMETER MANAGEMENT ---
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // --- STATE MANAGEMENT ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(10); // Changed default to 10
+  const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
+  const [yearFilter, setYearFilter] = useState("");
+  const [statusFilter, setStatusFilter] = useState('confirmed');
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
+  const [showExportPreview, setShowExportPreview] = useState(false);
+  const [exportData, setExportData] = useState([]);
+  const [showComingSoon, setShowComingSoon] = useState(false);
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
+  const statusTabs = ['All', 'completed', 'confirmed', 'cancelled'];
+
+  // --- URL PARAMETER SYNCHRONIZATION ---
+  // Initialize state from URL parameters on component mount
+  useEffect(() => {
+    const urlMonth = searchParams.get('month') || '';
+    const urlYear = searchParams.get('year') || '';
+    const urlPage = parseInt(searchParams.get('page')) || 1;
+    const urlLimit = parseInt(searchParams.get('per_page')) || 10;
+    const urlSearch = searchParams.get('search') || '';
+    const urlStatus = searchParams.get('status') || 'confirmed';
+    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+
+    setMonthFilter(urlMonth);
+    setYearFilter(urlYear);
+    setCurrentPage(urlPage);
+    setLimit(urlLimit);
+    setSearchTerm(urlSearch);
+    setStatusFilter(urlStatus);
+    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Update URL parameters when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (monthFilter) params.set('month', monthFilter);
+    if (yearFilter) params.set('year', yearFilter);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (limit !== 10) params.set('per_page', limit.toString());
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter);
+    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+
+    // Only update URL if parameters have changed
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+
+    if (currentParams !== newParams) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [monthFilter, yearFilter, currentPage, limit, searchTerm, statusFilter, sortOrder, setSearchParams, searchParams]);
 
   // Use RTK Query hook for API calls
   const { data, isLoading, error, refetch } = useGetTransactionsQuery({
     page: currentPage,
     limit: limit,
     search: debouncedSearchTerm,
-    status: "confirmed"
+    month: monthFilter,
+    year: yearFilter,
+    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    status: statusFilter
   });
 
   // Extract data from API response
@@ -41,25 +99,20 @@ const TransactionListPage = () => {
     error
   });
 
-  // Filter transactions by month if monthFilter is set
+  // Month and year filtering is now handled by backend
   const filteredTransactions = useMemo(() => {
-    if (!monthFilter) return transactions;
-
-    const filterDate = new Date(monthFilter + "-01");
-    const filterYear = filterDate.getFullYear();
-    const filterMonth = filterDate.getMonth();
-
-    return transactions.filter(transaction => {
-      const transactionDate = new Date(transaction.rawBooking.created_at);
-      return transactionDate.getFullYear() === filterYear &&
-        transactionDate.getMonth() === filterMonth;
-    });
-  }, [transactions, monthFilter]);
+    return transactions;
+  }, [transactions]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, monthFilter]);
+  }, [limit, debouncedSearchTerm, monthFilter, yearFilter, statusFilter, sortOrder]);
+
+  // Handle sort toggle
+  const handleSortToggle = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+  };
 
   // Handle refresh with loading state
   const handleRefresh = async () => {
@@ -73,19 +126,19 @@ const TransactionListPage = () => {
     }
   };
 
-  // Handle export to Excel
-  const handleExportExcel = async () => {
+  // Handle export preview
+  const handleExportPreview = async () => {
     setIsExporting(true);
     try {
       // Fetch all data without pagination for export
-      const exportData = await refetch({
+      const exportResponse = await refetch({
         page: 1,
         limit: 1000, // Large number to get all data
         search: debouncedSearchTerm,
-        status: "confirmed"
+        status: statusFilter === 'All' ? undefined : statusFilter
       });
 
-      const transactionsToExport = exportData.data?.transactions || [];
+      const transactionsToExport = exportResponse.data?.transactions || [];
 
       // Prepare data for Excel
       const excelData = transactionsToExport.map((tx, index) => ({
@@ -109,6 +162,7 @@ const TransactionListPage = () => {
         'PB1': tx.taxAmount || '0.00',
         'Service Fee': tx.serviceFeeAmount || '0.00',
         'Total Pembayaran': tx.finalAmount,
+        'Total Discount': tx.discountAmount || '0.00',
         'Metode Pembayaran': tx.paymentMethod,
         'Tanggal Pembayaran': tx.paymentDate ? new Date(tx.paymentDate).toLocaleDateString("id-ID", {
           day: "2-digit",
@@ -118,32 +172,132 @@ const TransactionListPage = () => {
         'Status': tx.status
       }));
 
+      setExportData(excelData);
+      setShowExportPreview(true);
+
+    } catch (error) {
+      console.error('Export preview failed:', error);
+      alert('Gagal memuat data untuk preview. Silakan coba lagi.');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  // Handle actual Excel download
+  const handleDownloadExcel = () => {
+    try {
       // Create workbook and worksheet
       const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(excelData);
+      const ws = XLSX.utils.json_to_sheet(exportData);
 
-      // Set column widths
+      // Get the range of the worksheet
+      const range = XLSX.utils.decode_range(ws['!ref']);
+      const totalRows = range.e.r + 1;
+      const totalCols = range.e.c + 1;
+
+      // Set column widths with better proportions
       const colWidths = [
-        { wch: 5 },   // No
-        { wch: 20 },  // No Transaksi
-        { wch: 15 },  // Nama
-        { wch: 15 },  // No Telepon
-        { wch: 12 },  // Booking Type
-        { wch: 12 },  // Type
-        { wch: 15 },  // Tanggal Booking
-        { wch: 15 },  // Unit
-        { wch: 10 },  // Duration
-        { wch: 15 },  // Subtotal Room
-        { wch: 30 },  // Food & Drink
-        { wch: 18 },  // Subtotal Food&Drink
-        { wch: 10 },  // Promo (%)
-        { wch: 12 },  // Service Fee
-        { wch: 15 },  // Total Pembayaran
-        { wch: 15 },  // Metode Pembayaran
-        { wch: 15 },  // Tanggal Pembayaran
-        { wch: 10 }   // Status
+        { wch: 6 },   // No
+        { wch: 22 },  // No Transaksi
+        { wch: 18 },  // Nama
+        { wch: 16 },  // No Telepon
+        { wch: 14 },  // Booking Type
+        { wch: 14 },  // Type
+        { wch: 16 },  // Tanggal Booking
+        { wch: 16 },  // Unit
+        { wch: 12 },  // Duration
+        { wch: 16 },  // Subtotal Room
+        { wch: 35 },  // Food & Drink
+        { wch: 20 },  // Subtotal Food&Drink
+        { wch: 12 },  // PB1
+        { wch: 14 },  // Service Fee
+        { wch: 18 },  // Total Pembayaran
+        { wch: 16 },  // Total Discount
+        { wch: 16 },  // Metode Pembayaran
+        { wch: 16 },  // Tanggal Pembayaran
+        { wch: 12 }   // Status
       ];
       ws['!cols'] = colWidths;
+
+      // Set row heights
+      ws['!rows'] = [];
+      for (let row = 0; row < totalRows; row++) {
+        ws['!rows'][row] = { hpt: row === 0 ? 25 : 20 };
+      }
+
+      // Apply styling to all cells
+      for (let row = 0; row < totalRows; row++) {
+        for (let col = 0; col < totalCols; col++) {
+          const cellAddress = XLSX.utils.encode_cell({ r: row, c: col });
+
+          if (!ws[cellAddress]) {
+            ws[cellAddress] = { v: '' };
+          }
+
+          if (row === 0) {
+            // Header row styling - bright blue background with white text
+            ws[cellAddress].s = {
+              font: {
+                name: "Arial",
+                size: 11,
+                bold: true,
+                color: { rgb: "FFFFFF" }
+              },
+              fill: {
+                fgColor: { rgb: "2563EB" } // Bright blue
+              },
+              alignment: {
+                horizontal: "center",
+                vertical: "center"
+              },
+              border: {
+                top: { style: "thin", color: { rgb: "1E40AF" } },
+                bottom: { style: "thin", color: { rgb: "1E40AF" } },
+                left: { style: "thin", color: { rgb: "1E40AF" } },
+                right: { style: "thin", color: { rgb: "1E40AF" } }
+              }
+            };
+          } else {
+            // Data row styling
+            const isEvenRow = row % 2 === 0;
+            const cellStyle = {
+              font: {
+                name: "Arial",
+                size: 10
+              },
+              alignment: {
+                vertical: "center"
+              },
+              border: {
+                top: { style: "thin", color: { rgb: "E5E7EB" } },
+                bottom: { style: "thin", color: { rgb: "E5E7EB" } },
+                left: { style: "thin", color: { rgb: "E5E7EB" } },
+                right: { style: "thin", color: { rgb: "E5E7EB" } }
+              }
+            };
+
+            // Add alternating row colors
+            if (isEvenRow) {
+              cellStyle.fill = { fgColor: { rgb: "F8FAFC" } }; // Very light gray
+            }
+
+            // Apply number formatting for currency columns
+            const currencyColumns = [9, 11, 12, 13, 14, 15]; // Subtotal Room, Subtotal Food&Drink, PB1, Service Fee, Total Pembayaran, Total Discount
+            if (currencyColumns.includes(col)) {
+              cellStyle.numFmt = '#,##0.00';
+              cellStyle.alignment = { horizontal: "right", vertical: "center" };
+            }
+
+            ws[cellAddress].s = cellStyle;
+          }
+        }
+      }
+
+      // Add autofilter
+      ws['!autofilter'] = { ref: ws['!ref'] };
+
+      // Add freeze panes (freeze header row)
+      ws['!freeze'] = { xSplit: 0, ySplit: 1 };
 
       // Add worksheet to workbook
       XLSX.utils.book_append_sheet(wb, ws, 'Transactions');
@@ -154,13 +308,17 @@ const TransactionListPage = () => {
 
       // Save file
       XLSX.writeFile(wb, filename);
+      setShowExportPreview(false);
 
     } catch (error) {
-      console.error('Export failed:', error);
-      alert('Gagal mengekspor data. Silakan coba lagi.');
-    } finally {
-      setIsExporting(false);
+      console.error('Download failed:', error);
+      alert('Gagal mengunduh file Excel. Silakan coba lagi.');
     }
+  };
+
+  // Handle print - show coming soon modal
+  const handlePrint = () => {
+    setShowComingSoon(true);
   };
 
   // Handle error state
@@ -200,7 +358,7 @@ const TransactionListPage = () => {
           <div>
             <h2 className="card-title text-2xl">Transaction History</h2>
             <p className="text-sm opacity-70 mt-1">
-              Menampilkan transaksi dengan status Confirmed
+              Menampilkan transaksi {statusFilter === 'All' ? 'semua status' : `dengan status ${statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}`}
             </p>
           </div>
 
@@ -235,7 +393,39 @@ const TransactionListPage = () => {
                 />
               </svg>
             </button>
+
+            {/* Sort toggle button */}
+            <button
+              onClick={handleSortToggle}
+              className="btn btn-outline btn-sm gap-2"
+              title={sortOrder === 'newest' ? 'Sort by Oldest First' : 'Sort by Newest First'}
+            >
+              {sortOrder === 'newest' ? (
+                <>
+                  <ChevronDownIcon className="h-4 w-4" />
+                  Newest
+                </>
+              ) : (
+                <>
+                  <ChevronUpIcon className="h-4 w-4" />
+                  Oldest
+                </>
+              )}
+            </button>
           </div>
+        </div>
+
+        {/* Status Tabs */}
+        <div className="tabs tabs-boxed mb-4 bg-base-200 self-start">
+          {statusTabs.map(tab => (
+            <a
+              key={tab}
+              className={`tab tab-sm sm:tab-md ${statusFilter === tab ? 'tab-active' : ''}`}
+              onClick={() => setStatusFilter(tab)}
+            >
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </a>
+          ))}
         </div>
 
         <TableControls
@@ -245,11 +435,13 @@ const TransactionListPage = () => {
           setSearchTerm={setSearchTerm}
           monthFilter={monthFilter}
           setMonthFilter={setMonthFilter}
+          yearFilter={yearFilter}
+          setYearFilter={setYearFilter}
           showMonthFilter={true}
           searchPlaceholder="Search ..."
           exportButton={
             <button
-              onClick={handleExportExcel}
+              onClick={handleExportPreview}
               className="btn btn-outline btn-sm"
               title="Export to Excel"
               disabled={isLoading || isRefreshing || isExporting || transactions.length === 0}
@@ -257,7 +449,7 @@ const TransactionListPage = () => {
               {isExporting ? (
                 <>
                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  Exporting...
+                  Loading...
                 </>
               ) : (
                 <>
@@ -271,7 +463,13 @@ const TransactionListPage = () => {
                       strokeLinecap="round"
                       strokeLinejoin="round"
                       strokeWidth={2}
-                      d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                     />
                   </svg>
                   Export
@@ -289,10 +487,10 @@ const TransactionListPage = () => {
         />
 
         {/* Show total count */}
-        {!debouncedSearchTerm.trim() && !monthFilter && (
+        {!debouncedSearchTerm.trim() && !monthFilter && !yearFilter && (
           <div className="text-sm text-gray-600 mt-2 text-center">
             {pagination.total > 0 ? (
-              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} confirmed transactions`
+              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} ${statusFilter === 'All' ? 'all' : statusFilter} transactions`
             ) : (
               ""
             )}
@@ -300,14 +498,14 @@ const TransactionListPage = () => {
         )}
 
         {/* Show filtered count when searching or filtering */}
-        {(debouncedSearchTerm.trim() || monthFilter) && (
+        {(debouncedSearchTerm.trim() || monthFilter || yearFilter) && (
           <div className="text-sm text-gray-600 mt-2 text-center">
-            {debouncedSearchTerm.trim() && monthFilter ? (
-              `Found ${filteredTransactions.length} confirmed transactions matching "${debouncedSearchTerm}" in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+            {debouncedSearchTerm.trim() && (monthFilter || yearFilter) ? (
+              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions matching "${debouncedSearchTerm}" for ${monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}`
             ) : debouncedSearchTerm.trim() ? (
-              `Found ${filteredTransactions.length} confirmed transactions matching "${debouncedSearchTerm}"`
+              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions matching "${debouncedSearchTerm}"`
             ) : (
-              `Found ${filteredTransactions.length} confirmed transactions in ${new Date(monthFilter + "-01").toLocaleDateString("id-ID", { month: "long", year: "numeric" })}`
+              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions for ${monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}`
             )}
           </div>
         )}
@@ -318,6 +516,110 @@ const TransactionListPage = () => {
           onPageChange={setCurrentPage}
         />
       </div>
+
+      {/* Export Preview Modal */}
+      {showExportPreview && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-7xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-bold">Preview Export Data</h3>
+              <button
+                onClick={() => setShowExportPreview(false)}
+                className="btn btn-sm btn-circle btn-ghost"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="mb-4 text-sm text-gray-600">
+              <p>Total records: {exportData.length}</p>
+              <p>Status filter: {statusFilter === 'All' ? 'All Statuses' : statusFilter}</p>
+            </div>
+
+            <div className="overflow-x-auto max-h-96 border rounded-lg">
+              <table className="table table-sm table-zebra w-full export-preview-table">
+                <thead className="bg-primary text-primary-content sticky top-0">
+                  <tr>
+                    {exportData.length > 0 && Object.keys(exportData[0]).map((key, index) => (
+                      <th key={index} className="text-xs font-bold">
+                        {key}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {exportData.slice(0, 50).map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {Object.values(row).map((value, colIndex) => (
+                        <td key={colIndex} className="text-xs">
+                          {typeof value === 'string' && value.length > 30
+                            ? `${value.substring(0, 30)}...`
+                            : value}
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {exportData.length > 50 && (
+                <div className="text-center p-2 text-sm text-gray-500">
+                  Showing first 50 records of {exportData.length} total records
+                </div>
+              )}
+            </div>
+
+            <div className="modal-action">
+              <button
+                onClick={() => setShowExportPreview(false)}
+                className="btn btn-ghost"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePrint}
+                className="btn btn-outline"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+              </button>
+              <button
+                onClick={handleDownloadExcel}
+                className="btn btn-primary"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Download Excel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Coming Soon Modal */}
+      {showComingSoon && (
+        <div className="modal modal-open">
+          <div className="modal-box text-center">
+            <div className="text-6xl mb-4">🚀</div>
+            <h3 className="text-2xl font-bold mb-2">Feature Coming Soon!</h3>
+            <p className="text-gray-600 mb-6">
+              Print functionality is currently under development.
+              <br />
+              Stay tuned for updates! 📄✨
+            </p>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => setShowComingSoon(false)}
+                className="btn btn-primary"
+              >
+                Got it! 👍
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

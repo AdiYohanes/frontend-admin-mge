@@ -3,14 +3,24 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const transactionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status = "completed" }) => {
+      query: ({ page = 1, limit = 10, search = "", status, month = "", year = "", sort_direction = "desc" }) => {
+        // If status is 'All', return URL without any parameters
+        if (status === 'All') {
+          return {
+            url: '/api/admin/transactions',
+          };
+        }
+
         const params = {
           page,
           per_page: limit,
+          sort_direction
         };
 
         if (search) params.search = search;
         if (status) params.status = status;
+        if (month) params.month = month;
+        if (year) params.year = year;
 
         return {
           url: '/api/admin/transactions',

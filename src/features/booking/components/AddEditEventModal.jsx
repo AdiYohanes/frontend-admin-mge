@@ -6,7 +6,7 @@ import {
     useAddEventBookingMutation,
     useUpdateEventBookingMutation,
 } from "../api/eventBookingApiSlice";
-import { useGetAllUnitsAdminQuery, useGetAllConsolesQuery, useGetAllRoomsQuery } from "../../rental/api/rentalApiSlice";
+import { useGetAllUnitsAdminQuery, useGetAllRoomsQuery } from "../../rental/api/rentalApiSlice";
 import { toast } from "react-hot-toast";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
@@ -17,10 +17,8 @@ import { CalendarDaysIcon, ChevronUpIcon, ChevronDownIcon, XMarkIcon } from "@he
 const eventSchema = z.object({
     eventName: z.string().min(1, { message: "Event Name harus diisi" }),
     eventDescription: z.string().min(1, { message: "Event Description harus diisi" }),
-    consoleId: z.number().min(1, { message: "Console harus dipilih" }),
     roomId: z.number().min(1, { message: "Room harus dipilih" }),
     unitIds: z.array(z.number()).min(1, { message: "Pilih minimal satu unit" }),
-    totalPerson: z.number().min(1, { message: "Total Person minimal 1" }),
     startTime: z.string().min(1, { message: "Start Time harus diisi" }),
     endTime: z.string().min(1, { message: "End Time harus diisi" }),
     duration: z.number().optional(),
@@ -75,7 +73,6 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
     const isLoading = isAdding || isUpdating;
 
     // Fetch data for dropdowns
-    const { data: consolesData, isLoading: consolesLoading } = useGetAllConsolesQuery();
     const { data: roomsData, isLoading: roomsLoading } = useGetAllRoomsQuery();
 
     const {
@@ -180,12 +177,10 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                 const editData = {
                     eventName: editingData.eventName || "",
                     eventDescription: editingData.eventDescription || "",
-                    consoleId: editingData.rawBooking?.unit?.consoles?.[0]?.id || 1,
                     roomId: editingData.rawBooking?.unit?.room?.id || 1,
                     unitIds: (editingData.unitIds && editingData.unitIds.length > 0)
                         ? editingData.unitIds
                         : (editingData.unitId ? [editingData.unitId] : (editingData.rawBooking?.unit?.id ? [editingData.rawBooking.unit.id] : [])),
-                    totalPerson: editingData.totalPerson || 10,
                     startTime: startTimeString,
                     endTime: endTimeString,
                     tanggalBooking: editingData.tanggalBooking ? new Date(editingData.tanggalBooking) : new Date(),
@@ -198,10 +193,8 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                 const defaultData = {
                     eventName: "",
                     eventDescription: "",
-                    consoleId: 1,
                     roomId: 1,
                     unitIds: [],
-                    totalPerson: 10,
                     startTime: "09:00",
                     endTime: "10:00",
                     tanggalBooking: new Date(),
@@ -218,12 +211,11 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
 
         try {
             // Validate required fields
-            if (!formData.eventName || !formData.eventDescription || !formData.unitIds || formData.unitIds.length === 0 || !formData.totalPerson || !formData.tanggalBooking || !formData.startTime || !formData.endTime) {
+            if (!formData.eventName || !formData.eventDescription || !formData.unitIds || formData.unitIds.length === 0 || !formData.tanggalBooking || !formData.startTime || !formData.endTime) {
                 console.error('Missing required fields:', {
                     eventName: !!formData.eventName,
                     eventDescription: !!formData.eventDescription,
                     unitIds: !!formData.unitIds && formData.unitIds.length > 0,
-                    totalPerson: !!formData.totalPerson,
                     tanggalBooking: !!formData.tanggalBooking,
                     startTime: !!formData.startTime,
                     endTime: !!formData.endTime
@@ -390,33 +382,6 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                         )}
                     </div>
 
-                    {/* Console */}
-                    <div className="form-control">
-                        <label className="label mb-2">
-                            <span className="label-text font-medium">
-                                Console <span className="text-red-500">*</span>
-                            </span>
-                        </label>
-                        <select
-                            {...register("consoleId", { valueAsNumber: true })}
-                            className={`select select-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.consoleId ? "select-error" : ""}`}
-                            disabled={consolesLoading}
-                        >
-                            <option value="">Status</option>
-                            {consolesData?.map((console) => (
-                                <option key={console.id} value={console.id}>
-                                    {console.name}
-                                </option>
-                            ))}
-                        </select>
-                        {errors.consoleId && (
-                            <label className="label">
-                                <span className="label-text-alt text-error">
-                                    {errors.consoleId.message}
-                                </span>
-                            </label>
-                        )}
-                    </div>
 
                     {/* Room */}
                     <div className="form-control">
@@ -549,28 +514,6 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                         />
                     </div>
 
-                    {/* Total Person */}
-                    <div className="form-control">
-                        <label className="label mb-2">
-                            <span className="label-text font-medium">
-                                Total Person <span className="text-red-500">*</span>
-                            </span>
-                        </label>
-                        <input
-                            type="number"
-                            {...register("totalPerson", { valueAsNumber: true })}
-                            className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.totalPerson ? "input-error" : ""}`}
-                            min="1"
-                            placeholder="Durasi"
-                        />
-                        {errors.totalPerson && (
-                            <label className="label">
-                                <span className="label-text-alt text-error">
-                                    {errors.totalPerson.message}
-                                </span>
-                            </label>
-                        )}
-                    </div>
 
                     {/* Start Time & End Time - Side by Side */}
                     <div className="grid grid-cols-2 gap-4">

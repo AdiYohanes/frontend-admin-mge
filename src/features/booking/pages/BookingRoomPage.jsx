@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useGetBookingsQuery, useGetBookingDetailQuery } from '../api/bookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
-import { parseISO } from 'date-fns';
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
-
+import { useSearchParams } from 'react-router'
 // Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from '../../../components/common/TableControls';
 import Pagination from '../../../components/common/Pagination';
@@ -12,6 +11,9 @@ import RefundModal from '../components/RefundModal';
 import BookingDetailModal from '../components/BookingDetailModal';
 
 const BookingRoomPage = () => {
+  // --- URL PARAMETER MANAGEMENT ---
+  const [searchParams, setSearchParams] = useSearchParams();
+
   // --- STATE MANAGEMENT ---
   // State untuk filter dan paginasi
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,12 +33,51 @@ const BookingRoomPage = () => {
   const [selectedBookingId, setSelectedBookingId] = useState(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const statusTabs = ['All', 'Confirmed', 'Pending', 'Completed'];
+  const statusTabs = ['All', 'pending', 'confirmed', 'cancelled', 'completed'];
+
+  // --- URL PARAMETER SYNCHRONIZATION ---
+  // Initialize state from URL parameters on component mount
+  useEffect(() => {
+    const urlMonth = searchParams.get('month') || '';
+    const urlYear = searchParams.get('year') || '';
+    const urlStatus = searchParams.get('status') || 'All';
+    const urlPage = parseInt(searchParams.get('page')) || 1;
+    const urlLimit = parseInt(searchParams.get('limit')) || 10;
+    const urlSearch = searchParams.get('search') || '';
+    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+
+    setMonthFilter(urlMonth);
+    setYearFilter(urlYear);
+    setStatusFilter(urlStatus);
+    setCurrentPage(urlPage);
+    setLimit(urlLimit);
+    setSearchTerm(urlSearch);
+    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Update URL parameters when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (monthFilter) params.set('month', monthFilter);
+    if (yearFilter) params.set('year', yearFilter);
+    if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (limit !== 10) params.set('limit', limit.toString());
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+
+    // Only update URL if parameters have changed
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+
+    if (currentParams !== newParams) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [monthFilter, yearFilter, statusFilter, currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
 
   // --- RTK QUERY HOOKS ---
-  // Combine month and year filters for API call
-  const combinedMonthFilter = monthFilter && yearFilter ? `${yearFilter}-${monthFilter}` : '';
-
   const {
     data: apiResponse,
     isLoading,
@@ -44,10 +85,12 @@ const BookingRoomPage = () => {
     refetch
   } = useGetBookingsQuery(
     {
-      month: combinedMonthFilter,
+      month: monthFilter,
+      year: yearFilter,
       status: statusFilter,
       page: currentPage,
       per_page: limit,
+      sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
     },
     {
       pollingInterval: 30000,
@@ -67,8 +110,8 @@ const BookingRoomPage = () => {
   });
 
   // Extract data dari response
-  const allBookings = apiResponse?.bookings || [];
-  const paginationInfo = apiResponse?.pagination || {};
+  const allBookings = useMemo(() => apiResponse?.bookings || [], [apiResponse?.bookings]);
+  const paginationInfo = useMemo(() => apiResponse?.pagination || {}, [apiResponse?.pagination]);
 
   // Debug: Log data yang diterima dari API
   useEffect(() => {
@@ -84,31 +127,7 @@ const BookingRoomPage = () => {
     // Filter berdasarkan search term
     let filtered = [...allBookings];
 
-    // Debug: Log sebelum filtering
-    // Client-side filter by selected month and year if backend doesn't filter
-    if (monthFilter || yearFilter) {
-      filtered = filtered.filter((booking) => {
-        try {
-          const date = booking.rawBooking?.start_time
-            ? parseISO(booking.rawBooking.start_time)
-            : null;
-          if (!date) return false;
-
-          const bYear = String(date.getFullYear());
-          const bMonth = String(date.getMonth() + 1).padStart(2, '0');
-
-          // Check year filter
-          const yearMatch = !yearFilter || bYear === yearFilter;
-          // Check month filter
-          const monthMatch = !monthFilter || bMonth === monthFilter;
-
-          return yearMatch && monthMatch;
-        } catch {
-          return false;
-        }
-      });
-    }
-
+    // Only do client-side filtering for search term since month/year filtering is now handled by backend
     if (debouncedSearchTerm.trim()) {
       const searchLower = debouncedSearchTerm.toLowerCase();
       filtered = filtered.filter(booking =>
@@ -121,26 +140,11 @@ const BookingRoomPage = () => {
       );
     }
 
-    // Sort berdasarkan created_at
-    filtered.sort((a, b) => {
-      try {
-        const dateA = parseISO(a.created_at || a.rawBooking?.start_time || a.tanggalBooking);
-        const dateB = parseISO(b.created_at || b.rawBooking?.start_time || b.tanggalBooking);
+    // Sorting is now handled by backend via sort_direction parameter
 
-        if (sortOrder === 'newest') {
-          return dateB - dateA; // Newest first
-        } else {
-          return dateA - dateB; // Oldest first
-        }
-      } catch (error) {
-        console.error('Error sorting bookings:', error);
-        return 0;
-      }
-    });
-
-    // PERBAIKAN: Gunakan pagination dari backend hanya jika tidak ada search term dan tidak ada month/year filter
-    if (!debouncedSearchTerm.trim() && !monthFilter && !yearFilter) {
-      // Jika tidak ada search, gunakan data langsung dari API (sudah dipaginasi di backend)
+    // Use backend pagination when no search term is applied
+    if (!debouncedSearchTerm.trim()) {
+      // Use data directly from API (already paginated by backend)
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
 
       return {
@@ -150,7 +154,7 @@ const BookingRoomPage = () => {
       };
     }
 
-    // Jika ada search term atau month/year filter (client-side), lakukan pagination di frontend
+    // If there's a search term, do frontend pagination
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
 
@@ -159,7 +163,7 @@ const BookingRoomPage = () => {
       totalPages: total,
       totalFiltered: filtered.length
     };
-  }, [allBookings, debouncedSearchTerm, monthFilter, yearFilter, currentPage, limit, sortOrder, paginationInfo]);
+  }, [allBookings, debouncedSearchTerm, currentPage, limit, paginationInfo]);
 
   // Debug: Log totalPages untuk memastikan tombol pagination muncul
   useEffect(() => {
@@ -276,7 +280,9 @@ const BookingRoomPage = () => {
 
           <div className="tabs tabs-boxed mb-4 bg-base-200 self-start">
             {statusTabs.map(tab => (
-              <a key={tab} className={`tab tab-sm sm:tab-md ${statusFilter === tab ? 'tab-active' : ''}`} onClick={() => setStatusFilter(tab)}>{tab}</a>
+              <a key={tab} className={`tab tab-sm sm:tab-md ${statusFilter === tab ? 'tab-active' : ''}`} onClick={() => setStatusFilter(tab)}>
+                {tab === 'All' ? 'All' : tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </a>
             ))}
           </div>
 
@@ -297,19 +303,18 @@ const BookingRoomPage = () => {
           />
 
           {/* Show total count from API */}
-          {!debouncedSearchTerm.trim() && !monthFilter && !yearFilter && paginationInfo.total > 0 && (
+          {!debouncedSearchTerm.trim() && paginationInfo.total > 0 && (
             <div className="text-sm text-gray-600 mt-2 text-center">
               Showing {allBookings.length} of {paginationInfo.total} bookings
+              {(monthFilter || yearFilter) && (
+                <> for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
+              )}
             </div>
           )}
-          {/* Show filtered count when searching or filtering */}
-          {(debouncedSearchTerm.trim() || monthFilter || yearFilter) && (
+          {/* Show filtered count when searching */}
+          {debouncedSearchTerm.trim() && (
             <div className="text-sm text-gray-600 mt-2 text-center">
-              {debouncedSearchTerm.trim() ? (
-                <>Found {totalFiltered || 0} bookings matching "{debouncedSearchTerm}"</>
-              ) : (
-                <>Found {totalFiltered || 0} bookings for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
-              )}
+              Found {totalFiltered || 0} bookings matching "{debouncedSearchTerm}"
             </div>
           )}
 

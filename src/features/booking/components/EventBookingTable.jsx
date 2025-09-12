@@ -76,10 +76,8 @@ const EventBookingTable = ({
               <th>No Transaction</th>
               <th>Event Name</th>
               <th>Event Description</th>
-              <th>Console</th>
               <th>Room</th>
               <th>Unit</th>
-              <th>Total Person</th>
               <th>Tanggal Booking</th>
               <th>Start Time</th>
               <th>End Time</th>
@@ -106,16 +104,10 @@ const EventBookingTable = ({
                   </div>
                 </td>
                 <td>
-                  <div className="text-sm">{event.console || "Playstation 4"}</div>
-                </td>
-                <td>
                   <div className="text-sm">{event.room || "Regular"}</div>
                 </td>
                 <td>
                   <div className="text-sm">{event.unit}</div>
-                </td>
-                <td>
-                  <div className="text-sm">{event.totalPerson}</div>
                 </td>
                 <td>
                   <div className="text-sm">
@@ -193,16 +185,10 @@ const EventBookingTable = ({
                   {formatTime(event.startTime)} - {formatTime(event.endTime)}
                 </div>
                 <div>
-                  <strong>Console:</strong> {event.console}
-                </div>
-                <div>
                   <strong>Room:</strong> {event.room}
                 </div>
                 <div>
                   <strong>Unit:</strong> {event.unit}
-                </div>
-                <div>
-                  <strong>Peserta:</strong> {event.totalPerson} orang
                 </div>
                 <div>
                   <strong>Durasi:</strong> {event.duration} jam
