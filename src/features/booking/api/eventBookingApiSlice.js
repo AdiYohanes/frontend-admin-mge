@@ -3,23 +3,34 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const eventBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getEventBookings: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status = "" }) => ({
-        url: "/api/admin/events",
-        method: "GET",
-        params: { page, limit, search, status },
-      }),
-      transformResponse: (response) => {
-        console.log('API Response:', response);
+      query: ({ page = 1, limit = 10, search = "", status = "" }) => {
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (page) params.append('page', page);
+        if (limit) params.append('limit', limit);
+        if (search) params.append('search', search);
+        if (status) params.append('status', status);
 
-        // Transform the array of events into the expected format
-        const events = response || [];
-        console.log('Events array:', events);
+        const queryString = params.toString();
+        const fullUrl = `/api/admin/events${queryString ? `?${queryString}` : ''}`;
+
+        return {
+          url: fullUrl,
+          method: "GET",
+        };
+      },
+      transformResponse: (response) => {
+        // Handle Laravel pagination response structure
+        const events = response?.data || [];
+        const pagination = {
+          currentPage: response?.current_page || 1,
+          totalPages: response?.last_page || 1,
+          total: response?.total || 0,
+          perPage: response?.per_page || 15,
+        };
 
         // Flatten bookings from all events
         const allBookings = events.flatMap(event => {
-          console.log('Processing event:', event);
-          console.log('Event bookings:', event.bookings);
-
           return event.bookings?.map(booking => {
             // Calculate duration from start and end time
             const startTime = new Date(booking.start_time);
@@ -31,10 +42,10 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
               noTransaction: booking.invoice_number,
               eventName: event.name,
               eventDescription: event.description,
-              room: booking.unit?.room?.name || "Regular", // Add room info
+              room: booking.unit?.room?.name || "Regular",
               unit: booking.unit?.name || "N/A",
-              unitId: booking.unit?.id || 1, // Add unitId for editing
-              unitIds: [booking.unit?.id || 1], // Add unitIds array for editing
+              unitId: booking.unit?.id || 1,
+              unitIds: [booking.unit?.id || 1],
               tanggalBooking: booking.created_at,
               startTime: booking.start_time,
               duration: durationHours,
@@ -47,13 +58,11 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
           }) || [];
         });
 
-        console.log('Transformed bookings:', allBookings);
-
         return {
           bookings: allBookings,
-          totalPages: 1, // Default to 1 page since we don't have pagination info
-          currentPage: 1, // Default to page 1
-          total: allBookings.length,
+          totalPages: pagination.totalPages,
+          currentPage: pagination.currentPage,
+          total: pagination.total,
         };
       },
       providesTags: ["EventBooking"],
@@ -61,16 +70,10 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
 
     addEventBooking: builder.mutation({
       query: (newEvent) => {
-        console.log('=== API MUTATION DEBUG ===');
-        console.log('Raw payload received:', newEvent);
-        console.log('Payload type:', typeof newEvent);
-        console.log('Payload keys:', Object.keys(newEvent));
-        console.log('=== END API DEBUG ===');
-
         return {
           url: "/api/admin/events",
           method: "POST",
-          body: newEvent, // Send the payload directly as it's already formatted correctly
+          body: newEvent,
         };
       },
       transformResponse: (response) => {
@@ -106,15 +109,10 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
 
     updateEventBooking: builder.mutation({
       query: ({ id, ...updatedEvent }) => {
-        console.log('=== UPDATE API DEBUG ===');
-        console.log('Update ID:', id);
-        console.log('Update payload:', updatedEvent);
-        console.log('=== END UPDATE DEBUG ===');
-
         return {
           url: `/api/admin/events/${id}`,
           method: "POST",
-          body: updatedEvent, // Send the payload directly as it's already formatted correctly
+          body: updatedEvent,
         };
       },
       invalidatesTags: ["EventBooking"],

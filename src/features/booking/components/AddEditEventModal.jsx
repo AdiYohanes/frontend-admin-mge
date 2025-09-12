@@ -382,7 +382,6 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                         )}
                     </div>
 
-
                     {/* Room */}
                     <div className="form-control">
                         <label className="label mb-2">
@@ -515,6 +514,60 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                     </div>
 
 
+                    {/* Tanggal Booking */}
+                    <div className="form-control">
+                        <label className="label mb-2">
+                            <span className="label-text font-medium">
+                                Tanggal Booking <span className="text-red-500">*</span>
+                            </span>
+                        </label>
+                        <Controller
+                            name="tanggalBooking"
+                            control={control}
+                            render={({ field }) => (
+                                <div className="relative date-picker-container">
+                                    <input
+                                        type="text"
+                                        className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.tanggalBooking ? "input-error" : ""}`}
+                                        value={field.value ? field.value.toLocaleDateString('id-ID', {
+                                            weekday: 'long',
+                                            year: 'numeric',
+                                            month: 'long',
+                                            day: 'numeric'
+                                        }) : ''}
+                                        placeholder="Pilih tanggal booking"
+                                        readOnly
+                                        onClick={() => setShowDatePicker(!showDatePicker)}
+                                    />
+                                    <CalendarDaysIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 cursor-pointer"
+                                        onClick={() => setShowDatePicker(!showDatePicker)} />
+
+                                    {showDatePicker && (
+                                        <div className="absolute z-50 bg-white border rounded-lg shadow-lg p-4 mt-1">
+                                            <DayPicker
+                                                mode="single"
+                                                selected={field.value}
+                                                onSelect={(date) => {
+                                                    field.onChange(date);
+                                                    setShowDatePicker(false);
+                                                }}
+                                                disabled={{ before: new Date() }}
+                                                locale={id}
+                                            />
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        />
+                        {errors.tanggalBooking && (
+                            <label className="label">
+                                <span className="label-text-alt text-error">
+                                    {errors.tanggalBooking.message}
+                                </span>
+                            </label>
+                        )}
+                    </div>
+
                     {/* Start Time & End Time - Side by Side */}
                     <div className="grid grid-cols-2 gap-4">
                         <div className="form-control">
@@ -583,60 +636,6 @@ const AddEditEventModal = ({ isOpen, onClose, editingData }) => {
                             readOnly
                             placeholder="Durasi"
                         />
-                    </div>
-
-                    {/* Tanggal Booking */}
-                    <div className="form-control">
-                        <label className="label mb-2">
-                            <span className="label-text font-medium">
-                                Tanggal Booking <span className="text-red-500">*</span>
-                            </span>
-                        </label>
-                        <Controller
-                            name="tanggalBooking"
-                            control={control}
-                            render={({ field }) => (
-                                <div className="relative date-picker-container">
-                                    <input
-                                        type="text"
-                                        className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold ${errors.tanggalBooking ? "input-error" : ""}`}
-                                        value={field.value ? field.value.toLocaleDateString('id-ID', {
-                                            weekday: 'long',
-                                            year: 'numeric',
-                                            month: 'long',
-                                            day: 'numeric'
-                                        }) : ''}
-                                        placeholder="Pilih tanggal booking"
-                                        readOnly
-                                        onClick={() => setShowDatePicker(!showDatePicker)}
-                                    />
-                                    <CalendarDaysIcon className="absolute right-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400 cursor-pointer"
-                                        onClick={() => setShowDatePicker(!showDatePicker)} />
-
-                                    {showDatePicker && (
-                                        <div className="absolute z-50 bg-white border rounded-lg shadow-lg p-4 mt-1">
-                                            <DayPicker
-                                                mode="single"
-                                                selected={field.value}
-                                                onSelect={(date) => {
-                                                    field.onChange(date);
-                                                    setShowDatePicker(false);
-                                                }}
-                                                disabled={{ before: new Date() }}
-                                                locale={id}
-                                            />
-                                        </div>
-                                    )}
-                                </div>
-                            )}
-                        />
-                        {errors.tanggalBooking && (
-                            <label className="label">
-                                <span className="label-text-alt text-error">
-                                    {errors.tanggalBooking.message}
-                                </span>
-                            </label>
-                        )}
                     </div>
 
                     {/* Actions */}

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   useGetEventBookingsQuery,
   useDeleteEventBookingMutation,
@@ -31,58 +31,25 @@ const EventBookingPage = () => {
     "cancelled",
   ];
 
-  const { data, isLoading, isFetching } = useGetEventBookingsQuery({
-    page: 1, // Always get page 1 for frontend filtering
-    limit: 1000, // Get more data for frontend filtering
-    search: '', // Remove backend search, we'll do it frontend
-    status: statusFilter,
+  const { data, isLoading, isFetching, error } = useGetEventBookingsQuery({
+    page: currentPage,
+    limit: limit,
+    search: "",
+    status: "",
   });
 
   // Debug: Log the data received from API
   console.log('EventBookingPage - API data:', data);
   console.log('EventBookingPage - isLoading:', isLoading);
   console.log('EventBookingPage - isFetching:', isFetching);
+  console.log('EventBookingPage - error:', error);
 
   const [deleteEventBooking, { isLoading: isDeleting }] =
     useDeleteEventBookingMutation();
 
-  // Frontend filtering and pagination
-  const { filteredEvents, paginatedEvents, totalPages } = useMemo(() => {
-    if (!data?.bookings) {
-      return { filteredEvents: [], paginatedEvents: [], totalPages: 1 };
-    }
-
-    // Filter berdasarkan search term dan status
-    let filtered = [...data.bookings];
-
-    // Filter by status
-    if (statusFilter !== "All") {
-      filtered = filtered.filter(event =>
-        event.statusBooking?.toLowerCase() === statusFilter.toLowerCase()
-      );
-    }
-
-    // Filter by search term
-    if (debouncedSearchTerm.trim()) {
-      const searchLower = debouncedSearchTerm.toLowerCase();
-      filtered = filtered.filter(event =>
-        event.eventName?.toLowerCase().includes(searchLower) ||
-        event.eventDescription?.toLowerCase().includes(searchLower) ||
-        event.unit?.toLowerCase().includes(searchLower) ||
-        event.noTransaction?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Frontend pagination
-    const total = Math.ceil(filtered.length / limit);
-    const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
-
-    return {
-      filteredEvents: filtered,
-      paginatedEvents: paginated,
-      totalPages: total
-    };
-  }, [data?.bookings, debouncedSearchTerm, currentPage, limit]);
+  // Use data directly from API (backend handles filtering and pagination)
+  const bookings = data?.bookings || [];
+  const totalPages = data?.totalPages || 1;
 
   const handleOpenAddModal = () => {
     setEditingData(null);
@@ -117,13 +84,31 @@ const EventBookingPage = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, statusFilter]);
+  }, [debouncedSearchTerm, statusFilter]);
 
   return (
     <>
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
           <h2 className="card-title text-2xl mb-4">Event Booking List</h2>
+
+          {/* Error Display */}
+          {error && (
+            <div className="alert alert-error mb-4">
+              <svg xmlns="http://www.w3.org/2000/svg" className="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <div>
+                <h3 className="font-bold">Error loading data!</h3>
+                <div className="text-xs">
+                  {error?.data?.message || error?.message || 'Unknown error occurred'}
+                </div>
+                <div className="text-xs mt-1">
+                  Check console for more details
+                </div>
+              </div>
+            </div>
+          )}
           <div className="tabs tabs-boxed mb-4 bg-base-200 self-start">
             {statusTabs.map((tab) => (
               <a
@@ -146,7 +131,7 @@ const EventBookingPage = () => {
             showMonthFilter={false}
           />
           <EventBookingTable
-            events={paginatedEvents}
+            events={bookings}
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}
@@ -154,10 +139,10 @@ const EventBookingPage = () => {
             onDelete={handleOpenDeleteModal}
           />
 
-          {/* Show filtered count when searching */}
+          {/* Show search results count when searching */}
           {debouncedSearchTerm.trim() && (
             <div className="text-sm text-gray-600 mt-2 text-center">
-              Found {filteredEvents.length} events matching "{debouncedSearchTerm}"
+              Found {data?.total || 0} events matching "{debouncedSearchTerm}"
             </div>
           )}
 
