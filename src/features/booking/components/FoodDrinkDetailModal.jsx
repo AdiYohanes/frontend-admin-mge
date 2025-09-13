@@ -149,9 +149,31 @@ const FoodDrinkDetailModal = ({ isOpen, onClose, bookingId }) => {
                                                 ))}
                                             </tbody>
                                             <tfoot>
-                                                <tr className="border-t border-brand-gold">
-                                                    <td colSpan="3" className="text-right font-bold text-sm">Total:</td>
-                                                    <td className="text-right font-bold text-brand-gold text-base">
+                                                <tr className="border-t border-base-300">
+                                                    <td colSpan="3" className="text-right font-semibold text-sm">Subtotal:</td>
+                                                    <td className="text-right font-semibold text-sm">
+                                                        {formatCurrency(bookingDetail.totalPembayaran - bookingDetail.taxAmount - bookingDetail.serviceFeeAmount)}
+                                                    </td>
+                                                </tr>
+                                                {bookingDetail.taxAmount > 0 && (
+                                                    <tr>
+                                                        <td colSpan="3" className="text-right font-semibold text-sm">Pajak (PB1):</td>
+                                                        <td className="text-right font-semibold text-sm">
+                                                            {formatCurrency(bookingDetail.taxAmount)}
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                {bookingDetail.serviceFeeAmount > 0 && (
+                                                    <tr>
+                                                        <td colSpan="3" className="text-right font-semibold text-sm">Service Fee:</td>
+                                                        <td className="text-right font-semibold text-sm">
+                                                            {formatCurrency(bookingDetail.serviceFeeAmount)}
+                                                        </td>
+                                                    </tr>
+                                                )}
+                                                <tr className="border-t-2 border-brand-gold">
+                                                    <td colSpan="3" className="text-right font-bold text-base">Total:</td>
+                                                    <td className="text-right font-bold text-brand-gold text-lg">
                                                         {formatCurrency(bookingDetail.totalPembayaran)}
                                                     </td>
                                                 </tr>

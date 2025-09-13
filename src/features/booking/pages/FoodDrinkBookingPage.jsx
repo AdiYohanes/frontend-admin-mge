@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useGetFoodDrinkBookingsQuery } from '../api/foodDrinkBookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { useSearchParams } from 'react-router';
 
 import TableControls from '../../../components/common/TableControls';
 import FoodDrinkTable from '../components/FoodDrinkTable';
@@ -9,10 +11,17 @@ import PrintPreviewModal from '../components/PrintPreviewModal';
 import FoodDrinkDetailModal from '../components/FoodDrinkDetailModal';
 
 const FoodDrinkBookingPage = () => {
+  // --- URL PARAMETER MANAGEMENT ---
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // --- STATE MANAGEMENT ---
   const [currentPage, setCurrentPage] = useState(1);
-  const [limit, setLimit] = useState(15);
+  const [limit, setLimit] = useState(10);
   const [searchTerm, setSearchTerm] = useState("");
+  const [monthFilter, setMonthFilter] = useState('');
+  const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState("All");
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -20,11 +29,56 @@ const FoodDrinkBookingPage = () => {
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
+  // --- URL PARAMETER SYNCHRONIZATION ---
+  // Initialize state from URL parameters on component mount
+  useEffect(() => {
+    const urlMonth = searchParams.get('month') || '';
+    const urlYear = searchParams.get('year') || '';
+    const urlStatus = searchParams.get('status') || 'All';
+    const urlPage = parseInt(searchParams.get('page')) || 1;
+    const urlLimit = parseInt(searchParams.get('limit')) || 10;
+    const urlSearch = searchParams.get('search') || '';
+    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+
+    setMonthFilter(urlMonth);
+    setYearFilter(urlYear);
+    setStatusFilter(urlStatus);
+    setCurrentPage(urlPage);
+    setLimit(urlLimit);
+    setSearchTerm(urlSearch);
+    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Update URL parameters when filters change
+  useEffect(() => {
+    const params = new URLSearchParams();
+
+    if (monthFilter) params.set('month', monthFilter);
+    if (yearFilter) params.set('year', yearFilter);
+    if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter);
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (limit !== 10) params.set('limit', limit.toString());
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+
+    // Only update URL if parameters have changed
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+
+    if (currentParams !== newParams) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [monthFilter, yearFilter, statusFilter, currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
+
   // Load booking list with proper pagination
   const { data: apiResponse, isLoading, isFetching } = useGetFoodDrinkBookingsQuery({
     page: currentPage,
     limit: limit,
     status: statusFilter,
+    month: monthFilter,
+    year: yearFilter,
+    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
   });
 
   // Debug: Log API response
@@ -145,15 +199,15 @@ const FoodDrinkBookingPage = () => {
     setTimeout(() => setSelectedBookingId(null), 300);
   };
 
-  // Reset to page 1 when filters change
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [statusFilter]);
+  // --- HANDLER FUNCTIONS ---
+  const handleSortToggle = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+  };
 
-  // Reset to page 1 when search term changes
+  // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm]);
+  }, [limit, debouncedSearchTerm, monthFilter, yearFilter, statusFilter, sortOrder]);
 
   const statusTabs = [
     { value: "All", label: "All" },
@@ -173,6 +227,27 @@ const FoodDrinkBookingPage = () => {
             <p className="text-base-content/60 mt-1">
               Kelola pesanan makanan dan minuman pelanggan (Invoice: FNB-*)
             </p>
+          </div>
+
+          {/* Sort Toggle Button */}
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleSortToggle}
+              className="btn btn-outline btn-sm gap-2"
+              title={sortOrder === 'newest' ? 'Sort by Oldest Created First' : 'Sort by Newest Created First'}
+            >
+              {sortOrder === 'newest' ? (
+                <>
+                  <ChevronDownIcon className="h-4 w-4" />
+                  Newest
+                </>
+              ) : (
+                <>
+                  <ChevronUpIcon className="h-4 w-4" />
+                  Oldest
+                </>
+              )}
+            </button>
           </div>
         </div>
 
@@ -200,7 +275,12 @@ const FoodDrinkBookingPage = () => {
                 setLimit={setLimit}
                 searchTerm={searchTerm}
                 setSearchTerm={setSearchTerm}
-                showMonthFilter={false}
+                monthFilter={monthFilter}
+                setMonthFilter={setMonthFilter}
+                yearFilter={yearFilter}
+                setYearFilter={setYearFilter}
+                showMonthFilter={true}
+                showYearFilter={true}
                 searchPlaceholder="Search by invoice number or order..."
               />
             </div>
@@ -217,12 +297,29 @@ const FoodDrinkBookingPage = () => {
               />
             </div>
 
-            {/* Show filtered count when searching */}
-            {debouncedSearchTerm.trim() && (
-              <div className="text-sm text-gray-600 mb-4 text-center">
-                Found {filteredBookings.length} F&B orders matching "{debouncedSearchTerm}"
+            {/* Table Information */}
+            <div className="text-center mb-4">
+              <div className="text-sm text-base-content/70 mb-2">
+                {isLoading || isFetching ? (
+                  <span>Loading...</span>
+                ) : (
+                  <span>
+                    Showing {filteredBookings.length} of{' '}
+                    {paginationData.total} bookings
+                    {(monthFilter || yearFilter) && (
+                      <> for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
+                    )}
+                  </span>
+                )}
               </div>
-            )}
+
+              {/* Show filtered count when searching */}
+              {debouncedSearchTerm.trim() && (
+                <div className="text-sm text-info">
+                  Found {filteredBookings.length} F&B orders matching "{debouncedSearchTerm}"
+                </div>
+              )}
+            </div>
 
             {/* Pagination */}
             <div className="flex justify-center">

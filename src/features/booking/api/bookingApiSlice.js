@@ -38,7 +38,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
         };
 
         const transformedData = bookingsData
-          .filter(booking => !booking.invoice_number?.startsWith('FNB'))
           .map(booking => {
             const hasValidTimes = booking.start_time && booking.end_time;
             const startTime = hasValidTimes ? parseISO(booking.start_time) : null;
@@ -65,18 +64,16 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
             }
           });
 
-        // PERBAIKAN: Update pagination info dengan count yang sudah difilter
+        // Gunakan pagination info asli dari backend (tidak diubah)
         const filteredPaginationInfo = {
           ...paginationInfo,
-          total: transformedData.length, // Gunakan count yang sudah difilter
-          original_total: paginationInfo.total // Simpan total asli untuk debugging
+          // total: paginationInfo.total, // Gunakan total asli dari backend
+          // original_total: paginationInfo.total // Simpan total asli untuk debugging
         };
 
         console.log('🔍 DEBUG - Transformed data:', {
           originalCount: bookingsData.length,
           transformedCount: transformedData.length,
-          originalTotal: paginationInfo.total,
-          filteredTotal: filteredPaginationInfo.total,
           paginationInfo: filteredPaginationInfo,
           sampleData: transformedData.slice(0, 3)
         });

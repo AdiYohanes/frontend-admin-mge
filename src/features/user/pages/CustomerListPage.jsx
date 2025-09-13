@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   useGetUsersQuery,
@@ -7,6 +6,8 @@ import {
 } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
+import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { useSearchParams } from 'react-router';
 
 import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
@@ -16,9 +17,14 @@ import CustomerTable from "../components/CustomerTable";
 import AddEditCustomerModal from "../components/AddEditCustomerModal";
 
 const CustomerListPage = () => {
+  // --- URL PARAMETER MANAGEMENT ---
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // --- STATE MANAGEMENT ---
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [customerToDelete, setCustomerToDelete] = useState(null);
@@ -28,24 +34,49 @@ const CustomerListPage = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [customerToEdit, setCustomerToEdit] = useState(null);
 
-  // Reset page to 1 when search term changes
+  // --- URL PARAMETER SYNCHRONIZATION ---
+  // Initialize state from URL parameters on component mount
   useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearchTerm]);
+    const urlPage = parseInt(searchParams.get('page')) || 1;
+    const urlLimit = parseInt(searchParams.get('limit')) || 15;
+    const urlSearch = searchParams.get('search') || '';
+    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
 
-  // Reset page to 1 when limit changes
+    setCurrentPage(urlPage);
+    setLimit(urlLimit);
+    setSearchTerm(urlSearch);
+    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run on mount
+
+  // Update URL parameters when filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [limit]);
+    const params = new URLSearchParams();
+
+    if (currentPage > 1) params.set('page', currentPage.toString());
+    if (limit !== 15) params.set('limit', limit.toString());
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+
+    // Only update URL if parameters have changed
+    const currentParams = searchParams.toString();
+    const newParams = params.toString();
+
+    if (currentParams !== newParams) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
 
   const {
     data: tableData,
     isLoading: isLoadingTable,
     isFetching: isFetchingTable,
   } = useGetUsersQuery({
-    page: 1,
-    per_page: 9999, // Get all users for client-side filtering
+    page: currentPage,
+    per_page: limit,
+    search: debouncedSearchTerm,
     role: "CUST",
+    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
   });
 
   const { data: topUsers, isLoading: isLoadingTopUsers } =
@@ -53,34 +84,19 @@ const CustomerListPage = () => {
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  // Client-side filtering
-  const filteredUsers = useMemo(() => {
-    if (!tableData?.users) return [];
+  // Use data directly from API (backend handles filtering and pagination)
+  const users = useMemo(() => tableData?.users || [], [tableData?.users]);
+  const paginationData = useMemo(() => tableData?.pagination || {
+    currentPage: 1,
+    totalPages: 1,
+    total: 0,
+    perPage: 15
+  }, [tableData?.pagination]);
 
-    if (!debouncedSearchTerm.trim()) {
-      return tableData.users;
-    }
-
-    const searchLower = debouncedSearchTerm.toLowerCase();
-    return tableData.users.filter((user) => {
-      return (
-        user.name?.toLowerCase().includes(searchLower) ||
-        user.username?.toLowerCase().includes(searchLower) ||
-        user.email?.toLowerCase().includes(searchLower) ||
-        user.phone?.toLowerCase().includes(searchLower)
-      );
-    });
-  }, [tableData?.users, debouncedSearchTerm]);
-
-  // Pagination for filtered results
-  const paginatedUsers = useMemo(() => {
-    const startIndex = (currentPage - 1) * limit;
-    const endIndex = startIndex + limit;
-    return filteredUsers.slice(startIndex, endIndex);
-  }, [filteredUsers, currentPage, limit]);
-
-  // Calculate total pages for filtered results
-  const totalPages = Math.ceil(filteredUsers.length / limit);
+  // --- HANDLER FUNCTIONS ---
+  const handleSortToggle = () => {
+    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+  };
 
   const handleDeleteCustomer = (user) => {
     setCustomerToDelete(user);
@@ -99,6 +115,11 @@ const CustomerListPage = () => {
     setCustomerToEdit(null);
     // Data akan update otomatis dengan optimistic updates
   };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [limit, debouncedSearchTerm, sortOrder]);
 
   const handleConfirmDelete = async () => {
     try {
@@ -133,7 +154,30 @@ const CustomerListPage = () => {
       {/* Bagian Daftar Customer */}
       <div className="card bg-base-100 shadow-xl">
         <div className="card-body">
-          <h2 className="card-title text-2xl mb-4">Customer List</h2>
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+            <h2 className="card-title text-2xl">Customer List</h2>
+
+            {/* Sort Toggle Button */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleSortToggle}
+                className="btn btn-outline btn-sm gap-2"
+                title={sortOrder === 'newest' ? 'Sort by Oldest Created First' : 'Sort by Newest Created First'}
+              >
+                {sortOrder === 'newest' ? (
+                  <>
+                    <ChevronDownIcon className="h-4 w-4" />
+                    Newest
+                  </>
+                ) : (
+                  <>
+                    <ChevronUpIcon className="h-4 w-4" />
+                    Oldest
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
 
           <TableControls
             limit={limit}
@@ -141,11 +185,12 @@ const CustomerListPage = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             showMonthFilter={false}
-            searchPlaceholder="Search ..."
+            showYearFilter={false}
+            searchPlaceholder="Search by name, username, email, or phone..."
           />
 
           <CustomerTable
-            users={paginatedUsers}
+            users={users}
             isLoading={isLoadingTable || isFetchingTable}
             page={currentPage}
             limit={limit}
@@ -153,16 +198,30 @@ const CustomerListPage = () => {
             onEdit={handleEditCustomer}
           />
 
-          {/* Show filtered count when searching */}
-          {debouncedSearchTerm.trim() && (
-            <div className="text-sm text-gray-600 mt-2 text-center">
-              Found {filteredUsers.length} customers matching "{debouncedSearchTerm}"
+          {/* Table Information */}
+          <div className="text-center mb-4">
+            <div className="text-sm text-base-content/70 mb-2">
+              {isLoadingTable || isFetchingTable ? (
+                <span>Loading...</span>
+              ) : (
+                <span>
+                  Showing {users.length} of{' '}
+                  {paginationData.total} customers
+                </span>
+              )}
             </div>
-          )}
+
+            {/* Show filtered count when searching */}
+            {debouncedSearchTerm.trim() && (
+              <div className="text-sm text-info">
+                Found {users.length} customers matching "{debouncedSearchTerm}"
+              </div>
+            )}
+          </div>
 
           <Pagination
-            currentPage={currentPage}
-            totalPages={totalPages}
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

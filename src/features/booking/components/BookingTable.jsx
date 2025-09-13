@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { EyeIcon, ReceiptRefundIcon } from '@heroicons/react/24/outline';
+import { EyeIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../../utils/formatters';
 
 const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDetails, onRefund }) => {
@@ -57,19 +57,19 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
       </div>
     );
 
-    // Refund - hanya untuk status tertentu
-    if (booking.statusBooking?.toLowerCase() === 'cancelled') {
-      actions.push(
-        <div key="refund" className="tooltip" data-tip="Refund">
-          <button
-            onClick={() => onRefund(booking)}
-            className="btn btn-ghost btn-xs"
-          >
-            <ReceiptRefundIcon className="h-5 w-5 text-accent" />
-          </button>
-        </div>
-      );
-    }
+    // Refund - hanya untuk status tertentu (dihapus untuk cancelled)
+    // if (booking.statusBooking?.toLowerCase() === 'cancelled') {
+    //   actions.push(
+    //     <div key="refund" className="tooltip" data-tip="Refund">
+    //       <button
+    //         onClick={() => onRefund(booking)}
+    //         className="btn btn-ghost btn-xs"
+    //       >
+    //         <ReceiptRefundIcon className="h-5 w-5 text-accent" />
+    //       </button>
+    //     </div>
+    //   );
+    // }
 
     return (
       <div className="flex items-center justify-center gap-1">

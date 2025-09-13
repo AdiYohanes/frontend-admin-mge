@@ -124,6 +124,14 @@ const BookingRoomPage = () => {
       return { paginatedBookings: [], totalPages: 1, totalFiltered: 0 };
     }
 
+    console.log('🔍 DEBUG - Pagination Logic:', {
+      allBookingsLength: allBookings.length,
+      limit: limit,
+      currentPage: currentPage,
+      searchTerm: debouncedSearchTerm,
+      paginationInfo: paginationInfo
+    });
+
     // Filter berdasarkan search term
     let filtered = [...allBookings];
 
@@ -147,6 +155,12 @@ const BookingRoomPage = () => {
       // Use data directly from API (already paginated by backend)
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
 
+      console.log('🔍 DEBUG - Backend Pagination:', {
+        filteredLength: filtered.length,
+        calculatedTotalPages: calculatedTotalPages,
+        paginationInfo: paginationInfo
+      });
+
       return {
         paginatedBookings: filtered,
         totalPages: calculatedTotalPages,
@@ -157,6 +171,12 @@ const BookingRoomPage = () => {
     // If there's a search term, do frontend pagination
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
+
+    console.log('🔍 DEBUG - Frontend Pagination:', {
+      filteredLength: filtered.length,
+      totalPages: total,
+      paginatedLength: paginated.length
+    });
 
     return {
       paginatedBookings: paginated,

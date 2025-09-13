@@ -4,9 +4,13 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const userApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getUsers: builder.query({
-      query: ({ page = 1, per_page = 10, search = "", role = "CUST" }) => {
+      query: ({ page = 1, per_page = 10, search = "", role = "CUST", sort_direction = "desc" }) => {
         const params = { page, per_page, role };
-        if (search) params.search = search;
+        if (search && search.trim()) params.search = search.trim();
+        if (sort_direction) params.sort_direction = sort_direction;
+
+        console.log('🔍 DEBUG - User API Query params:', params);
+
         return {
           url: "/api/admin/user",
           params: params,

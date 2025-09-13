@@ -45,9 +45,22 @@ const RoomListPage = () => {
 
   useEffect(() => {
     if (data?.rooms) {
+      console.log('API Data:', {
+        rooms: data.rooms,
+        roomsLength: data.rooms.length,
+        currentPage: data.currentPage,
+        totalPages: data.totalPages,
+        limit: limit,
+        searchTerm: debouncedSearchTerm
+      });
       setOrderedRooms(data.rooms);
     }
-  }, [data?.rooms]);
+  }, [data?.rooms, limit, debouncedSearchTerm]);
+
+  // Reset to page 1 when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearchTerm]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -61,7 +74,14 @@ const RoomListPage = () => {
       setOrderedRooms((items) => {
         const oldIndex = items.findIndex((item) => item.id === active.id);
         const newIndex = items.findIndex((item) => item.id === over.id);
-        return arrayMove(items, oldIndex, newIndex);
+        const newItems = arrayMove(items, oldIndex, newIndex);
+        console.log('Drag and drop:', {
+          oldIndex,
+          newIndex,
+          originalLength: items.length,
+          newLength: newItems.length
+        });
+        return newItems;
       });
     }
   };
@@ -128,10 +148,14 @@ const RoomListPage = () => {
                 onEdit={handleOpenEditModal}
                 onDelete={handleOpenDeleteModal}
               />
+              {/* Debug info */}
+              <div className="text-xs text-gray-500 mt-2">
+                Debug: Showing {orderedRooms.length} of {data?.rooms?.length || 0} rooms (limit: {limit})
+              </div>
             </SortableContext>
           </DndContext>
           <Pagination
-            currentPage={data?.currentPage}
+            currentPage={currentPage}
             totalPages={data?.totalPages}
             onPageChange={setCurrentPage}
           />

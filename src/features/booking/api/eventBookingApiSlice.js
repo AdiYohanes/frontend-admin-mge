@@ -3,20 +3,24 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const eventBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getEventBookings: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status = "" }) => {
-        // Build query parameters
-        const params = new URLSearchParams();
-        if (page) params.append('page', page);
-        if (limit) params.append('limit', limit);
-        if (search) params.append('search', search);
-        if (status) params.append('status', status);
+      query: ({ page = 1, limit = 10, search = "", status = "", month = "", year = "", sort_direction = "desc" }) => {
+        const params = {
+          page,
+          per_page: limit,
+        };
 
-        const queryString = params.toString();
-        const fullUrl = `/api/admin/events${queryString ? `?${queryString}` : ''}`;
+        // Hanya kirim parameter yang relevan ke backend
+        if (search && search.trim()) params.search = search.trim();
+        if (status && status !== 'All') params.status = status.toLowerCase();
+        if (month) params.month = month;
+        if (year) params.year = year;
+        if (sort_direction) params.sort_direction = sort_direction;
+
+        console.log('🔍 DEBUG - Event API Query params:', params);
 
         return {
-          url: fullUrl,
-          method: "GET",
+          url: '/api/admin/events',
+          params: params,
         };
       },
       transformResponse: (response) => {
@@ -60,9 +64,13 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
 
         return {
           bookings: allBookings,
-          totalPages: pagination.totalPages,
-          currentPage: pagination.currentPage,
-          total: pagination.total,
+          events: events, // Keep original events for reference
+          pagination: {
+            currentPage: pagination.currentPage,
+            totalPages: pagination.totalPages,
+            total: pagination.total, // Keep original total from API (events count)
+            perPage: pagination.perPage,
+          },
         };
       },
       providesTags: ["EventBooking"],

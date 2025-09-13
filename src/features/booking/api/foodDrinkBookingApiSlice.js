@@ -30,6 +30,8 @@ const transformBookingDetail = (response) => {
     orderName: response.notes || 'F&B Order',
     quantity: response.total_visitors || 1,
     totalPembayaran: parseFloat(response.total_price) || 0,
+    taxAmount: parseFloat(response.tax_amount) || 0,
+    serviceFeeAmount: parseFloat(response.service_fee_amount) || 0,
     metodePembayaran: transaction?.payment_method?.toUpperCase() || 'QRIS',
     statusBooking: response.status ? (response.status.charAt(0).toUpperCase() + response.status.slice(1)) : 'Unknown',
     tanggalTransaksi: format(createdDate, 'dd/MM/yyyy'),
@@ -46,17 +48,33 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: builder => ({
     getFoodDrinkBookings: builder.query({
       // Gunakan endpoint baru untuk F&B bookings
-      query: ({ page = 1, limit = 15, status = '' }) => {
+      query: ({ page = 1, limit = 10, status = '', month = '', year = '', sort_direction = 'desc' }) => {
         const params = {
           page,
           per_page: limit,
-          invoice_prefix: 'FNB', // Filter hanya invoice yang berawalan FNB
         };
 
         // Hanya kirim parameter status jika tidak 'All'
         if (status && status !== 'All') {
           params.status = status.toLowerCase();
         }
+
+        // Hanya kirim parameter month jika ada
+        if (month) {
+          params.month = month;
+        }
+
+        // Hanya kirim parameter year jika ada
+        if (year) {
+          params.year = year;
+        }
+
+        // Hanya kirim parameter sort_direction jika bukan default
+        if (sort_direction) {
+          params.sort_direction = sort_direction;
+        }
+
+        console.log('🔍 DEBUG - F&B API Query params:', params);
 
         return {
           url: '/api/admin/bookings-fnb',
@@ -75,7 +93,7 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
               currentPage: 1,
               totalPages: 1,
               total: 0,
-              perPage: 15
+              perPage: 10
             }
           };
         }
@@ -83,21 +101,38 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
         // Transform data booking sesuai dengan struktur baru
         const transformedBookings = response.data.map(booking => {
           const createdDate = booking.created_at ? parseISO(booking.created_at) : new Date();
+          const transaction = booking.transactions?.[0]; // Ambil transaksi pertama
+
+          // Get customer info from bookable
+          const customerName = booking.bookable?.name || 'Guest';
+          const customerPhone = booking.bookable?.phone || '-';
+          const customerEmail = booking.bookable?.email || '-';
 
           // For F&B only bookings, create a simple order summary
           const orderSummary = booking.notes || 'F&B Order';
 
+          // Transform F&B items
+          const fnbItems = booking.fnbs?.map(fnb => ({
+            id: fnb.id,
+            name: fnb.name,
+            category: fnb.fnb_category_id,
+            price: parseFloat(fnb.price) || 0,
+            quantity: fnb.pivot?.quantity || 1,
+            totalPrice: parseFloat(fnb.pivot?.price) || 0,
+            description: fnb.description || '-',
+          })) || [];
+
           return {
             id: booking.id,
             noTransaction: booking.invoice_number,
-            name: 'Guest', // Default name since bookable info might not be included
-            phoneNumber: '-',
-            email: '-',
+            name: customerName,
+            phoneNumber: customerPhone,
+            email: customerEmail,
             orderName: orderSummary,
             notes: booking.notes || '', // Include notes for display
             quantity: booking.total_visitors || 1,
             totalPembayaran: parseFloat(booking.total_price) || 0,
-            metodePembayaran: 'QRIS', // Default payment method
+            metodePembayaran: transaction?.payment_method?.toUpperCase() || 'QRIS',
             statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : 'Unknown',
             tanggalTransaksi: format(createdDate, 'dd/MM/yyyy'),
             tanggalBooking: format(createdDate, 'dd/MM/yyyy'),
@@ -113,7 +148,7 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
             reminderSent: booking.reminder_sent || false,
             taxAmount: parseFloat(booking.tax_amount) || 0,
             serviceFeeAmount: parseFloat(booking.service_fee_amount) || 0,
-            fnbItems: [], // Will be populated from detail API if needed
+            fnbItems: fnbItems,
             rawBooking: booking, // Simpan data mentah untuk referensi
           };
         });
@@ -124,7 +159,7 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
             currentPage: response.current_page || 1,
             totalPages: response.last_page || 1,
             total: response.total || 0,
-            perPage: response.per_page || 15
+            perPage: response.per_page || 10
           }
         };
       },
