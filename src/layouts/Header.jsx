@@ -4,8 +4,6 @@ import { useNavigate } from "react-router";
 import {
   ArrowLeftStartOnRectangleIcon,
   BellIcon,
-  SunIcon,
-  MoonIcon,
   TrashIcon,
 } from "@heroicons/react/24/outline";
 import { formatDistanceToNow } from "date-fns";
@@ -145,9 +143,17 @@ const Header = () => {
           aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           {theme === 'light' ? (
-            <MoonIcon className="h-6 w-6" />
+            <img
+              src="/images/LIGHT MODE.svg"
+              alt="Switch to Dark Mode"
+              className="h-6 w-6"
+            />
           ) : (
-            <SunIcon className="h-6 w-6" />
+            <img
+              src="/images/DARK MODE.svg"
+              alt="Switch to Light Mode"
+              className="h-6 w-6"
+            />
           )}
         </button>
 

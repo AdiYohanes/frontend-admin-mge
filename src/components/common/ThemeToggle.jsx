@@ -1,13 +1,12 @@
 import React from "react";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 import useTheme from "../../hooks/useTheme";
 
 const ThemeToggle = () => {
-  const { theme, setTheme } = useTheme();
+    const { theme, setTheme } = useTheme();
 
-  const handleThemeChange = (newTheme) => {
-    setTheme(newTheme);
-  };
+    const handleThemeChange = (newTheme) => {
+        setTheme(newTheme);
+    };
 
     return (
         <div className="card bg-base-100 shadow-xl">
@@ -18,7 +17,7 @@ const ThemeToggle = () => {
                 </p>
 
                 <div className="flex gap-4">
-                    <label className="flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary">
+                    <label className="flex flex-col items-center p-4 cursor-pointer transition-all hover:opacity-80">
                         <input
                             type="radio"
                             name="theme"
@@ -27,14 +26,18 @@ const ThemeToggle = () => {
                             onChange={() => handleThemeChange("light")}
                             className="sr-only"
                         />
-                        <SunIcon className="w-8 h-8 mb-2 text-yellow-500" />
+                        <img
+                            src="/images/LIGHT MODE.svg"
+                            alt="Light Mode"
+                            className="w-12 h-12 mb-2"
+                        />
                         <span className="font-medium">Light</span>
                         <span className="text-xs text-base-content/60 mt-1">
                             Clean and bright interface
                         </span>
                     </label>
 
-                    <label className="flex flex-col items-center p-4 border-2 rounded-lg cursor-pointer transition-all hover:border-primary">
+                    <label className="flex flex-col items-center p-4 cursor-pointer transition-all hover:opacity-80">
                         <input
                             type="radio"
                             name="theme"
@@ -43,7 +46,11 @@ const ThemeToggle = () => {
                             onChange={() => handleThemeChange("dark")}
                             className="sr-only"
                         />
-                        <MoonIcon className="w-8 h-8 mb-2 text-blue-400" />
+                        <img
+                            src="/images/DARK MODE.svg"
+                            alt="Dark Mode"
+                            className="w-12 h-12 mb-2"
+                        />
                         <span className="font-medium">Dark</span>
                         <span className="text-xs text-base-content/60 mt-1">
                             Easy on the eyes

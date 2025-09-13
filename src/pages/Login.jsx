@@ -10,7 +10,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLoginMutation } from "../store/api/authApiSlice";
 import { setCredentials, selectCurrentToken } from "../store/slices/authSlice";
 import useTheme from "../hooks/useTheme";
-import { SunIcon, MoonIcon } from "@heroicons/react/24/outline";
 
 const loginSchema = z.object({
   identifier: z.string().min(3, { message: "Username atau email harus diisi" }),
@@ -62,9 +61,17 @@ const LoginPage = () => {
           aria-label={`Switch to ${theme === 'light' ? 'dark' : 'light'} mode`}
         >
           {theme === 'light' ? (
-            <MoonIcon className="h-5 w-5" />
+            <img
+              src="/images/LIGHT MODE.svg"
+              alt="Switch to Dark Mode"
+              className="h-5 w-5"
+            />
           ) : (
-            <SunIcon className="h-5 w-5" />
+            <img
+              src="/images/DARK MODE.svg"
+              alt="Switch to Light Mode"
+              className="h-5 w-5"
+            />
           )}
         </button>
       </div>

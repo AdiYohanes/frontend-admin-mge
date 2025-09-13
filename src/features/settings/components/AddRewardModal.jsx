@@ -21,7 +21,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
     const [name, setName] = useState("");
     const [description, setDescription] = useState("");
     const [type, setType] = useState("");
-    const [points, setPoints] = useState(0);
+    const [points, setPoints] = useState('');
     const [unitId, setUnitId] = useState("");
     const [duration, setDuration] = useState("");
     const [foodRows, setFoodRows] = useState([{ key: 1, foodId: "", qty: "" }]);
@@ -57,7 +57,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                 setName(editingData.name || "");
                 setDescription(editingData.description || "");
                 setType(editingData.rewardType || editingData.effects?.type || "");
-                setPoints(Number(editingData.pointsRequired ?? 0));
+                setPoints(editingData.pointsRequired ? String(editingData.pointsRequired) : '');
                 if ((editingData.effects?.type || editingData.rewardType) === "free_play") {
                     setUnitId(String(editingData.effects?.unit_id || editingData.unit?.id || ""));
                     setDuration(String(editingData.effects?.duration_hours || ""));
@@ -107,7 +107,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                 setName("");
                 setDescription("");
                 setType("");
-                setPoints(0);
+                setPoints('');
                 setUnitId("");
                 setDuration("");
                 setFoodRows([{ key: 1, foodId: "", qty: "" }]);
@@ -162,7 +162,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
             alert("Reward type is required");
             return;
         }
-        if (points <= 0) {
+        if (!points || Number(points) <= 0) {
             alert("Points required must be greater than 0");
             return;
         }
@@ -203,7 +203,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
         // Add basic data
         formData.append('name', name);
         formData.append('description', description);
-        formData.append('points_required', points);
+        formData.append('points_required', Number(points));
 
         // Add effects as individual fields
         if (effects.length > 0) {
@@ -231,7 +231,7 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
         console.log("Submitting reward:", {
             name,
             description,
-            points_required: points,
+            points_required: Number(points),
             effects,
             hasImage: !!imageFile,
             imageType: imageFile?.type,
@@ -445,11 +445,11 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                         <label className="label"><span className="label-text">Points Required <span className="text-error">*</span></span></label>
                         <input
                             type="number"
-                            value={points}
+                            value={points || ''}
                             onChange={(e) => setPoints(Number(e.target.value) || 0)}
                             className="input input-bordered w-full"
                             min={0}
-                            placeholder="0"
+                            placeholder="Enter points required"
                         />
                     </div>
                 </div>
