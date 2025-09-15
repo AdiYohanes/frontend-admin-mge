@@ -36,7 +36,6 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
             <th>TANGGAL</th>
             <th>ORDER</th>
             <th>NOTES</th>
-            <th className="text-center">VISITORS</th>
             <th className="text-center">TOTAL</th>
             <th>STATUS</th>
             <th className="text-center">AKSI</th>
@@ -69,7 +68,6 @@ const FoodDrinkTable = ({ orders, isLoading, page, limit, onPrint, onDelete, onV
                     )}
                   </div>
                 </td>
-                <td className="text-center font-bold">{order.quantity}</td>
                 <td className="text-center">
                   <div className="font-bold text-brand-gold">
                     {formatCurrency(order.totalPembayaran)}

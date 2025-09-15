@@ -60,7 +60,7 @@ const FoodDrinkBookingPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -78,7 +78,7 @@ const FoodDrinkBookingPage = () => {
     status: statusFilter,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sort_direction: 'desc', // Default to newest first
   });
 
   // Debug: Log API response
@@ -213,8 +213,7 @@ const FoodDrinkBookingPage = () => {
     { value: "All", label: "All" },
     { value: "Confirmed", label: "Confirmed" },
     { value: "Cancelled", label: "Cancelled" },
-    { value: "Pending", label: "Pending" },
-    { value: "Finished", label: "Finished" }
+    { value: "Pending", label: "Pending" }
   ];
 
   return (
