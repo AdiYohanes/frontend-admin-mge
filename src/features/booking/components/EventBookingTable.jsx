@@ -12,6 +12,11 @@ const EventBookingTable = ({
   // Debug: Log the events data
   console.log('EventBookingTable - events:', events);
   console.log('EventBookingTable - isLoading:', isLoading);
+  if (events && events.length > 0) {
+    console.log('EventBookingTable - First event data:', events[0]);
+    console.log('EventBookingTable - First event tanggalBooking:', events[0].tanggalBooking);
+    console.log('EventBookingTable - First event startTime:', events[0].startTime);
+  }
 
   const getStatusBadge = (status) => {
     const baseClasses = "badge font-semibold text-xs";
@@ -47,6 +52,19 @@ const EventBookingTable = ({
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
     return new Date(timeString).toLocaleTimeString("id-ID", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const formatDateTime = (dateTimeString) => {
+    if (!dateTimeString) return "N/A";
+    const date = new Date(dateTimeString);
+    return date.toLocaleDateString("id-ID", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    }) + " " + date.toLocaleTimeString("id-ID", {
       hour: "2-digit",
       minute: "2-digit",
     });
@@ -113,7 +131,7 @@ const EventBookingTable = ({
                 </td>
                 <td>
                   <div className="text-sm">
-                    {formatDate(event.tanggalBooking)}
+                    {formatDateTime(event.tanggalBooking)}
                   </div>
                 </td>
                 <td>
@@ -183,8 +201,7 @@ const EventBookingTable = ({
                   <strong>No Transaction:</strong> {event.noTransaction}
                 </div>
                 <div>
-                  <strong>Jadwal:</strong> {formatDate(event.tanggalBooking)},{" "}
-                  {formatTime(event.startTime)} - {formatTime(event.endTime)}
+                  <strong>Jadwal:</strong> {formatDateTime(event.tanggalBooking)} - {formatTime(event.endTime)}
                 </div>
                 <div>
                   <strong>Room:</strong> {event.room}

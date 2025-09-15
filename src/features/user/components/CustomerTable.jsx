@@ -1,4 +1,3 @@
-/* eslint-disable no-unused-vars */
 import React from "react";
 import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../../../utils/formatters";
@@ -29,6 +28,9 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
             <th>Phone</th>
             <th>Total Spending</th>
             <th>Points</th>
+            <th>Booking Hours</th>
+            <th>Status</th>
+            <th>Created</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -38,13 +40,31 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
               <th>{(page - 1) * limit + index + 1}</th>
               <td className="font-bold">{user.name}</td>
               <td className="text-sm opacity-70">@{user.username}</td>
-              <td>{user.email}</td>
+              <td>{user.email || '-'}</td>
               <td>{user.phone}</td>
               <td className="font-bold text-success">
-                {formatCurrency(user.total_spend)}
+                {(() => {
+                  console.log('🔍 DEBUG - User total_spend:', user.total_spend, 'Type:', typeof user.total_spend);
+                  const spendValue = user.total_spend || "0";
+                  console.log('🔍 DEBUG - Processed spend value:', spendValue);
+                  return formatCurrency(spendValue);
+                })()}
               </td>
               <td className="font-bold text-info">
                 {user.total_points || 0}
+              </td>
+              <td className="text-center">
+                <span className="badge badge-outline">
+                  {user.total_booking_hours || 0}h
+                </span>
+              </td>
+              <td>
+                <span className={`badge ${user.isActive ? 'badge-success' : 'badge-error'}`}>
+                  {user.isActive ? 'Active' : 'Inactive'}
+                </span>
+              </td>
+              <td className="text-xs opacity-70">
+                {new Date(user.created_at).toLocaleDateString('id-ID')}
               </td>
               <td className="text-center">
                 <div className="flex items-center justify-center gap-1">

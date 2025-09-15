@@ -85,7 +85,12 @@ const CustomerListPage = () => {
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
   // Use data directly from API (backend handles filtering and pagination)
-  const users = useMemo(() => tableData?.users || [], [tableData?.users]);
+  const users = useMemo(() => {
+    console.log('🔍 DEBUG - Table data:', tableData);
+    console.log('🔍 DEBUG - Users data:', tableData?.users);
+    return tableData?.users || [];
+  }, [tableData]);
+
   const paginationData = useMemo(() => tableData?.pagination || {
     currentPage: 1,
     totalPages: 1,
@@ -205,8 +210,13 @@ const CustomerListPage = () => {
                 <span>Loading...</span>
               ) : (
                 <span>
-                  Showing {users.length} of{' '}
+                  Showing {paginationData.from || 0} to {paginationData.to || 0} of{' '}
                   {paginationData.total} customers
+                  {paginationData.totalPages > 1 && (
+                    <span className="ml-2 text-info">
+                      (Page {paginationData.currentPage} of {paginationData.totalPages})
+                    </span>
+                  )}
                 </span>
               )}
             </div>

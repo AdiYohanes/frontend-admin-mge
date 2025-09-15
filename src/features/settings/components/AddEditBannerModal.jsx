@@ -10,6 +10,90 @@ import {
 } from "../api/settingsApiSlice";
 import { toast } from "react-hot-toast";
 
+// Component untuk preview gambar
+const ImagePreview = ({ watchedImage, isEditMode, editingData, isDragActive }) => {
+  console.log("ImagePreview render:", {
+    watchedImage,
+    isEditMode,
+    editingData,
+    isDragActive,
+    hasWatchedImage: !!(watchedImage && Array.isArray(watchedImage) && watchedImage.length > 0)
+  });
+
+  if (watchedImage && Array.isArray(watchedImage) && watchedImage.length > 0) {
+    console.log("Showing new image preview");
+    return (
+      <div className="space-y-3">
+        <div className="mx-auto w-32 h-20 rounded-lg overflow-hidden bg-base-200">
+          <img
+            src={URL.createObjectURL(watchedImage[0])}
+            alt="Preview"
+            className="w-full h-full object-cover"
+            onError={(e) => {
+              console.error("Error loading image preview:", e);
+              e.target.style.display = 'none';
+            }}
+          />
+        </div>
+        <div className="text-sm">
+          <p className="font-medium text-base-content">
+            {watchedImage[0].name}
+          </p>
+          <p className="text-base-content/60">
+            {(watchedImage[0].size / 1024 / 1024).toFixed(2)} MB
+          </p>
+        </div>
+        <p className="text-xs text-base-content/60">
+          Klik atau drag untuk mengganti gambar
+        </p>
+      </div>
+    );
+  }
+
+  if (isEditMode && editingData?.imageUrl) {
+    console.log("Showing existing image preview");
+    return (
+      <div className="space-y-3">
+        <div className="mx-auto w-32 h-20 rounded-lg overflow-hidden bg-base-200">
+          <img
+            src={editingData.imageUrl}
+            alt="Current Banner"
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="text-sm">
+          <p className="font-medium text-base-content">
+            Gambar saat ini
+          </p>
+          <p className="text-base-content/60">
+            Klik atau drag untuk mengganti gambar
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  console.log("Showing default upload area");
+  return (
+    <div className="space-y-3">
+      <div className="mx-auto w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center">
+        <FiImage className="h-8 w-8 text-base-content/40" />
+      </div>
+      <div>
+        <p className="font-medium text-base-content">
+          {isDragActive ? "Lepaskan file di sini" : "Drag & drop gambar di sini"}
+        </p>
+        <p className="text-sm text-base-content/60 mt-1">
+          atau klik untuk memilih file
+        </p>
+        <p className="text-xs text-base-content/40 mt-2">
+          PNG, JPG maksimal 2MB
+        </p>
+      </div>
+    </div>
+  );
+};
+
 // --- AWAL BLOK PERBAIKAN ---
 // Kita buat fungsi untuk menghasilkan skema secara dinamis
 const createBannerSchema = (isEditMode = false) =>
@@ -19,10 +103,36 @@ const createBannerSchema = (isEditMode = false) =>
     // Logika validasi gambar sekarang kondisional
     image: z
       .any()
-      .refine((files) => isEditMode || (files && files.length > 0), {
+      .optional()
+      .refine((files) => {
+        console.log("Validating image:", files, "isEditMode:", isEditMode);
+        console.log("Files type:", typeof files);
+        console.log("Files isArray:", Array.isArray(files));
+        console.log("Files length:", files?.length);
+
+        // Untuk mode edit, image tidak wajib
+        if (isEditMode) {
+          console.log("Edit mode - image not required");
+          return true;
+        }
+
+        // Untuk mode add, image wajib dan harus array dengan length > 0
+        const isValid = files && Array.isArray(files) && files.length > 0;
+        console.log("Add mode - image validation result:", isValid);
+        return isValid;
+      }, {
         message: "Gambar wajib diunggah untuk banner baru.",
       })
-      .refine((files) => !files || files?.[0]?.size <= 2 * 1024 * 1024, {
+      .refine((files) => {
+        // Validasi ukuran hanya jika ada file
+        if (!files || !Array.isArray(files) || files.length === 0) {
+          console.log("No files to validate size");
+          return true;
+        }
+        const isValidSize = files[0]?.size <= 2 * 1024 * 1024;
+        console.log("File size validation:", files[0]?.size, "bytes, valid:", isValidSize);
+        return isValidSize;
+      }, {
         message: `Ukuran gambar maksimal 2MB.`,
       }),
   });
@@ -46,14 +156,30 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
     resolver: zodResolver(createBannerSchema(isEditMode)),
   });
 
-
-
   const watchedImage = watch("image");
+
+  // Debug logging - remove in production
+  console.log("=== AddEditBannerModal Debug ===");
+  console.log("watchedImage:", watchedImage);
+  console.log("watchedImage type:", typeof watchedImage);
+  console.log("watchedImage isArray:", Array.isArray(watchedImage));
+  console.log("isEditMode:", isEditMode);
+  console.log("editingData:", editingData);
+  console.log("isLoading:", isLoading);
+  console.log("form errors:", errors);
+  console.log("image error:", errors.image);
 
   // Dropzone configuration
   const onDrop = useCallback((acceptedFiles) => {
-    setValue("image", acceptedFiles);
-  }, [setValue]);
+    console.log("Files dropped:", acceptedFiles);
+    console.log("Setting image value to:", acceptedFiles);
+    setValue("image", acceptedFiles, {
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true
+    });
+    console.log("Image value set, current form state:", watch());
+  }, [setValue, watch]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -62,17 +188,26 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
     },
     maxFiles: 1,
     maxSize: 2 * 1024 * 1024, // 2MB
+    disabled: isLoading,
   });
 
   useEffect(() => {
     if (isOpen) {
+      console.log("Modal opened, resetting form...");
       if (isEditMode && editingData) {
+        console.log("Edit mode - resetting with existing data");
         reset({
-          title: editingData.title,
-          description: editingData.description,
+          title: editingData.title || "",
+          description: editingData.description || "",
+          image: undefined, // Use undefined instead of null
         });
       } else {
-        reset({ title: "", description: "", image: null });
+        console.log("Add mode - resetting with empty data");
+        reset({
+          title: "",
+          description: "",
+          image: undefined // Use undefined instead of null
+        });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -86,19 +221,14 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
         await updateBanner({ id: editingData.id, ...formData }).unwrap();
         toast.success("Banner berhasil diperbarui!");
       } else {
-        // Validate required fields before submission
-        if (!formData.title || !formData.description) {
-          toast.error("Title dan description wajib diisi!");
-          return;
-        }
-
         await addBanner(formData).unwrap();
         toast.success("Banner baru berhasil ditambahkan!");
       }
       onClose();
     } catch (err) {
       console.error("Banner submission error:", err);
-      toast.error(err.data?.message || "Gagal memproses data banner.");
+      const errorMessage = err.data?.message || err.data?.error || err.message || "Gagal memproses data banner.";
+      toast.error(errorMessage);
     }
   };
 
@@ -128,7 +258,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6">
+        <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 mt-6" noValidate>
           {/* Title */}
           <div className="form-control">
             <label className="label">
@@ -143,6 +273,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
               className={`input input-bordered w-full focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.title ? "input-error" : ""
                 }`}
               placeholder="Masukkan judul banner..."
+              disabled={isLoading}
             />
             {errors.title && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
@@ -164,6 +295,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
               className={`textarea textarea-bordered h-24 focus:border-brand-gold focus:ring-1 focus:ring-brand-gold/20 ${errors.description ? "textarea-error" : ""
                 }`}
               placeholder="Jelaskan deskripsi banner, pesan yang ingin disampaikan, dll..."
+              disabled={isLoading}
             ></textarea>
             {errors.description && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
@@ -183,54 +315,24 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
 
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-all duration-200 ${isDragActive
-                ? "border-brand-gold bg-brand-gold/5"
-                : watchedImage && watchedImage.length > 0
+              className={`border-2 border-dashed rounded-lg p-6 text-center transition-all duration-200 ${isLoading
+                ? "cursor-not-allowed opacity-50"
+                : "cursor-pointer"
+                } ${isDragActive
                   ? "border-brand-gold bg-brand-gold/5"
-                  : "border-base-300 hover:border-brand-gold/50"
+                  : watchedImage && Array.isArray(watchedImage) && watchedImage.length > 0
+                    ? "border-brand-gold bg-brand-gold/5"
+                    : "border-base-300 hover:border-brand-gold/50"
                 } ${errors.image ? "border-error" : ""}`}
             >
               <input {...getInputProps()} />
 
-              {watchedImage && watchedImage.length > 0 ? (
-                <div className="space-y-3">
-                  <div className="mx-auto w-32 h-20 rounded-lg overflow-hidden bg-base-200">
-                    <img
-                      src={URL.createObjectURL(watchedImage[0])}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                    />
-                  </div>
-                  <div className="text-sm">
-                    <p className="font-medium text-base-content">
-                      {watchedImage[0].name}
-                    </p>
-                    <p className="text-base-content/60">
-                      {(watchedImage[0].size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <p className="text-xs text-base-content/60">
-                    Klik atau drag untuk mengganti gambar
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="mx-auto w-16 h-16 bg-base-200 rounded-lg flex items-center justify-center">
-                    <FiImage className="h-8 w-8 text-base-content/40" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-base-content">
-                      {isDragActive ? "Lepaskan file di sini" : "Drag & drop gambar di sini"}
-                    </p>
-                    <p className="text-sm text-base-content/60 mt-1">
-                      atau klik untuk memilih file
-                    </p>
-                    <p className="text-xs text-base-content/40 mt-2">
-                      PNG, JPG maksimal 2MB
-                    </p>
-                  </div>
-                </div>
-              )}
+              <ImagePreview
+                watchedImage={watchedImage}
+                isEditMode={isEditMode}
+                editingData={editingData}
+                isDragActive={isDragActive}
+              />
             </div>
 
             {errors.image && (
@@ -254,6 +356,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
               type="button"
               className="btn btn-ghost"
               onClick={onClose}
+              disabled={isLoading}
             >
               Batal
             </button>

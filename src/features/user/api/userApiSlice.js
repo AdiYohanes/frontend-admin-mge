@@ -17,13 +17,17 @@ export const userApiSlice = apiSlice.injectEndpoints({
         };
       },
       transformResponse: (response) => {
+        console.log('🔍 DEBUG - User API Response:', response);
         const users = response.data || [];
         const pagination = {
           currentPage: response.current_page || 1,
           totalPages: response.last_page || 1,
           total: response.total || 0,
           perPage: response.per_page || 10,
+          from: response.from || 0,
+          to: response.to || 0,
         };
+        console.log('🔍 DEBUG - Transformed data:', { users: users.length, pagination });
         return { users, pagination };
       },
       providesTags: (result) =>

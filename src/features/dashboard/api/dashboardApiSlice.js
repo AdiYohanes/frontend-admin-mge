@@ -77,13 +77,13 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 
     // Endpoint untuk data Revenue Chart
     getRevenueChartData: builder.query({
-      query: ({ period }) => ({
+      query: ({ period = "daily" }) => ({
         url: "/api/admin/analytics/revenue",
         method: "POST",
         body: { period },
       }),
       transformResponse: (response, meta, arg) => {
-        const { period } = arg;
+        const { period = "daily" } = arg || {};
 
         // Add null checking for response
         if (!response) {
@@ -144,7 +144,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 
     // Endpoint untuk data Peak Time Chart
     getPeakTimeData: builder.query({
-      query: ({ period }) => ({
+      query: ({ period = "daily" }) => ({
         url: "/api/admin/analytics/peak-hours",
         method: "POST",
         body: { period },
@@ -167,7 +167,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
         body: { period },
       }),
       transformResponse: (response, meta, arg) => {
-        const { period } = arg;
+        const { period = "daily" } = arg || {};
 
         if (!response) {
           return {
@@ -231,7 +231,8 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
         method: "POST",
         body: { period },
       }),
-      transformResponse: (response) => {
+      transformResponse: (response, meta, arg) => {
+        const { period = "daily" } = arg || {};
         const mostPopularUnit = response.most_popular_units?.[0];
         const mostPopularGame = response.most_popular_games?.[0];
         const mostPopularFnb = response.most_popular_fnb?.[0];
@@ -272,7 +273,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
     getTodaysBookingData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/today-bookings",
         method: "POST",
         body: { period },
@@ -280,12 +281,13 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
     getWhatsTrendingData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/booking-details",
         method: "POST",
         body: { period },
       }),
-      transformResponse: (response) => {
+      transformResponse: (response, meta, arg) => {
+        const { period = "daily" } = arg || {};
         return {
           rental: response.booking_counts_by_unit?.map(item => ({
             name: item.name,
@@ -310,7 +312,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
     getWebsiteTrafficData: builder.query({
       queryFn: (arg) => {
         const { period = "daily" } = arg || {};
-        return { data: mockWebsiteTrafficData[period] || [] };
+        return { data: mockWebsiteTrafficData[period] || mockWebsiteTrafficData.daily || [] };
       },
       providesTags: ["Dashboard"],
     }),
