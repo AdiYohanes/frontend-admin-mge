@@ -107,7 +107,9 @@ const EventBookingTable = ({
                   <div className="text-sm">{event.room || "Regular"}</div>
                 </td>
                 <td>
-                  <div className="text-sm">{event.unit}</div>
+                  <div className="text-sm">
+                    {event.bookingCount > 1 ? `${event.bookingCount} Units` : event.unit}
+                  </div>
                 </td>
                 <td>
                   <div className="text-sm">
@@ -188,7 +190,7 @@ const EventBookingTable = ({
                   <strong>Room:</strong> {event.room}
                 </div>
                 <div>
-                  <strong>Unit:</strong> {event.unit}
+                  <strong>Unit:</strong> {event.bookingCount > 1 ? `${event.bookingCount} Units` : event.unit}
                 </div>
                 <div>
                   <strong>Durasi:</strong> {event.duration} jam

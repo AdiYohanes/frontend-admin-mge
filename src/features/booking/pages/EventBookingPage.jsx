@@ -97,11 +97,13 @@ const EventBookingPage = () => {
   console.log('EventBookingPage - isLoading:', isLoading);
   console.log('EventBookingPage - isFetching:', isFetching);
   console.log('EventBookingPage - error:', error);
+  console.log('EventBookingPage - bookings from data:', data?.bookings);
+  console.log('EventBookingPage - events from data:', data?.events);
 
   const [deleteEventBooking, { isLoading: isDeleting }] =
     useDeleteEventBookingMutation();
 
-  // Use data directly from API (backend handles filtering and pagination)
+  // Use data directly from API (already transformed by API slice)
   const bookings = useMemo(() => data?.bookings || [], [data?.bookings]);
   const events = useMemo(() => data?.events || [], [data?.events]);
   const paginationData = useMemo(() => data?.pagination || {
@@ -241,7 +243,7 @@ const EventBookingPage = () => {
                 <span>Loading...</span>
               ) : (
                 <span>
-                  Showing {bookings.length} bookings from{' '}
+                  Showing {bookings.length} event bookings from{' '}
                   {events.length} events
                   {(monthFilter || yearFilter) && (
                     <> for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
@@ -253,7 +255,7 @@ const EventBookingPage = () => {
             {/* Show filtered count when searching */}
             {debouncedSearchTerm.trim() && (
               <div className="text-sm text-info">
-                Found {bookings.length} bookings from {events.length} events matching "{debouncedSearchTerm}"
+                Found {bookings.length} event bookings from {events.length} events matching "{debouncedSearchTerm}"
               </div>
             )}
           </div>

@@ -33,37 +33,41 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
           perPage: response?.per_page || 15,
         };
 
-        // Flatten bookings from all events
-        const allBookings = events.flatMap(event => {
-          return event.bookings?.map(booking => {
-            // Calculate duration from start and end time
-            const startTime = new Date(booking.start_time);
-            const endTime = new Date(booking.end_time);
-            const durationHours = Math.round((endTime - startTime) / (1000 * 60 * 60));
+        // Transform events to show event-level data instead of individual bookings
+        const transformedEvents = events.map(event => {
+          // Calculate duration from event start and end time
+          const startTime = new Date(event.start_time);
+          const endTime = new Date(event.end_time);
+          const durationHours = Math.round((endTime - startTime) / (1000 * 60 * 60));
 
-            return {
-              id: booking.id,
-              noTransaction: booking.invoice_number,
-              eventName: event.name,
-              eventDescription: event.description,
-              room: booking.unit?.room?.name || "Regular",
-              unit: booking.unit?.name || "N/A",
-              unitId: booking.unit?.id || 1,
-              unitIds: [booking.unit?.id || 1],
-              tanggalBooking: booking.created_at,
-              startTime: booking.start_time,
-              duration: durationHours,
-              endTime: booking.end_time,
-              statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : "Unknown",
-              bookable: booking.bookable,
-              rawBooking: booking,
-              rawEvent: event,
-            };
-          }) || [];
+          // Get booking count and first booking for reference
+          const firstBooking = event.bookings?.[0];
+          const bookingCount = event.bookings?.length || 0;
+
+          return {
+            id: event.id,
+            noTransaction: firstBooking?.invoice_number || `EVT-${event.id}`,
+            eventName: event.name,
+            eventDescription: event.description,
+            room: firstBooking?.unit?.room?.name || "Event Area",
+            unit: bookingCount > 1 ? `${bookingCount} Units` : (firstBooking?.unit?.name || "N/A"),
+            unitId: firstBooking?.unit?.id || 1,
+            unitIds: event.bookings?.map(b => b.unit?.id).filter(Boolean) || [],
+            tanggalBooking: event.created_at,
+            startTime: event.start_time,
+            duration: durationHours,
+            endTime: event.end_time,
+            statusBooking: event.status ? (event.status.charAt(0).toUpperCase() + event.status.slice(1)) : "Unknown",
+            bookingCount: bookingCount,
+            totalVisitors: event.bookings?.reduce((sum, b) => sum + (b.total_visitors || 0), 0) || 0,
+            totalPrice: event.bookings?.reduce((sum, b) => sum + parseFloat(b.total_price || 0), 0) || 0,
+            rawEvent: event,
+            rawBookings: event.bookings || [],
+          };
         });
 
         return {
-          bookings: allBookings,
+          bookings: transformedEvents, // Now showing events instead of individual bookings
           events: events, // Keep original events for reference
           pagination: {
             currentPage: pagination.currentPage,
