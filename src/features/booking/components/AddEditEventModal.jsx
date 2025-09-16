@@ -25,12 +25,18 @@ const eventSchema = z.object({
     tanggalBooking: z.date({ required_error: "Tanggal Booking harus diisi" }),
 });
 
-// Generate time options with 30-minute intervals
+// Generate time options with 30-minute intervals, starting from 10:00 AM
 const generateTimeOptions = () => {
     const times = [];
     for (let hour = 0; hour < 24; hour++) {
         for (let minute = 0; minute < 60; minute += 30) {
             const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+
+            // Only include times from 10:00 AM onwards
+            if (hour < 10) {
+                continue;
+            }
+
             times.push(timeString);
         }
     }
