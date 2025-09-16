@@ -26,6 +26,7 @@ const RoomTable = ({ rooms, isLoading, page, limit, onEdit, onDelete }) => {
             <th>Name</th>
             <th>Description</th>
             <th>Max Visitors</th>
+            <th>Consoles</th>
             <th>Status</th>
             <th className="text-center">Actions</th>
           </tr>

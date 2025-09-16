@@ -4,13 +4,7 @@ import { ChevronLeftIcon, ChevronRightIcon } from "@heroicons/react/24/outline";
 const Pagination = ({ currentPage, totalPages, onPageChange }) => {
 
   if (totalPages <= 1) {
-    return (
-      <div className="flex justify-center mt-6">
-        <div className="text-sm text-base-content/70">
-          Showing all {totalPages} page
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1);

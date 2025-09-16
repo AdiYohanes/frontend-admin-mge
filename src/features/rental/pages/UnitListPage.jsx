@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useGetUnitsQuery, useDeleteUnitMutation } from "../api/rentalApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
@@ -38,17 +38,67 @@ const UnitListPage = () => {
   const { data, isLoading, isFetching } = useGetUnitsQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
+    search: "", // Always fetch all data for frontend filtering
   });
 
   const [deleteUnit, { isLoading: isDeleting }] = useDeleteUnitMutation();
   const [orderedUnits, setOrderedUnits] = useState([]);
 
-  useEffect(() => {
-    if (data?.units) {
-      setOrderedUnits(data.units);
+  // Frontend pagination for filtered results
+  const { paginatedUnits, paginationData } = useMemo(() => {
+    const allUnits = data?.units || [];
+
+    // If no search term, use backend pagination but calculate from/to correctly
+    if (!debouncedSearchTerm.trim()) {
+      const total = data?.total || allUnits.length;
+      const currentPageNum = data?.currentPage || currentPage;
+      const totalPages = data?.totalPages || Math.ceil(total / limit);
+      const from = ((currentPageNum - 1) * limit) + 1;
+      const to = Math.min(currentPageNum * limit, total);
+
+      return {
+        paginatedUnits: allUnits,
+        paginationData: {
+          currentPage: currentPageNum,
+          totalPages,
+          total,
+          perPage: limit,
+          from,
+          to
+        }
+      };
     }
-  }, [data?.units]);
+
+    // Frontend filtering and pagination
+    const filteredUnits = allUnits.filter(unit =>
+      unit.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      unit.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      unit.roomName?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredUnits.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedUnits = filteredUnits.slice(startIndex, endIndex);
+
+    return {
+      paginatedUnits,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredUnits.length,
+        perPage: limit,
+        from: filteredUnits.length > 0 ? startIndex + 1 : 0,
+        to: Math.min(endIndex, filteredUnits.length)
+      }
+    };
+  }, [data, debouncedSearchTerm, currentPage, limit]);
+
+  useEffect(() => {
+    if (paginatedUnits) {
+      setOrderedUnits(paginatedUnits);
+    }
+  }, [paginatedUnits]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
@@ -100,6 +150,11 @@ const UnitListPage = () => {
     setUnitToManageGames(null);
   };
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   return (
     <>
       <div className="card bg-base-100 shadow-xl">
@@ -112,7 +167,6 @@ const UnitListPage = () => {
             setSearchTerm={setSearchTerm}
             onAddClick={handleOpenAddModal}
             addButtonText="Add Unit"
-            showMonthFilter={false}
           />
           <DndContext
             sensors={sensors}
@@ -134,9 +188,31 @@ const UnitListPage = () => {
               />
             </SortableContext>
           </DndContext>
+
+          {/* Table Information */}
+          <div className="text-center mb-4">
+            <div className="text-sm text-base-content/70 mb-2">
+              {isLoading || isFetching ? (
+                <span>Loading...</span>
+              ) : (
+                <span>
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} unit{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.total} of {paginationData.total} units
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

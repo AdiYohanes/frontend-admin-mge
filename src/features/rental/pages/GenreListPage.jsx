@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
     useGetGenresQuery,
     useDeleteGenreMutation,
@@ -48,17 +48,66 @@ const GenreListPage = () => {
     const { data, isLoading, isFetching } = useGetGenresQuery({
         page: currentPage,
         limit,
-        search: debouncedSearchTerm,
+        search: "", // Always fetch all data for frontend filtering
     });
 
     const [deleteGenre, { isLoading: isDeleting }] = useDeleteGenreMutation();
 
+    // Frontend pagination for filtered results
+    const { paginatedGenres, paginationData } = useMemo(() => {
+        const allGenres = data?.genres || [];
+
+        // If no search term, use backend pagination but calculate from/to correctly
+        if (!debouncedSearchTerm.trim()) {
+            const total = data?.total || allGenres.length;
+            const currentPageNum = data?.currentPage || currentPage;
+            const totalPages = data?.totalPages || Math.ceil(total / limit);
+            const from = ((currentPageNum - 1) * limit) + 1;
+            const to = Math.min(currentPageNum * limit, total);
+
+            return {
+                paginatedGenres: allGenres,
+                paginationData: {
+                    currentPage: currentPageNum,
+                    totalPages,
+                    total,
+                    perPage: limit,
+                    from,
+                    to
+                }
+            };
+        }
+
+        // Frontend filtering and pagination
+        const filteredGenres = allGenres.filter(genre =>
+            genre.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+            genre.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+        );
+
+        const totalPages = Math.ceil(filteredGenres.length / limit);
+        const startIndex = (currentPage - 1) * limit;
+        const endIndex = startIndex + limit;
+        const paginatedGenres = filteredGenres.slice(startIndex, endIndex);
+
+        return {
+            paginatedGenres,
+            paginationData: {
+                currentPage,
+                totalPages,
+                total: filteredGenres.length,
+                perPage: limit,
+                from: filteredGenres.length > 0 ? startIndex + 1 : 0,
+                to: Math.min(endIndex, filteredGenres.length)
+            }
+        };
+    }, [data, debouncedSearchTerm, currentPage, limit]);
+
     // Sinkronkan urutan lokal dengan data dari API
     useEffect(() => {
-        if (data?.genres) {
-            setOrderedGenres(data.genres);
+        if (paginatedGenres) {
+            setOrderedGenres(paginatedGenres);
         }
-    }, [data?.genres]);
+    }, [paginatedGenres]);
 
     // --- DRAG & DROP LOGIC ---
     const sensors = useSensors(
@@ -119,6 +168,11 @@ const GenreListPage = () => {
         }
     };
 
+    // Reset page when search term changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchTerm]);
+
     return (
         <>
             <div className="card bg-base-100 shadow-xl">
@@ -146,7 +200,6 @@ const GenreListPage = () => {
                         setSearchTerm={setSearchTerm}
                         onAddClick={handleAddGenre}
                         addButtonText="Add Genre"
-                        showMonthFilter={false}
                     />
 
                     <DndContext
@@ -169,9 +222,30 @@ const GenreListPage = () => {
                         </SortableContext>
                     </DndContext>
 
+                    {/* Table Information */}
+                    <div className="text-center mb-4">
+                        <div className="text-sm text-base-content/70 mb-2">
+                            {isLoading || isFetching ? (
+                                <span>Loading...</span>
+                            ) : (
+                                <span>
+                                    {debouncedSearchTerm.trim() ? (
+                                        <>
+                                            {paginationData.total} genre{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                                        </>
+                                    ) : (
+                                        <>
+                                            Showing {paginationData.total} of {paginationData.total} genres
+                                        </>
+                                    )}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+
                     <Pagination
-                        currentPage={data?.currentPage}
-                        totalPages={data?.totalPages}
+                        currentPage={paginationData.currentPage}
+                        totalPages={paginationData.totalPages}
                         onPageChange={setCurrentPage}
                     />
                 </div>

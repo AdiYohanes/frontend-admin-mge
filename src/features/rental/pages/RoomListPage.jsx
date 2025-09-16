@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useGetRoomsQuery, useDeleteRoomMutation } from "../api/rentalApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
@@ -36,31 +36,72 @@ const RoomListPage = () => {
   const { data, isLoading, isFetching } = useGetRoomsQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
+    search: "", // Always fetch all data for frontend filtering
   });
 
   const [deleteRoom, { isLoading: isDeleting }] = useDeleteRoomMutation();
 
   const [orderedRooms, setOrderedRooms] = useState([]);
 
-  useEffect(() => {
-    if (data?.rooms) {
-      console.log('API Data:', {
-        rooms: data.rooms,
-        roomsLength: data.rooms.length,
-        currentPage: data.currentPage,
-        totalPages: data.totalPages,
-        limit: limit,
-        searchTerm: debouncedSearchTerm
-      });
-      setOrderedRooms(data.rooms);
+  // Frontend pagination for filtered results
+  const { paginatedRooms, paginationData } = useMemo(() => {
+    const allRooms = data?.rooms || [];
+
+    // If no search term, use backend pagination but calculate from/to correctly
+    if (!debouncedSearchTerm.trim()) {
+      const total = data?.total || allRooms.length;
+      const currentPageNum = data?.currentPage || currentPage;
+      const totalPages = data?.totalPages || Math.ceil(total / limit);
+      const from = ((currentPageNum - 1) * limit) + 1;
+      const to = Math.min(currentPageNum * limit, total);
+
+      return {
+        paginatedRooms: allRooms,
+        paginationData: {
+          currentPage: currentPageNum,
+          totalPages,
+          total,
+          perPage: limit,
+          from,
+          to
+        }
+      };
     }
-  }, [data?.rooms, limit, debouncedSearchTerm]);
+
+    // Frontend filtering and pagination
+    const filteredRooms = allRooms.filter(room =>
+      room.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      room.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredRooms.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedRooms = filteredRooms.slice(startIndex, endIndex);
+
+    return {
+      paginatedRooms,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredRooms.length,
+        perPage: limit,
+        from: filteredRooms.length > 0 ? startIndex + 1 : 0,
+        to: Math.min(endIndex, filteredRooms.length)
+      }
+    };
+  }, [data, debouncedSearchTerm, currentPage, limit]);
+
+  useEffect(() => {
+    if (paginatedRooms) {
+      setOrderedRooms(paginatedRooms);
+    }
+  }, [paginatedRooms]);
 
   // Reset to page 1 when search term changes
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchTerm]);
+  }, [searchTerm]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -129,7 +170,6 @@ const RoomListPage = () => {
             setSearchTerm={setSearchTerm}
             onAddClick={handleOpenAddModal}
             addButtonText="Add Room"
-            showMonthFilter={false}
           />
           <DndContext
             sensors={sensors}
@@ -148,15 +188,33 @@ const RoomListPage = () => {
                 onEdit={handleOpenEditModal}
                 onDelete={handleOpenDeleteModal}
               />
-              {/* Debug info */}
-              <div className="text-xs text-gray-500 mt-2">
-                Debug: Showing {orderedRooms.length} of {data?.rooms?.length || 0} rooms (limit: {limit})
-              </div>
             </SortableContext>
           </DndContext>
+
+          {/* Table Information */}
+          <div className="text-center mb-4">
+            <div className="text-sm text-base-content/70 mb-2">
+              {isLoading || isFetching ? (
+                <span>Loading...</span>
+              ) : (
+                <span>
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} room{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.total} of {paginationData.total} rooms
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+
           <Pagination
-            currentPage={currentPage}
-            totalPages={data?.totalPages}
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

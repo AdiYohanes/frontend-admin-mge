@@ -20,12 +20,7 @@ const CustomerReviewManagement = () => {
   const [deleteReview, { isLoading: isDeleting }] =
     useDeleteCustomerReviewMutation();
 
-  // 2. HANDLER UNTUK MEMBUKA MODAL (PASTIKAN LOGIKA INI ADA)
-  const handleAdd = () => {
-    setEditingData(null); // Pastikan mode tambah, bukan edit
-    setIsModalOpen(true); // Ini yang akan memicu modal untuk tampil
-  };
-
+  // 2. HANDLER UNTUK MEMBUKA MODAL
   const handleEdit = (item) => {
     setEditingData(item);
     setIsModalOpen(true);
@@ -48,16 +43,14 @@ const CustomerReviewManagement = () => {
 
   return (
     <>
-      {/* 3. PASTIKAN onAddClick TERHUBUNG KE HANDLER YANG BENAR */}
+      {/* Table controls without add button since add review is not available */}
       <TableControls
-        onAddClick={handleAdd}
-        addButtonText="Add Review"
         showMonthFilter={false}
         showSearch={false}
       />
 
       <CustomerReviewTable
-        reviews={data?.reviews}
+        reviews={data?.reviews || []}
         isLoading={isLoading}
         onEdit={handleEdit}
         onDelete={handleDelete}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useGetBookingsQuery, useGetBookingDetailQuery } from '../api/bookingApiSlice';
 import useDebounce from '../../../hooks/useDebounce';
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useSearchParams } from 'react-router'
 // Impor semua komponen yang dibutuhkan oleh halaman ini
 import TableControls from '../../../components/common/TableControls';
@@ -9,6 +9,7 @@ import Pagination from '../../../components/common/Pagination';
 import BookingTable from '../components/BookingTable';
 import RefundModal from '../components/RefundModal';
 import BookingDetailModal from '../components/BookingDetailModal';
+import DatePickerModal from '../../../components/common/DatePickerModal';
 
 const BookingRoomPage = () => {
   // --- URL PARAMETER MANAGEMENT ---
@@ -23,6 +24,11 @@ const BookingRoomPage = () => {
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+
+  // State untuk date picker modal
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
 
   // Navigation hook
 
@@ -239,6 +245,30 @@ const BookingRoomPage = () => {
     setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
   };
 
+  // Date picker handlers
+  const handleDateSelect = (date) => {
+    if (date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString();
+      setMonthFilter(month);
+      setYearFilter(year);
+      setSelectedMonth(date);
+      setSelectedYear(date);
+    } else {
+      setMonthFilter('');
+      setYearFilter('');
+      setSelectedMonth(null);
+      setSelectedYear(null);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setMonthFilter('');
+    setYearFilter('');
+    setSelectedMonth(null);
+    setSelectedYear(null);
+  };
+
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
@@ -306,12 +336,72 @@ const BookingRoomPage = () => {
             ))}
           </div>
 
-          <TableControls
-            limit={limit} setLimit={setLimit} searchTerm={searchTerm} setSearchTerm={setSearchTerm}
-            monthFilter={monthFilter} setMonthFilter={setMonthFilter}
-            yearFilter={yearFilter} setYearFilter={setYearFilter}
-            onAddClick={handleOpenAddModal} addButtonText="Add OTS Booking"
-          />
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            {/* Search and Limit Controls */}
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              <div className="form-control">
+                <input
+                  type="text"
+                  placeholder="Search bookings..."
+                  className="input input-bordered input-sm w-full sm:w-64"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="form-control">
+                <select
+                  className="select select-bordered select-sm"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="form-control">
+                <button
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="btn btn-outline btn-sm gap-2"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  {monthFilter && yearFilter ? `Filter: ${monthFilter}/${yearFilter}` : 'Filter'}
+                </button>
+              </div>
+              {(monthFilter || yearFilter) && (
+                <div className="form-control">
+                  <button
+                    onClick={handleClearFilters}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Add Button */}
+            <div className="form-control">
+              <button
+                onClick={handleOpenAddModal}
+                className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
+                aria-label="Add OTS Booking"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleOpenAddModal();
+                  }
+                }}
+              >
+                Add OTS Booking
+              </button>
+            </div>
+          </div>
 
           <BookingTable
             bookings={paginatedBookings}
@@ -354,6 +444,16 @@ const BookingRoomPage = () => {
         bookingData={bookingDetail}
         isLoading={isDetailLoading}
         error={detailError}
+      />
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        selectedDate={selectedMonth || selectedYear}
+        onDateSelect={handleDateSelect}
+        title="Select Date Filter"
+        yearRange={20}
       />
     </>
   );

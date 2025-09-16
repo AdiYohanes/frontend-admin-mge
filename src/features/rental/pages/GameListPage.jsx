@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   useGetGameListQuery,
   useDeleteGameMutation,
@@ -45,17 +45,69 @@ const GameListPage = () => {
   const { data, isLoading, isFetching } = useGetGameListQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
+    search: "", // Always fetch all data for frontend filtering
   });
 
   const [deleteGame, { isLoading: isDeleting }] = useDeleteGameMutation();
 
+  // Frontend pagination for filtered results
+  const { paginatedGames, paginationData } = useMemo(() => {
+    const allGames = data?.games || [];
+
+    // If no search term, use backend pagination but calculate from/to correctly
+    if (!debouncedSearchTerm.trim()) {
+      const total = data?.total || allGames.length;
+      const currentPageNum = data?.currentPage || currentPage;
+      const totalPages = data?.totalPages || Math.ceil(total / limit);
+      const from = ((currentPageNum - 1) * limit) + 1;
+      const to = Math.min(currentPageNum * limit, total);
+
+      return {
+        paginatedGames: allGames,
+        paginationData: {
+          currentPage: currentPageNum,
+          totalPages,
+          total,
+          perPage: limit,
+          from,
+          to
+        }
+      };
+    }
+
+    // Frontend filtering and pagination
+    const filteredGames = allGames.filter(game =>
+      game.title?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      game.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      game.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      game.genre?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      game.console?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredGames.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedGames = filteredGames.slice(startIndex, endIndex);
+
+    return {
+      paginatedGames,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredGames.length,
+        perPage: limit,
+        from: filteredGames.length > 0 ? startIndex + 1 : 0,
+        to: Math.min(endIndex, filteredGames.length)
+      }
+    };
+  }, [data, debouncedSearchTerm, currentPage, limit]);
+
   // Sinkronkan urutan lokal dengan data dari API
   useEffect(() => {
-    if (data?.games) {
-      setOrderedGames(data.games);
+    if (paginatedGames) {
+      setOrderedGames(paginatedGames);
     }
-  }, [data?.games]);
+  }, [paginatedGames]);
 
   // Konfigurasi sensor untuk dnd-kit
   const sensors = useSensors(
@@ -118,6 +170,11 @@ const GameListPage = () => {
     }
   };
 
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
   return (
     <>
       <div className="card bg-base-100 shadow-xl">
@@ -130,7 +187,6 @@ const GameListPage = () => {
             setSearchTerm={setSearchTerm}
             onAddClick={handleOpenAddModal}
             addButtonText="Add Game"
-            showMonthFilter={false}
           />
 
           <DndContext
@@ -153,9 +209,30 @@ const GameListPage = () => {
             </SortableContext>
           </DndContext>
 
+          {/* Table Information */}
+          <div className="text-center mb-4">
+            <div className="text-sm text-base-content/70 mb-2">
+              {isLoading || isFetching ? (
+                <span>Loading...</span>
+              ) : (
+                <span>
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} game{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.total} of {paginationData.total} games
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

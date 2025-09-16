@@ -6,7 +6,6 @@ import {
 } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useSearchParams } from 'react-router';
 
 import TableControls from "../../../components/common/TableControls";
@@ -24,7 +23,6 @@ const CustomerListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   const [customerToDelete, setCustomerToDelete] = useState(null);
@@ -40,12 +38,10 @@ const CustomerListPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 15;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
 
     setCurrentPage(urlPage);
     setLimit(urlLimit);
     setSearchTerm(urlSearch);
-    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -56,7 +52,6 @@ const CustomerListPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 15) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -65,7 +60,7 @@ const CustomerListPage = () => {
     if (currentParams !== newParams) {
       setSearchParams(params, { replace: true });
     }
-  }, [currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
+  }, [currentPage, limit, searchTerm, setSearchParams, searchParams]);
 
   const {
     data: tableData,
@@ -76,7 +71,7 @@ const CustomerListPage = () => {
     per_page: limit,
     search: debouncedSearchTerm,
     role: "CUST",
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sort_direction: "desc",
   });
 
   const { data: topUsers, isLoading: isLoadingTopUsers } =
@@ -84,24 +79,50 @@ const CustomerListPage = () => {
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  // Use data directly from API (backend handles filtering and pagination)
-  const users = useMemo(() => {
-    console.log('🔍 DEBUG - Table data:', tableData);
-    console.log('🔍 DEBUG - Users data:', tableData?.users);
-    return tableData?.users || [];
-  }, [tableData]);
+  // Frontend pagination for filtered results
+  const { paginatedUsers, paginationData } = useMemo(() => {
+    const allUsers = tableData?.users || [];
 
-  const paginationData = useMemo(() => tableData?.pagination || {
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-    perPage: 15
-  }, [tableData?.pagination]);
+    // If no search term, use backend pagination
+    if (!debouncedSearchTerm.trim()) {
+      return {
+        paginatedUsers: allUsers,
+        paginationData: tableData?.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          total: 0,
+          perPage: 15
+        }
+      };
+    }
+
+    // Frontend filtering and pagination
+    const filteredUsers = allUsers.filter(user =>
+      user.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.phone?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredUsers.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+    return {
+      paginatedUsers,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredUsers.length,
+        perPage: limit,
+        from: startIndex + 1,
+        to: Math.min(endIndex, filteredUsers.length)
+      }
+    };
+  }, [tableData, debouncedSearchTerm, currentPage, limit]);
 
   // --- HANDLER FUNCTIONS ---
-  const handleSortToggle = () => {
-    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
-  };
 
   const handleDeleteCustomer = (user) => {
     setCustomerToDelete(user);
@@ -124,7 +145,7 @@ const CustomerListPage = () => {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, sortOrder]);
+  }, [limit, searchTerm]);
 
   const handleConfirmDelete = async () => {
     try {
@@ -161,27 +182,6 @@ const CustomerListPage = () => {
         <div className="card-body">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
             <h2 className="card-title text-2xl">Customer List</h2>
-
-            {/* Sort Toggle Button */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSortToggle}
-                className="btn btn-outline btn-sm gap-2"
-                title={sortOrder === 'newest' ? 'Sort by Oldest Created First' : 'Sort by Newest Created First'}
-              >
-                {sortOrder === 'newest' ? (
-                  <>
-                    <ChevronDownIcon className="h-4 w-4" />
-                    Newest
-                  </>
-                ) : (
-                  <>
-                    <ChevronUpIcon className="h-4 w-4" />
-                    Oldest
-                  </>
-                )}
-              </button>
-            </div>
           </div>
 
           <TableControls
@@ -195,7 +195,7 @@ const CustomerListPage = () => {
           />
 
           <CustomerTable
-            users={users}
+            users={paginatedUsers}
             isLoading={isLoadingTable || isFetchingTable}
             page={currentPage}
             limit={limit}
@@ -210,8 +210,15 @@ const CustomerListPage = () => {
                 <span>Loading...</span>
               ) : (
                 <span>
-                  Showing {paginationData.from || 0} to {paginationData.to || 0} of{' '}
-                  {paginationData.total} customers
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} customer{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.total} of {paginationData.total} customers
+                    </>
+                  )}
                   {paginationData.totalPages > 1 && (
                     <span className="ml-2 text-info">
                       (Page {paginationData.currentPage} of {paginationData.totalPages})
@@ -220,13 +227,6 @@ const CustomerListPage = () => {
                 </span>
               )}
             </div>
-
-            {/* Show filtered count when searching */}
-            {debouncedSearchTerm.trim() && (
-              <div className="text-sm text-info">
-                Found {users.length} customers matching "{debouncedSearchTerm}"
-              </div>
-            )}
           </div>
 
           <Pagination

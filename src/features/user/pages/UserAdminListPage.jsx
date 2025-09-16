@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useGetUsersQuery, useDeleteUserMutation } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import { useSearchParams } from 'react-router';
 
 // Impor semua komponen yang dibutuhkan oleh halaman ini
@@ -20,7 +19,6 @@ const UserAdminListPage = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
 
   // State untuk mengontrol modal Tambah/Edit dan Hapus
@@ -35,12 +33,10 @@ const UserAdminListPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 15;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
 
     setCurrentPage(urlPage);
     setLimit(urlLimit);
     setSearchTerm(urlSearch);
-    setSortOrder(urlSortDirection === 'desc' ? 'newest' : 'oldest');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run on mount
 
@@ -51,16 +47,23 @@ const UserAdminListPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 15) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
     const newParams = params.toString();
 
+    console.log('🔍 DEBUG - URL Parameter Update:', {
+      currentParams,
+      newParams,
+      searchTerm,
+      searchTermTrimmed: searchTerm.trim(),
+      willUpdate: currentParams !== newParams
+    });
+
     if (currentParams !== newParams) {
       setSearchParams(params, { replace: true });
     }
-  }, [currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
+  }, [currentPage, limit, searchTerm, setSearchParams, searchParams]);
 
   // --- RTK QUERY HOOKS ---
   const { data: tableData, isLoading, isFetching } = useGetUsersQuery({
@@ -68,29 +71,71 @@ const UserAdminListPage = () => {
     per_page: limit,
     search: debouncedSearchTerm,
     role: "ADMN",
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sort_direction: "desc",
   });
+
+  // Debug logs for search functionality
+  useEffect(() => {
+    console.log('🔍 DEBUG - UserAdminListPage Search State:', {
+      searchTerm,
+      debouncedSearchTerm,
+      currentPage,
+      limit
+    });
+  }, [searchTerm, debouncedSearchTerm, currentPage, limit]);
 
   const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
 
-  // Use data directly from API (backend handles filtering and pagination)
-  const users = useMemo(() => tableData?.users || [], [tableData?.users]);
-  const paginationData = useMemo(() => tableData?.pagination || {
-    currentPage: 1,
-    totalPages: 1,
-    total: 0,
-    perPage: 15
-  }, [tableData?.pagination]);
+
+  // Frontend pagination for filtered results
+  const { paginatedUsers, paginationData } = useMemo(() => {
+    const allUsers = tableData?.users || [];
+
+    // If no search term, use backend pagination
+    if (!debouncedSearchTerm.trim()) {
+      return {
+        paginatedUsers: allUsers,
+        paginationData: tableData?.pagination || {
+          currentPage: 1,
+          totalPages: 1,
+          total: 0,
+          perPage: 15
+        }
+      };
+    }
+
+    // Frontend filtering and pagination
+    const filteredUsers = allUsers.filter(user =>
+      user.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.username?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.email?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      user.phone?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredUsers.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+    return {
+      paginatedUsers,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredUsers.length,
+        perPage: limit,
+        from: startIndex + 1,
+        to: Math.min(endIndex, filteredUsers.length)
+      }
+    };
+  }, [tableData, debouncedSearchTerm, currentPage, limit]);
 
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [limit, debouncedSearchTerm, sortOrder]);
+  }, [limit, searchTerm]);
 
   // --- HANDLER FUNCTIONS ---
-  const handleSortToggle = () => {
-    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
-  };
 
   const handleOpenAddModal = () => {
     setEditingData(null);
@@ -129,27 +174,6 @@ const UserAdminListPage = () => {
         <div className="card-body">
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
             <h2 className="card-title text-2xl">User Admin List</h2>
-
-            {/* Sort Toggle Button */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={handleSortToggle}
-                className="btn btn-outline btn-sm gap-2"
-                title={sortOrder === 'newest' ? 'Sort by Oldest Created First' : 'Sort by Newest Created First'}
-              >
-                {sortOrder === 'newest' ? (
-                  <>
-                    <ChevronDownIcon className="h-4 w-4" />
-                    Newest
-                  </>
-                ) : (
-                  <>
-                    <ChevronUpIcon className="h-4 w-4" />
-                    Oldest
-                  </>
-                )}
-              </button>
-            </div>
           </div>
 
           <TableControls
@@ -164,7 +188,7 @@ const UserAdminListPage = () => {
             searchPlaceholder="Search by name, username, email, or phone..."
           />
           <UserAdminTable
-            users={users}
+            users={paginatedUsers}
             isLoading={isLoading || isFetching}
             onEdit={handleOpenEditModal}
             onDelete={handleOpenDeleteModal}
@@ -177,18 +201,24 @@ const UserAdminListPage = () => {
                 <span>Loading...</span>
               ) : (
                 <span>
-                  Showing {users.length} of{' '}
-                  {paginationData.total} admin users
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} admin user{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.from || 0} to {paginationData.to || 0} of{' '}
+                      {paginationData.total} admin users
+                    </>
+                  )}
+                  {paginationData.totalPages > 1 && (
+                    <span className="ml-2 text-info">
+                      (Page {paginationData.currentPage} of {paginationData.totalPages})
+                    </span>
+                  )}
                 </span>
               )}
             </div>
-
-            {/* Show filtered count when searching */}
-            {debouncedSearchTerm.trim() && (
-              <div className="text-sm text-info">
-                Found {users.length} admin users matching "{debouncedSearchTerm}"
-              </div>
-            )}
           </div>
 
           <Pagination

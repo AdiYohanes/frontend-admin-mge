@@ -108,7 +108,6 @@ const AddEditCustomerModal = ({ isOpen, onClose, editingData }) => {
                             value={formData.email}
                             onChange={handleInputChange}
                             className="input input-bordered"
-                            required
                         />
                     </div>
 

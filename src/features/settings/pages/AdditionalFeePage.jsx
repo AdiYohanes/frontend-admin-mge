@@ -34,7 +34,7 @@ const AdditionalFeePage = () => {
                     <h3 className="text-xl font-semibold">Tax</h3>
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text">Amount <span className="text-error">*</span></span>
+                            <span className="label-text">Amount (%) <span className="text-error">*</span></span>
                         </label>
                         <div className="relative">
                             <input
@@ -101,7 +101,7 @@ const AdditionalFeePage = () => {
                     <h3 className="text-xl font-semibold">Service Fee</h3>
                     <div className="form-control">
                         <label className="label">
-                            <span className="label-text">Amount <span className="text-error">*</span></span>
+                            <span className="label-text">Amount (Rp) <span className="text-error">*</span></span>
                         </label>
                         <input
                             type="number"

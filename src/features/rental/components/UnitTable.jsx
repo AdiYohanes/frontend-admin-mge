@@ -34,6 +34,7 @@ const UnitTable = ({
             <th>Room</th>
             <th>Console</th>
             <th>Rent Price</th>
+            <th>Points/Hours</th>
             <th>Game List</th>
             <th>Status</th>
             <th className="text-center">Actions</th>

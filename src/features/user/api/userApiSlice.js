@@ -10,9 +10,15 @@ export const userApiSlice = apiSlice.injectEndpoints({
         if (sort_direction) params.sort_direction = sort_direction;
 
         console.log('🔍 DEBUG - User API Query params:', params);
+        console.log('🔍 DEBUG - Search term:', search);
+        console.log('🔍 DEBUG - Search trimmed:', search?.trim());
+
+        const url = "/api/admin/user";
+        console.log('🔍 DEBUG - API URL:', url);
+        console.log('🔍 DEBUG - Final API Request:', { url, params });
 
         return {
-          url: "/api/admin/user",
+          url: url,
           params: params,
         };
       },
@@ -27,7 +33,17 @@ export const userApiSlice = apiSlice.injectEndpoints({
           from: response.from || 0,
           to: response.to || 0,
         };
-        console.log('🔍 DEBUG - Transformed data:', { users: users.length, pagination });
+        console.log('🔍 DEBUG - Transformed data:', {
+          users: users.length,
+          pagination,
+          searchTerm: response.search_term || 'N/A',
+          filteredUsers: users.filter(user =>
+            user.name?.toLowerCase().includes(response.search_term?.toLowerCase() || '') ||
+            user.username?.toLowerCase().includes(response.search_term?.toLowerCase() || '') ||
+            user.email?.toLowerCase().includes(response.search_term?.toLowerCase() || '') ||
+            user.phone?.toLowerCase().includes(response.search_term?.toLowerCase() || '')
+          ).length
+        });
         return { users, pagination };
       },
       providesTags: (result) =>

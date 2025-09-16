@@ -6,44 +6,12 @@ const TableControls = ({
   setLimit,
   searchTerm,
   setSearchTerm,
-  monthFilter,
-  setMonthFilter,
-  yearFilter,
-  setYearFilter,
   onAddClick,
   addButtonText,
-  showMonthFilter = true,
-  showYearFilter = true,
   showSearch = true,
   searchPlaceholder = "Search ...",
   exportButton,
 }) => {
-  // Generate month options (1-12)
-  const monthOptions = [
-    { value: "", label: "All months" },
-    { value: "01", label: "January" },
-    { value: "02", label: "February" },
-    { value: "03", label: "March" },
-    { value: "04", label: "April" },
-    { value: "05", label: "May" },
-    { value: "06", label: "June" },
-    { value: "07", label: "July" },
-    { value: "08", label: "August" },
-    { value: "09", label: "September" },
-    { value: "10", label: "October" },
-    { value: "11", label: "November" },
-    { value: "12", label: "December" },
-  ];
-
-  // Generate year options (current year and 5 years before)
-  const currentYear = new Date().getFullYear();
-  const yearOptions = [
-    { value: "", label: "All years" },
-    ...Array.from({ length: 6 }, (_, idx) => {
-      const year = currentYear - idx;
-      return { value: year.toString(), label: year.toString() };
-    }),
-  ];
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
@@ -81,37 +49,6 @@ const TableControls = ({
           </div>
         )}
 
-        {/* Month Filter */}
-        {showMonthFilter && (
-          <select
-            className="select select-bordered select-sm"
-            value={monthFilter}
-            onChange={(e) => setMonthFilter(e.target.value)}
-            aria-label="Filter by month"
-          >
-            {monthOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Year Filter */}
-        {showYearFilter && (
-          <select
-            className="select select-bordered select-sm"
-            value={yearFilter}
-            onChange={(e) => setYearFilter(e.target.value)}
-            aria-label="Filter by year"
-          >
-            {yearOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
-            ))}
-          </select>
-        )}
 
         {/* Add Button di pojok kanan */}
         {onAddClick && (

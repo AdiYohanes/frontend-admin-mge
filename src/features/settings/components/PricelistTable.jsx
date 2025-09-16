@@ -8,18 +8,19 @@ import {
 
 const PricelistTable = () => {
     const { data: pricelistsData, isLoading, error } = useGetPricelistsQuery();
-    const formatPrice = (price) => {
-        return new Intl.NumberFormat('id-ID', {
-            style: 'currency',
-            currency: 'IDR',
-            minimumFractionDigits: 0,
-        }).format(price);
-    };
+
+    // Debug logging
+    console.log('PricelistTable - pricelistsData:', pricelistsData);
+    console.log('PricelistTable - isLoading:', isLoading);
+    console.log('PricelistTable - error:', error);
 
     // Flatten the data structure for table display
     const flattenedData = [];
-    if (pricelistsData?.rooms) {
-        pricelistsData.rooms.forEach((room, roomIndex) => {
+
+    // Process the data - it should be a direct array based on the API response
+    if (pricelistsData && Array.isArray(pricelistsData)) {
+        console.log('PricelistTable - processing direct array:', pricelistsData);
+        pricelistsData.forEach((room, roomIndex) => {
             if (room.units && room.units.length > 0) {
                 room.units.forEach((unit, unitIndex) => {
                     flattenedData.push({
@@ -28,7 +29,7 @@ const PricelistTable = () => {
                         roomName: room.room_name,
                         maxVisitors: room.max_visitors,
                         unitName: unit.unit_name,
-                        pricePerHour: unit.price_per_hour,
+                        pricePerHour: unit.price_per_hour, // Already formatted string
                         isFirstUnitInRoom: unitIndex === 0,
                         unitsInRoom: room.units.length
                     });
@@ -36,6 +37,8 @@ const PricelistTable = () => {
             }
         });
     }
+
+    console.log('PricelistTable - flattenedData:', flattenedData);
 
     if (isLoading) {
         return (
@@ -137,10 +140,7 @@ const PricelistTable = () => {
                                     <div className="flex items-center gap-2">
                                         <CurrencyDollarIcon className="h-4 w-4 text-success" />
                                         <span className="font-semibold text-success">
-                                            {formatPrice(item.pricePerHour)}
-                                        </span>
-                                        <span className="text-xs text-base-content/50">
-                                            / hour
+                                            {item.pricePerHour}
                                         </span>
                                     </div>
                                 </td>

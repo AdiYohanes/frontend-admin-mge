@@ -1,18 +1,22 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useDropzone } from "react-dropzone";
 import {
   useAddRoomMutation,
   useUpdateRoomMutation,
+  useGetAllConsolesQuery,
 } from "../api/rentalApiSlice";
 import { toast } from "react-hot-toast";
 import {
   UsersIcon,
   ArrowUpTrayIcon,
   XCircleIcon,
-  HomeIcon
+  HomeIcon,
+  CpuChipIcon,
+  ChevronDownIcon,
+  XMarkIcon
 } from "@heroicons/react/24/outline";
 
 // Skema validasi untuk form, termasuk max_visitors
@@ -30,15 +34,18 @@ const roomSchema = z.object({
     )
     .optional(),
   max_visitors: z.number().min(1, "Kapasitas minimal 1 orang"),
+  console_ids: z.array(z.number()).optional(),
 });
 
 const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
   const [preview, setPreview] = useState(null);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   // Inisialisasi hooks mutation dari RTK Query
   const [addRoom, { isLoading: isAdding }] = useAddRoomMutation();
   const [updateRoom, { isLoading: isUpdating }] = useUpdateRoomMutation();
+  const { data: consolesData } = useGetAllConsolesQuery();
   const isLoading = isAdding || isUpdating;
 
   const {
@@ -46,6 +53,7 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
     handleSubmit,
     reset,
     setValue,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(roomSchema),
@@ -75,12 +83,13 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
         reset({
           name: editingData.name,
           description: editingData.description,
-          max_visitors: editingData.max_visitors
+          max_visitors: editingData.max_visitors,
+          console_ids: editingData.console_ids || []
         });
         setPreview(editingData.imageUrl);
       } else {
         // Mode Tambah: reset ke form kosong dengan nilai default
-        reset({ name: "", description: "", image: null, max_visitors: 4 });
+        reset({ name: "", description: "", image: null, max_visitors: 4, console_ids: [] });
         setPreview(null);
       }
     }
@@ -91,18 +100,52 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
     setValue("image", null);
   };
 
+  const handleConsoleToggle = (field, consoleId) => {
+    const currentSelection = field.value || [];
+    const isSelected = currentSelection.includes(consoleId);
+
+    const newSelection = isSelected
+      ? currentSelection.filter(id => id !== consoleId)
+      : [...currentSelection, consoleId];
+
+    field.onChange(newSelection);
+    setIsDropdownOpen(false);
+  };
+
   // Fungsi yang dijalankan saat form di-submit
   const onSubmit = async (formData) => {
     try {
+      // Create FormData for file upload
+      const submitData = new FormData();
+
+      // Add basic fields
+      submitData.append('name', formData.name);
+      submitData.append('description', formData.description || '');
+      submitData.append('max_visitors', String(formData.max_visitors));
+
+      // Add console_ids as array
+      if (formData.console_ids && formData.console_ids.length > 0) {
+        formData.console_ids.forEach(id => {
+          submitData.append('console_ids[]', String(id));
+        });
+      }
+
+      // Add image if present
+      if (formData.image && formData.image[0]) {
+        submitData.append('image', formData.image[0]);
+      }
+
+      // Debug: Log FormData contents
+      console.log('FormData contents:');
+      for (let [key, value] of submitData.entries()) {
+        console.log(key, value, typeof value);
+      }
+
       if (isEditMode) {
-        // Hapus field gambar jika tidak ada file baru yang dipilih saat edit
-        if (!formData.image) {
-          delete formData.image;
-        }
-        await updateRoom({ id: editingData.id, ...formData }).unwrap();
+        await updateRoom({ id: editingData.id, formData: submitData }).unwrap();
         toast.success("Ruangan berhasil diperbarui!");
       } else {
-        await addRoom(formData).unwrap();
+        await addRoom(submitData).unwrap();
         toast.success("Ruangan baru berhasil ditambahkan!");
       }
       onClose(); // Tutup modal setelah sukses
@@ -259,6 +302,84 @@ const AddEditRoomModal = ({ isOpen, onClose, editingData }) => {
               className="textarea textarea-bordered h-24"
               placeholder="Deskripsi singkat mengenai ruangan, fasilitas, dan suasana..."
             ></textarea>
+          </div>
+
+          {/* Console Selection Section */}
+          <div className="form-control">
+            <Controller
+              name="console_ids"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Available Consoles
+                    </span>
+                  </label>
+
+                  {/* Dropdown Trigger */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                      className="w-full btn btn-outline justify-between text-left font-normal border-base-300 hover:border-brand-gold hover:bg-brand-gold/5"
+                    >
+                      <span className="flex items-center gap-2">
+                        <CpuChipIcon className="h-4 w-4 text-brand-gold" />
+                        {field.value && field.value.length > 0
+                          ? `${field.value.length} console${field.value.length > 1 ? 's' : ''} selected`
+                          : 'Select consoles...'
+                        }
+                      </span>
+                      <ChevronDownIcon className={`h-4 w-4 transition-transform ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {/* Dropdown Menu */}
+                    {isDropdownOpen && (
+                      <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                        {consolesData?.map(console => (
+                          <label
+                            key={console.id}
+                            className="flex items-center justify-between px-4 py-2 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0"
+                          >
+                            <span className="font-medium">{console.name}</span>
+                            <input
+                              type="checkbox"
+                              className="checkbox checkbox-sm checkbox-primary"
+                              checked={field.value?.includes(console.id) || false}
+                              onChange={() => handleConsoleToggle(field, console.id)}
+                            />
+                          </label>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Selected Items Display */}
+                  {field.value && field.value.length > 0 && (
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {field.value.map(consoleId => {
+                        const console = consolesData?.find(c => c.id === consoleId);
+                        return console ? (
+                          <div key={consoleId} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
+                            <CpuChipIcon className="h-3 w-3" />
+                            {console.name}
+                            <button
+                              type="button"
+                              className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
+                              onClick={() => handleConsoleToggle(field, consoleId)}
+                            >
+                              <XMarkIcon className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : null;
+                      })}
+                    </div>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           <div className="modal-action pt-4 border-t border-base-300">

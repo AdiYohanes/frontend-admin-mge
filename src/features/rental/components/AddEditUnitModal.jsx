@@ -15,7 +15,8 @@ import {
   BuildingOfficeIcon,
   CurrencyDollarIcon,
   UsersIcon,
-  CpuChipIcon
+  CpuChipIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
 
 // Skema validasi disederhanakan, 'game_ids' dihapus
@@ -26,6 +27,7 @@ const unitSchema = z.object({
   status: z.string().nonempty("Status harus dipilih"),
   max_visitors: z.coerce.number().min(1, "Kapasitas minimal 1 orang"),
   price: z.coerce.number().min(1000, "Harga sewa minimal 1000"),
+  points_per_hour: z.coerce.number().min(0, "Points per hour minimal 0"),
   console_ids: z.array(z.number()).nonempty("Pilih minimal satu konsol"),
 });
 
@@ -61,11 +63,12 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
           status: editingData.status,
           max_visitors: editingData.max_visitors,
           price: editingData.rentPrice,
+          points_per_hour: editingData.points_per_hour || 0,
           console_ids: editingData.console_ids || [],
         });
       } else {
         // Reset form tambah baru tanpa data game
-        reset({ name: '', room_id: '', description: '', status: 'available', max_visitors: 0, price: 0, console_ids: [] });
+        reset({ name: '', room_id: '', description: '', status: 'available', max_visitors: 0, price: 0, points_per_hour: 0, console_ids: [] });
       }
     }
   }, [isOpen, isEditMode, editingData, reset]);
@@ -300,8 +303,33 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
                 </div>
               </div>
 
-              {/* Status & Description */}
+              {/* Points per Hour & Status */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="form-control">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Points/Hour <span className="text-error">*</span>
+                    </span>
+                  </label>
+                  <div className="relative">
+                    <span className="absolute inset-y-0 left-0 flex items-center pl-3">
+                      <StarIcon className="h-4 w-4 text-gray-400" />
+                    </span>
+                    <input
+                      type="number"
+                      {...register('points_per_hour')}
+                      placeholder="0"
+                      min="0"
+                      className={`input input-bordered input-sm w-full ${errors.points_per_hour ? 'input-error' : ''}`}
+                    />
+                  </div>
+                  {errors.points_per_hour && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.points_per_hour.message}
+                    </span>
+                  )}
+                </div>
+
                 <div className="form-control">
                   <label className="label">
                     <span className="label-text font-medium">
@@ -322,17 +350,18 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
                     </span>
                   )}
                 </div>
+              </div>
 
-                <div className="form-control">
-                  <label className="label">
-                    <span className="label-text font-medium">Description</span>
-                  </label>
-                  <textarea
-                    {...register('description')}
-                    placeholder="Unit description..."
-                    className="textarea textarea-bordered textarea-sm h-16"
-                  ></textarea>
-                </div>
+              {/* Description */}
+              <div className="form-control">
+                <label className="label">
+                  <span className="label-text font-medium">Description</span>
+                </label>
+                <textarea
+                  {...register('description')}
+                  placeholder="Unit description..."
+                  className="textarea textarea-bordered textarea-sm h-16"
+                ></textarea>
               </div>
             </div>
 

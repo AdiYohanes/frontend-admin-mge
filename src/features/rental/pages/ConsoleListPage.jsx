@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   useGetConsolesQuery,
   useDeleteConsoleMutation,
@@ -48,17 +48,66 @@ const ConsoleListPage = () => {
   const { data, isLoading, isFetching } = useGetConsolesQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
+    search: "", // Always fetch all data for frontend filtering
   });
 
   const [deleteConsole, { isLoading: isDeleting }] = useDeleteConsoleMutation();
 
+  // Frontend pagination for filtered results
+  const { paginatedConsoles, paginationData } = useMemo(() => {
+    const allConsoles = data?.consoles || [];
+
+    // If no search term, use backend pagination but calculate from/to correctly
+    if (!debouncedSearchTerm.trim()) {
+      const total = data?.total || allConsoles.length;
+      const currentPageNum = data?.currentPage || currentPage;
+      const totalPages = data?.totalPages || Math.ceil(total / limit);
+      const from = ((currentPageNum - 1) * limit) + 1;
+      const to = Math.min(currentPageNum * limit, total);
+
+      return {
+        paginatedConsoles: allConsoles,
+        paginationData: {
+          currentPage: currentPageNum,
+          totalPages,
+          total,
+          perPage: limit,
+          from,
+          to
+        }
+      };
+    }
+
+    // Frontend filtering and pagination
+    const filteredConsoles = allConsoles.filter(console =>
+      console.name?.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      console.description?.toLowerCase().includes(debouncedSearchTerm.toLowerCase())
+    );
+
+    const totalPages = Math.ceil(filteredConsoles.length / limit);
+    const startIndex = (currentPage - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedConsoles = filteredConsoles.slice(startIndex, endIndex);
+
+    return {
+      paginatedConsoles,
+      paginationData: {
+        currentPage,
+        totalPages,
+        total: filteredConsoles.length,
+        perPage: limit,
+        from: filteredConsoles.length > 0 ? startIndex + 1 : 0,
+        to: Math.min(endIndex, filteredConsoles.length)
+      }
+    };
+  }, [data, debouncedSearchTerm, currentPage, limit]);
+
   // Sinkronkan urutan lokal dengan data dari API
   useEffect(() => {
-    if (data?.consoles) {
-      setOrderedConsoles(data.consoles);
+    if (paginatedConsoles) {
+      setOrderedConsoles(paginatedConsoles);
     }
-  }, [data?.consoles]);
+  }, [paginatedConsoles]);
 
   // --- DRAG & DROP LOGIC ---
   const sensors = useSensors(
@@ -79,6 +128,11 @@ const ConsoleListPage = () => {
       });
     }
   };
+
+  // Reset page when search term changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
 
   // --- HANDLER FUNCTIONS ---
   const handleAddConsole = () => {
@@ -125,7 +179,6 @@ const ConsoleListPage = () => {
             setSearchTerm={setSearchTerm}
             onAddClick={handleAddConsole}
             addButtonText="Add Console"
-            showMonthFilter={false}
           />
 
           <DndContext
@@ -148,9 +201,30 @@ const ConsoleListPage = () => {
             </SortableContext>
           </DndContext>
 
+          {/* Table Information */}
+          <div className="text-center mb-4">
+            <div className="text-sm text-base-content/70 mb-2">
+              {isLoading || isFetching ? (
+                <span>Loading...</span>
+              ) : (
+                <span>
+                  {debouncedSearchTerm.trim() ? (
+                    <>
+                      {paginationData.total} console{paginationData.total !== 1 ? 's' : ''} matching "{debouncedSearchTerm}"
+                    </>
+                  ) : (
+                    <>
+                      Showing {paginationData.total} of {paginationData.total} consoles
+                    </>
+                  )}
+                </span>
+              )}
+            </div>
+          </div>
+
           <Pagination
-            currentPage={data?.currentPage}
-            totalPages={data?.totalPages}
+            currentPage={paginationData.currentPage}
+            totalPages={paginationData.totalPages}
             onPageChange={setCurrentPage}
           />
         </div>

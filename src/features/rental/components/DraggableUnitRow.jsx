@@ -66,6 +66,7 @@ const DraggableUnitRow = ({
       <td>{unit.roomName}</td>
       <td>{unit.consoleNames}</td>
       <td className="font-semibold">{formatCurrency(unit.rentPrice)}/jam</td>
+      <td className="text-center font-semibold">{unit.points_per_hour || 0} pts</td>
       <td className="text-center">
         <div className="tooltip" data-tip="Manage Games">
           <button

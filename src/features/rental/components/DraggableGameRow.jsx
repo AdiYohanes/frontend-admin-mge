@@ -23,30 +23,52 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
     zIndex: isDragging ? 10 : "auto",
   };
 
-  // Helper function to safely display genre
-  const getGenreDisplay = (genre) => {
-    if (typeof genre === 'string') {
-      return genre;
+  // Helper function to display multiple genres as unordered list
+  const getGenreDisplay = (game) => {
+    if (game.genres && Array.isArray(game.genres) && game.genres.length > 0) {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {game.genres.map((genre, index) => (
+            <li key={index} className="text-xs">
+              {genre.name}
+            </li>
+          ))}
+        </ul>
+      );
     }
-    if (genre && typeof genre === 'object' && genre.name) {
-      return genre.name;
+    // Fallback to string format if available
+    if (game.genre && typeof game.genre === 'string' && game.genre !== 'No genres') {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          <li className="text-xs">{game.genre}</li>
+        </ul>
+      );
     }
-    return 'Unknown';
+    return <span className="text-gray-400 italic text-xs">No genres</span>;
   };
 
-  // Helper function to safely display console
-  const getConsoleDisplay = (console) => {
-    if (console && typeof console === 'object' && console.name) {
-      return console.name;
+  // Helper function to display multiple consoles as unordered list
+  const getConsoleDisplay = (game) => {
+    if (game.consoles && Array.isArray(game.consoles) && game.consoles.length > 0) {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          {game.consoles.map((console, index) => (
+            <li key={index} className="text-xs">
+              {console.name}
+            </li>
+          ))}
+        </ul>
+      );
     }
-    if (console && typeof console === 'string') {
-      // Return empty string if console is "N/A" or similar
-      if (console === 'N/A' || console === 'n/a' || console === 'N/a') {
-        return '';
-      }
-      return console;
+    // Fallback to string format if available
+    if (game.console && typeof game.console === 'string' && game.console !== 'No consoles') {
+      return (
+        <ul className="list-disc list-inside space-y-1">
+          <li className="text-xs">{game.console}</li>
+        </ul>
+      );
     }
-    return '';
+    return <span className="text-gray-400 italic text-xs">No consoles</span>;
   };
 
   return (
@@ -73,9 +95,11 @@ const DraggableGameRow = ({ game, index, page, limit, onEdit, onDelete }) => {
         </div>
       </td>
       <td className="font-bold">{game.name}</td>
-      <td>{getConsoleDisplay(game.console)}</td>
-      <td>
-        <div className="badge badge-ghost">{getGenreDisplay(game.genre)}</div>
+      <td className="text-sm">
+        {getConsoleDisplay(game)}
+      </td>
+      <td className="text-sm">
+        {getGenreDisplay(game)}
       </td>
       <td className="text-center">
         <div className="flex items-center justify-center gap-1">

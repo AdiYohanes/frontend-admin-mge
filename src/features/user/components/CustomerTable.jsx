@@ -54,7 +54,7 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
                 {user.total_points || 0}
               </td>
               <td className="text-center">
-                <span className="badge badge-outline">
+                <span className="text-sm">
                   {user.total_booking_hours || 0}h
                 </span>
               </td>

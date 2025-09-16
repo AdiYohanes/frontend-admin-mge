@@ -75,14 +75,26 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
         params: { page, per_page: limit, search },
       }),
       transformResponse: (response) => ({
-        rooms: response.data.map((room) => ({
-          ...room,
-          imageUrl: room.image
-            ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${room.image}`
-            : `https://placehold.co/60x60/EEE/31343C?text=${room.name.charAt(
-              0
-            )}`,
-        })),
+        rooms: response.data.map((room) => {
+          // Debug: Log the room data to see what we're getting
+          console.log('Room data:', {
+            id: room.id,
+            name: room.name,
+            consoles: room.consoles,
+            consoleNames: room.consoles?.map((c) => c.name).join(", ") || "N/A"
+          });
+
+          return {
+            ...room,
+            imageUrl: room.image
+              ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${room.image}`
+              : `https://placehold.co/60x60/EEE/31343C?text=${room.name.charAt(
+                0
+              )}`,
+            consoleNames: room.consoles?.map((c) => c.name).join(", ") || "N/A",
+            console_ids: room.consoles?.map((c) => c.id) || [],
+          };
+        }),
         totalPages: response.last_page,
         currentPage: response.current_page,
       }),
@@ -95,37 +107,54 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
           : [{ type: "Room", id: "LIST" }],
     }),
     addRoom: builder.mutation({
-      query: (newRoom) => {
-        const formData = new FormData();
-        formData.append("name", newRoom.name);
-        formData.append("description", newRoom.description);
-        formData.append("max_visitors", newRoom.max_visitors);
-        if (newRoom.image && newRoom.image.length > 0) {
-          formData.append("image", newRoom.image[0]);
+      query: (formData) => {
+        // If formData is already a FormData object, use it directly
+        if (formData instanceof FormData) {
+          return { url: "/api/admin/rooms", method: "POST", body: formData };
         }
-        return { url: "/api/admin/rooms", method: "POST", body: formData };
+
+        // Otherwise, create FormData from object (backward compatibility)
+        const newFormData = new FormData();
+        newFormData.append("name", formData.name);
+        newFormData.append("description", formData.description);
+        newFormData.append("max_visitors", formData.max_visitors);
+        if (formData.image && formData.image.length > 0) {
+          newFormData.append("image", formData.image[0]);
+        }
+        return { url: "/api/admin/rooms", method: "POST", body: newFormData };
       },
       invalidatesTags: [{ type: "Room", id: "LIST" }],
     }),
     updateRoom: builder.mutation({
-      query: ({ id, ...patch }) => {
-        const formData = new FormData();
-        if (patch.name) formData.append("name", patch.name);
+      query: ({ id, formData, ...patch }) => {
+        // If formData is provided, use it directly
+        if (formData instanceof FormData) {
+          formData.append("_method", "POST");
+          return {
+            url: `/api/admin/rooms/${id}`,
+            method: "POST",
+            body: formData,
+          };
+        }
+
+        // Otherwise, create FormData from object (backward compatibility)
+        const newFormData = new FormData();
+        if (patch.name) newFormData.append("name", patch.name);
         if (patch.description)
-          formData.append("description", patch.description);
+          newFormData.append("description", patch.description);
         if (patch.max_visitors)
-          formData.append("max_visitors", patch.max_visitors);
+          newFormData.append("max_visitors", patch.max_visitors);
         if (patch.image && patch.image[0] instanceof File) {
-          formData.append("image", patch.image[0]);
+          newFormData.append("image", patch.image[0]);
         }
         if (patch.is_available !== undefined) {
-          formData.append("is_available", patch.is_available ? 1 : 0);
+          newFormData.append("is_available", patch.is_available ? 1 : 0);
         }
-        formData.append("_method", "POST"); // BENAR: Gunakan 'POST'
+        newFormData.append("_method", "POST");
         return {
           url: `/api/admin/rooms/${id}`,
           method: "POST",
-          body: formData,
+          body: newFormData,
         };
       },
       invalidatesTags: (r, e, arg) => [
@@ -230,27 +259,28 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response) => {
         return {
           games: response.data.map((game) => {
-            // Handle genre properly - check multiple possible formats
-            let genreValue = "Unknown";
-            if (game.genre) {
-              if (typeof game.genre === 'string' && game.genre.trim() !== '') {
-                genreValue = game.genre;
-              } else if (typeof game.genre === 'object' && game.genre.name) {
-                genreValue = game.genre.name;
-              } else if (typeof game.genre === 'object' && game.genre.title) {
-                genreValue = game.genre.title;
-              }
-            } else if (game.genre_id) {
-              // If genre_id exists, we need to get the genre name
-              // For now, we'll use the ID as fallback
-              genreValue = `Genre ID: ${game.genre_id}`;
+            // Handle genres array - extract genre names
+            let genreNames = [];
+            if (game.genres && Array.isArray(game.genres) && game.genres.length > 0) {
+              genreNames = game.genres.map(genre => genre.name).filter(Boolean);
             }
+            const genreValue = genreNames.length > 0 ? genreNames.join(", ") : "No genres";
+
+            // Handle consoles array - extract console names
+            let consoleNames = [];
+            if (game.consoles && Array.isArray(game.consoles) && game.consoles.length > 0) {
+              consoleNames = game.consoles.map(console => console.name).filter(Boolean);
+            }
+            const consoleValue = consoleNames.length > 0 ? consoleNames.join(", ") : "No consoles";
 
             return {
               ...game,
               name: game.title,
-              console: game.consoles?.map((c) => c.name).join(", ") || "N/A",
+              console: consoleValue,
               genre: genreValue,
+              // Keep the original arrays for editing
+              genres: game.genres || [],
+              consoles: game.consoles || [],
               imageUrl: game.image
                 ? `${import.meta.env.VITE_IMAGE_BASE_URL}/${game.image}`
                 : `https://placehold.co/60x60/EEE/31343C?text=${game.title.charAt(
@@ -309,55 +339,97 @@ export const rentalApiSlice = apiSlice.injectEndpoints({
       transformResponse: (response) => response.data,
     }),
     addGame: builder.mutation({
-      query: (newGame) => {
+      query: (formData) => {
+        // If formData is already a FormData object, use it directly
+        if (formData instanceof FormData) {
+          return { url: "/api/admin/games", method: "POST", body: formData };
+        }
 
-        const formData = new FormData();
-        formData.append("title", newGame.title);
-        formData.append("genre_id", parseInt(newGame.genre) || newGame.genre); // Ensure it's a number
-        formData.append("description", newGame.description || "");
-        formData.append("is_active", "1"); // Add is_active field as required
+        // Otherwise, create FormData from object (backward compatibility)
+        const newFormData = new FormData();
+        newFormData.append("title", formData.title);
+        newFormData.append("description", formData.description || "");
+        newFormData.append("is_active", "1");
 
-        // Add console IDs
-        if (newGame.consoles && newGame.consoles.length > 0) {
-          newGame.consoles.forEach((consoleId) => {
-            formData.append(`console_ids[]`, consoleId);
+        // Add genre IDs as array
+        if (formData.genre_ids && formData.genre_ids.length > 0) {
+          formData.genre_ids.forEach((genreId) => {
+            newFormData.append("genre_id[]", genreId);
           });
-        } else {
-          console.log("AddGame - No consoles found in data");
+        } else if (formData.genre) {
+          // Backward compatibility for single genre
+          newFormData.append("genre_id[]", formData.genre);
         }
 
-        if (newGame.image && newGame.image.length > 0) {
-          formData.append("image", newGame.image[0]);
+        // Add console IDs as array
+        if (formData.console_ids && formData.console_ids.length > 0) {
+          formData.console_ids.forEach((consoleId) => {
+            newFormData.append("console_ids[]", consoleId);
+          });
+        } else if (formData.consoles && formData.consoles.length > 0) {
+          // Backward compatibility
+          formData.consoles.forEach((consoleId) => {
+            newFormData.append("console_ids[]", consoleId);
+          });
         }
 
-        return { url: "/api/admin/games", method: "POST", body: formData };
+        if (formData.image && formData.image.length > 0) {
+          newFormData.append("image", formData.image[0]);
+        }
+
+        return { url: "/api/admin/games", method: "POST", body: newFormData };
       },
       invalidatesTags: [{ type: "Game", id: "LIST" }],
     }),
     updateGame: builder.mutation({
-      query: ({ id, ...patch }) => {
-        const formData = new FormData();
-        formData.append("title", patch.title);
-        formData.append("genre_id", parseInt(patch.genre) || patch.genre); // Ensure it's a number
-        formData.append("description", patch.description || "");
-        formData.append("is_active", "1"); // Add is_active field as required
+      query: ({ id, formData, ...patch }) => {
+        // If formData is provided, use it directly
+        if (formData instanceof FormData) {
+          formData.append("_method", "POST");
+          return {
+            url: `/api/admin/games/${id}`,
+            method: "POST",
+            body: formData,
+          };
+        }
 
-        // Add console IDs
-        if (patch.consoles && patch.consoles.length > 0) {
+        // Otherwise, create FormData from object (backward compatibility)
+        const newFormData = new FormData();
+        newFormData.append("title", patch.title);
+        newFormData.append("description", patch.description || "");
+        newFormData.append("is_active", "1");
+
+        // Add genre IDs as array
+        if (patch.genre_ids && patch.genre_ids.length > 0) {
+          patch.genre_ids.forEach((genreId) => {
+            newFormData.append("genre_id[]", genreId);
+          });
+        } else if (patch.genre) {
+          // Backward compatibility for single genre
+          newFormData.append("genre_id[]", patch.genre);
+        }
+
+        // Add console IDs as array
+        if (patch.console_ids && patch.console_ids.length > 0) {
+          patch.console_ids.forEach((consoleId) => {
+            newFormData.append("console_ids[]", consoleId);
+          });
+        } else if (patch.consoles && patch.consoles.length > 0) {
+          // Backward compatibility
           patch.consoles.forEach((consoleId) => {
-            formData.append(`console_ids[]`, consoleId);
+            newFormData.append("console_ids[]", consoleId);
           });
         }
 
         if (patch.image && patch.image.length > 0) {
-          formData.append("image", patch.image[0]);
+          newFormData.append("image", patch.image[0]);
         }
-        formData.append("_method", "POST");
+        newFormData.append("_method", "POST");
 
         return {
           url: `/api/admin/games/${id}`,
           method: "POST",
-          body: formData,
+          body: newFormData,
         };
       },
       invalidatesTags: (result, error, arg) => [

@@ -5,7 +5,7 @@ import {
 } from "../api/eventBookingApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import { useSearchParams } from 'react-router';
 
 import TableControls from "../../../components/common/TableControls";
@@ -13,6 +13,7 @@ import Pagination from "../../../components/common/Pagination";
 import EventBookingTable from "../components/EventBookingTable";
 import AddEditEventModal from "../components/AddEditEventModal";
 import ConfirmationModal from "../../../components/common/ConfirmationModal";
+import DatePickerModal from "../../../components/common/DatePickerModal";
 
 const EventBookingPage = () => {
   // --- URL PARAMETER MANAGEMENT ---
@@ -31,6 +32,11 @@ const EventBookingPage = () => {
   const [editingData, setEditingData] = useState(null);
   const [eventToDelete, setEventToDelete] = useState(null);
   const deleteModalRef = useRef(null);
+
+  // State untuk date picker modal
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const statusTabs = [
@@ -116,6 +122,30 @@ const EventBookingPage = () => {
   // --- HANDLER FUNCTIONS ---
   const handleSortToggle = () => {
     setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+  };
+
+  // Date picker handlers
+  const handleDateSelect = (date) => {
+    if (date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString();
+      setMonthFilter(month);
+      setYearFilter(year);
+      setSelectedMonth(date);
+      setSelectedYear(date);
+    } else {
+      setMonthFilter('');
+      setYearFilter('');
+      setSelectedMonth(null);
+      setSelectedYear(null);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setMonthFilter('');
+    setYearFilter('');
+    setSelectedMonth(null);
+    setSelectedYear(null);
   };
 
   const handleOpenAddModal = () => {
@@ -212,21 +242,72 @@ const EventBookingPage = () => {
               </a>
             ))}
           </div>
-          <TableControls
-            limit={limit}
-            setLimit={setLimit}
-            searchTerm={searchTerm}
-            setSearchTerm={setSearchTerm}
-            monthFilter={monthFilter}
-            setMonthFilter={setMonthFilter}
-            yearFilter={yearFilter}
-            setYearFilter={setYearFilter}
-            onAddClick={handleOpenAddModal}
-            addButtonText="Add Event"
-            showMonthFilter={true}
-            showYearFilter={true}
-            searchPlaceholder="Search by event name or invoice..."
-          />
+          <div className="flex flex-col sm:flex-row gap-4 mb-4">
+            {/* Search and Limit Controls */}
+            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              <div className="form-control">
+                <input
+                  type="text"
+                  placeholder="Search by event name or invoice..."
+                  className="input input-bordered input-sm w-full sm:w-64"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              <div className="form-control">
+                <select
+                  className="select select-bordered select-sm"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                >
+                  <option value={10}>10 per page</option>
+                  <option value={25}>25 per page</option>
+                  <option value={50}>50 per page</option>
+                  <option value={100}>100 per page</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Date Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="form-control">
+                <button
+                  onClick={() => setIsFilterModalOpen(true)}
+                  className="btn btn-outline btn-sm gap-2"
+                >
+                  <CalendarIcon className="h-4 w-4" />
+                  {monthFilter && yearFilter ? `Filter: ${monthFilter}/${yearFilter}` : 'Filter'}
+                </button>
+              </div>
+              {(monthFilter || yearFilter) && (
+                <div className="form-control">
+                  <button
+                    onClick={handleClearFilters}
+                    className="btn btn-ghost btn-sm"
+                  >
+                    Clear Filters
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Add Button */}
+            <div className="form-control">
+              <button
+                onClick={handleOpenAddModal}
+                className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
+                aria-label="Add Event"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    handleOpenAddModal();
+                  }
+                }}
+              >
+                Add Event
+              </button>
+            </div>
+          </div>
           <EventBookingTable
             events={bookings}
             isLoading={isLoading || isFetching}
@@ -283,6 +364,16 @@ const EventBookingPage = () => {
           <span className="font-bold">"{eventToDelete?.eventName}"</span>?
         </p>
       </ConfirmationModal>
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        selectedDate={selectedMonth || selectedYear}
+        onDateSelect={handleDateSelect}
+        title="Select Date Filter"
+        yearRange={5}
+      />
     </>
   );
 };

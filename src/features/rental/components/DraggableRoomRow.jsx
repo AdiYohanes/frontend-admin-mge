@@ -68,6 +68,19 @@ const DraggableRoomRow = ({ room, index, page, limit, onEdit, onDelete }) => {
         {room.description}
       </td>
       <td className="font-medium">{room.max_visitors || "-"} orang</td>
+      <td className="text-sm">
+        {room.consoleNames && room.consoleNames !== "N/A" ? (
+          <ul className="list-disc list-inside space-y-1">
+            {room.consoleNames.split(", ").map((consoleName, idx) => (
+              <li key={idx} className="text-xs">
+                {consoleName}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <span className="text-gray-400 italic text-xs">No consoles</span>
+        )}
+      </td>
       <td>
         <div
           className="tooltip"

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useDropzone } from "react-dropzone";
@@ -7,7 +7,10 @@ import { toast } from "react-hot-toast";
 import {
   FiUpload,
   FiX,
-  FiMonitor
+  FiMonitor,
+  FiTag,
+  FiChevronDown,
+  FiX as FiXMark
 } from "react-icons/fi";
 
 import {
@@ -20,12 +23,7 @@ import {
 // Skema validasi yang lebih fleksibel
 const gameSchema = z.object({
   title: z.string().min(3, "Judul game minimal 3 karakter"),
-  genre: z.union([
-    z.string().nonempty("Genre harus dipilih"),
-    z.number().min(1, "Genre harus dipilih")
-  ]).refine((val) => val && val.toString().trim() !== "", {
-    message: "Genre harus dipilih"
-  }),
+  genre_ids: z.array(z.number()).min(1, "Minimal satu genre harus dipilih").max(3, "Maksimal 3 genre yang dapat dipilih"),
   consoles: z.array(z.number()).min(1, "Minimal satu console harus dipilih"),
   description: z.string().optional().or(z.literal("")),
   image: z.any().optional(), // Lebih fleksibel untuk image
@@ -34,6 +32,24 @@ const gameSchema = z.object({
 const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
   const [preview, setPreview] = useState(null);
+  const [isGenreDropdownOpen, setIsGenreDropdownOpen] = useState(false);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (isGenreDropdownOpen && !event.target.closest('.genre-dropdown')) {
+        setIsGenreDropdownOpen(false);
+      }
+    };
+
+    if (isGenreDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isGenreDropdownOpen]);
 
   const [addGame, { isLoading: isAdding }] = useAddGameMutation();
   const [updateGame, { isLoading: isUpdating }] = useUpdateGameMutation();
@@ -60,19 +76,20 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     reset,
     setValue,
     watch,
+    control,
     formState: { errors },
   } = useForm({
     resolver: zodResolver(gameSchema),
     defaultValues: {
       title: "",
-      genre: "",
+      genre_ids: [],
       consoles: [],
       description: "",
       image: null,
     },
   });
 
-  const selectedConsoles = watch("consoles");
+  const selectedGenres = watch("genre_ids");
 
   const onDrop = useCallback(
     (acceptedFiles) => {
@@ -93,18 +110,28 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       if (isEditMode && editingData) {
-        // Handle genre and console properly - extract ID if it's an object, or use as is if it's a number
-        let genreValue = "";
-
-        if (editingData.genre) {
+        // Handle genre data - now support multiple genres
+        let genreValues = [];
+        if (editingData.genres && editingData.genres.length > 0) {
+          genreValues = editingData.genres.map(genre => {
+            if (typeof genre === 'string') {
+              // If it's a string, find the genre ID by name
+              const selectedGenre = genresData?.genres?.find(g => g.name === genre);
+              return selectedGenre ? selectedGenre.id : null;
+            } else if (genre && typeof genre === 'object' && genre.id) {
+              return genre.id;
+            } else if (typeof genre === 'number') {
+              return genre;
+            }
+            return null;
+          }).filter(Boolean); // Remove null values
+        } else if (editingData.genre) {
+          // Handle single genre (backward compatibility)
           if (typeof editingData.genre === 'string') {
-            // If it's a string, we need to find the genre ID by name
             const selectedGenre = genresData?.genres?.find(g => g.name === editingData.genre);
-            genreValue = selectedGenre ? selectedGenre.id.toString() : "";
-          } else if (editingData.genre && typeof editingData.genre === 'object' && editingData.genre.id) {
-            genreValue = editingData.genre.id.toString();
+            genreValues = selectedGenre ? [selectedGenre.id] : [];
           } else if (typeof editingData.genre === 'number') {
-            genreValue = editingData.genre.toString();
+            genreValues = [editingData.genre];
           }
         }
 
@@ -127,7 +154,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
 
         reset({
           title: editingData.name || editingData.title || "",
-          genre: genreValue, // This will be the genre ID
+          genre_ids: genreValues, // This will be the genre IDs array
           consoles: consoleValues, // This will be the console IDs array
           description: editingData.description || "",
           image: null,
@@ -136,7 +163,7 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
       } else {
         reset({
           title: "",
-          genre: "",
+          genre_ids: [],
           consoles: [],
           description: "",
           image: null,
@@ -151,43 +178,63 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
     setValue("image", null);
   };
 
-  const handleConsoleChange = (consoleId, isChecked) => {
-    const currentConsoles = selectedConsoles || [];
-    if (isChecked) {
-      setValue("consoles", [...currentConsoles, consoleId], { shouldValidate: true });
+
+  const handleGenreToggle = (field, genreId) => {
+    const currentSelection = field.value || [];
+    const isSelected = currentSelection.includes(genreId);
+
+    if (isSelected) {
+      // Remove genre
+      field.onChange(currentSelection.filter(id => id !== genreId));
     } else {
-      setValue("consoles", currentConsoles.filter(id => id !== consoleId), { shouldValidate: true });
+      // Add genre (max 3)
+      if (currentSelection.length < 3) {
+        field.onChange([...currentSelection, genreId]);
+      } else {
+        toast.error("Maksimal 3 genre yang dapat dipilih");
+      }
     }
+    setIsGenreDropdownOpen(false);
   };
 
   const onSubmit = async (formData) => {
     try {
-
-      // Use selectedConsoles from watch instead of formData.consoles
-      const consolesToSubmit = selectedConsoles || formData.consoles || [];
-
       // Validate genre and console selection
-      if (!formData.genre) {
-        toast.error("Genre harus dipilih!");
+      if (!formData.genre_ids || formData.genre_ids.length === 0) {
+        toast.error("Minimal satu genre harus dipilih!");
         return;
       }
-      if (!consolesToSubmit || consolesToSubmit.length === 0) {
+      if (!formData.consoles || formData.consoles.length === 0) {
         toast.error("Minimal satu console harus dipilih!");
         return;
       }
 
-      // Create the data object with correct consoles
-      const submitData = {
-        ...formData,
-        consoles: consolesToSubmit
-      };
+      // Create FormData for file upload
+      const submitData = new FormData();
 
+      // Add basic fields
+      submitData.append('title', formData.title);
+      submitData.append('description', formData.description || '');
+
+      // Add genre_ids as array
+      formData.genre_ids.forEach(id => {
+        submitData.append('genre_id[]', id);
+      });
+
+      // Add console_ids as array
+      formData.consoles.forEach(id => {
+        submitData.append('console_ids[]', id);
+      });
+
+      // Add image if present
+      if (formData.image && formData.image[0]) {
+        submitData.append('image', formData.image[0]);
+      }
 
       if (isEditMode) {
-        if (!submitData.image || submitData.image.length === 0) {
-          delete submitData.image;
-        }
-        await updateGame({ id: editingData.id, ...submitData }).unwrap();
+        // For edit mode, we need to add the ID to FormData
+        submitData.append('_method', 'POST');
+        await updateGame({ id: editingData.id, formData: submitData }).unwrap();
         toast.success("Game berhasil diperbarui!");
       } else {
         await addGame(submitData).unwrap();
@@ -312,73 +359,151 @@ const AddEditGameModal = ({ isOpen, onClose, editingData }) => {
             </div>
 
             <div className="form-control">
-              <label className="label">
-                <span className="label-text font-medium">
-                  Genre <span className="text-error">*</span>
-                </span>
-              </label>
-              <select
-                {...register("genre")}
-                className={`select select-bordered ${errors.genre ? "select-error" : ""
-                  }`}
-                disabled={isLoadingGenres}
-              >
-                <option value="">
-                  {isLoadingGenres ? "Loading genres..." : "Select Genre..."}
-                </option>
-                {genresData?.genres?.map((genre) => (
-                  <option key={genre.id} value={genre.id}>
-                    {genre.name}
-                  </option>
-                ))}
-              </select>
-              {errors.genre && (
-                <span className="text-xs text-error mt-1">
-                  {errors.genre.message}
-                </span>
-              )}
+              <Controller
+                name="genre_ids"
+                control={control}
+                defaultValue={[]}
+                render={({ field }) => (
+                  <div className="space-y-2">
+                    <label className="label">
+                      <span className="label-text font-medium">
+                        Genres <span className="text-error">*</span>
+                        <span className="text-xs text-gray-500 ml-2">(Max 3)</span>
+                      </span>
+                    </label>
+
+                    {/* Dropdown Trigger */}
+                    <div className="relative genre-dropdown">
+                      <button
+                        type="button"
+                        onClick={() => setIsGenreDropdownOpen(!isGenreDropdownOpen)}
+                        className="w-full btn btn-outline justify-between text-left font-normal border-base-300 hover:border-brand-gold hover:bg-brand-gold/5"
+                        disabled={isLoadingGenres}
+                      >
+                        <span className="flex items-center gap-2">
+                          <FiTag className="h-4 w-4 text-brand-gold" />
+                          {isLoadingGenres
+                            ? "Loading genres..."
+                            : field.value && field.value.length > 0
+                              ? `${field.value.length} genre${field.value.length > 1 ? 's' : ''} selected`
+                              : 'Select genres...'
+                          }
+                        </span>
+                        <FiChevronDown className={`h-4 w-4 transition-transform ${isGenreDropdownOpen ? 'rotate-180' : ''}`} />
+                      </button>
+
+                      {/* Dropdown Menu */}
+                      {isGenreDropdownOpen && !isLoadingGenres && (
+                        <div className="absolute top-full left-0 right-0 mt-1 bg-base-100 border border-base-300 rounded-lg shadow-lg z-50 max-h-48 overflow-y-auto">
+                          {genresData?.genres?.map(genre => (
+                            <label
+                              key={genre.id}
+                              className="flex items-center justify-between px-4 py-2 hover:bg-base-200 cursor-pointer border-b border-base-200 last:border-b-0"
+                            >
+                              <span className="font-medium">{genre.name}</span>
+                              <input
+                                type="checkbox"
+                                className="checkbox checkbox-sm checkbox-primary"
+                                checked={field.value?.includes(genre.id) || false}
+                                onChange={() => handleGenreToggle(field, genre.id)}
+                                disabled={!field.value?.includes(genre.id) && field.value?.length >= 3}
+                              />
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Selected Items Display */}
+                    {field.value && field.value.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mt-2">
+                        {field.value.map(genreId => {
+                          const genre = genresData?.genres?.find(g => g.id === genreId);
+                          return genre ? (
+                            <div key={genreId} className="badge badge-sm badge-outline gap-1 border-brand-gold text-brand-gold">
+                              <FiTag className="h-3 w-3" />
+                              {genre.name}
+                              <button
+                                type="button"
+                                className="btn btn-xs btn-circle btn-ghost hover:bg-red-500 hover:text-white -ml-1"
+                                onClick={() => handleGenreToggle(field, genreId)}
+                              >
+                                <FiXMark className="h-3 w-3" />
+                              </button>
+                            </div>
+                          ) : null;
+                        })}
+                      </div>
+                    )}
+
+                    {errors.genre_ids && (
+                      <span className="text-xs text-error mt-1">
+                        {errors.genre_ids.message}
+                      </span>
+                    )}
+                  </div>
+                )}
+              />
             </div>
           </div>
 
           <div className="form-control flex flex-col">
-            <label className="label">
-              <span className="label-text font-medium">
-                Consoles <span className="text-error">*</span>
-              </span>
-            </label>
-            {isLoadingConsoles ? (
-              <div className="flex items-center gap-2">
-                <span className="loading loading-spinner loading-sm"></span>
-                <span className="text-sm">Loading consoles...</span>
-              </div>
-            ) : consolesError ? (
-              <span className="text-xs text-error">
-                Error loading consoles: {consolesError?.data?.message || consolesError?.message || 'Unknown error'}
-              </span>
-            ) : !consolesData?.consoles || consolesData.consoles.length === 0 ? (
-              <span className="text-xs text-warning">
-                No consoles available
-              </span>
-            ) : (
-              <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border border-base-300 rounded-lg p-3">
-                {consolesData.consoles.map((console) => (
-                  <label key={console.id} className="flex items-center gap-2 cursor-pointer hover:bg-base-100 p-2 rounded">
-                    <input
-                      type="checkbox"
-                      checked={selectedConsoles?.includes(console.id) || false}
-                      onChange={(e) => handleConsoleChange(console.id, e.target.checked)}
-                      className="checkbox checkbox-sm"
-                    />
-                    <span className="text-sm">{console.name}</span>
+            <Controller
+              name="consoles"
+              control={control}
+              defaultValue={[]}
+              render={({ field }) => (
+                <div className="space-y-2">
+                  <label className="label">
+                    <span className="label-text font-medium">
+                      Consoles <span className="text-error">*</span>
+                    </span>
                   </label>
-                ))}
-              </div>
-            )}
-            {errors.consoles && (
-              <span className="text-xs text-error mt-1">
-                {errors.consoles.message}
-              </span>
-            )}
+
+                  {isLoadingConsoles ? (
+                    <div className="flex items-center gap-2">
+                      <span className="loading loading-spinner loading-sm"></span>
+                      <span className="text-sm">Loading consoles...</span>
+                    </div>
+                  ) : consolesError ? (
+                    <span className="text-xs text-error">
+                      Error loading consoles: {consolesError?.data?.message || consolesError?.message || 'Unknown error'}
+                    </span>
+                  ) : !consolesData?.consoles || consolesData.consoles.length === 0 ? (
+                    <span className="text-xs text-warning">
+                      No consoles available
+                    </span>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border border-base-300 rounded-lg p-3">
+                      {consolesData.consoles.map((console) => (
+                        <label key={console.id} className="flex items-center gap-2 cursor-pointer hover:bg-base-100 p-2 rounded">
+                          <input
+                            type="checkbox"
+                            checked={field.value?.includes(console.id) || false}
+                            onChange={(e) => {
+                              const currentConsoles = field.value || [];
+                              if (e.target.checked) {
+                                field.onChange([...currentConsoles, console.id]);
+                              } else {
+                                field.onChange(currentConsoles.filter(id => id !== console.id));
+                              }
+                            }}
+                            className="checkbox checkbox-sm"
+                          />
+                          <span className="text-sm">{console.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                  )}
+
+                  {errors.consoles && (
+                    <span className="text-xs text-error mt-1">
+                      {errors.consoles.message}
+                    </span>
+                  )}
+                </div>
+              )}
+            />
           </div>
 
           <div className="form-control flex flex-col">

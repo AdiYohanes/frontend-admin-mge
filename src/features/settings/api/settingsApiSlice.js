@@ -113,7 +113,7 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
     updatePromo: builder.mutation({
       query: ({ id, ...patch }) => ({
         url: `/api/admin/promos/${id}`,
-        method: "PUT",
+        method: "POST",
         body: {
           promo_code: String(patch.promo_code).trim(),
           percentage: Number(patch.percentage),
@@ -417,12 +417,23 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Customer Reviews Endpoints ===
     getCustomerReviews: builder.query({
-      query: () => "/api/admin/reviews", // Asumsi endpoint
+      query: () => "/api/admin/customer-reviews",
+      transformResponse: (response) => ({
+        reviews: response.data || [],
+        pagination: {
+          currentPage: response.current_page || 1,
+          totalPages: response.last_page || 1,
+          total: response.total || 0,
+          perPage: response.per_page || 15,
+          from: response.from || 0,
+          to: response.to || 0,
+        },
+      }),
       providesTags: [{ type: "CustomerReview", id: "LIST" }],
     }),
     addCustomerReview: builder.mutation({
       query: (item) => ({
-        url: "/api/admin/reviews",
+        url: "/api/admin/customer-reviews",
         method: "POST",
         body: item,
       }),
@@ -430,7 +441,7 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
     }),
     updateCustomerReview: builder.mutation({
       query: ({ id, ...patch }) => ({
-        url: `/api/admin/reviews/${id}`,
+        url: `/api/admin/customer-reviews/${id}`,
         method: "POST",
         body: { ...patch, _method: "POST" },
       }),
@@ -440,7 +451,7 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       ],
     }),
     deleteCustomerReview: builder.mutation({
-      query: (id) => ({ url: `/api/admin/reviews/${id}`, method: "DELETE" }),
+      query: (id) => ({ url: `/api/admin/customer-reviews/${id}`, method: "DELETE" }),
       invalidatesTags: [{ type: "CustomerReview", id: "LIST" }],
     }),
   }),
@@ -491,9 +502,11 @@ export const pricelistApiSlice = apiSlice.injectEndpoints({
         url: `/api/public/pricelists`,
         method: 'GET',
       }),
-      transformResponse: (response) => ({
-        rooms: Array.isArray(response) ? response : [],
-      }),
+      transformResponse: (response) => {
+        console.log('Pricelist API - Raw response:', response);
+        // Return the response directly since it's already an array
+        return Array.isArray(response) ? response : [];
+      },
       providesTags: ['Pricelist'],
     }),
   }),

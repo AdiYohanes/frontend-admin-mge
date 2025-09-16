@@ -397,9 +397,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                     type="text"
                     {...register("name")}
                     placeholder="Masukkan nama pelanggan"
-                    className={`input input-bordered w-full ${
-                      errors.name ? "input-error" : ""
-                    }`}
+                    className={`input input-bordered w-full ${errors.name ? "input-error" : ""
+                      }`}
                   />
                 </InputField>
 
@@ -414,9 +413,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                     type="tel"
                     {...register("phoneNumber")}
                     placeholder="08xxxxxxxxxx"
-                    className={`input input-bordered w-full ${
-                      errors.phoneNumber ? "input-error" : ""
-                    }`}
+                    className={`input input-bordered w-full ${errors.phoneNumber ? "input-error" : ""
+                      }`}
                   />
                 </InputField>
               </FormSection>
@@ -486,9 +484,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                 >
                   <select
                     {...register("console")}
-                    className={`select select-bordered w-full ${
-                      errors.console ? "select-error" : ""
-                    }`}
+                    className={`select select-bordered w-full ${errors.console ? "select-error" : ""
+                      }`}
                   >
                     <option value="">Pilih Konsol</option>
                     {consoleOptions.map((option) => (
@@ -509,9 +506,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                 >
                   <select
                     {...register("room")}
-                    className={`select select-bordered w-full ${
-                      errors.room ? "select-error" : ""
-                    }`}
+                    className={`select select-bordered w-full ${errors.room ? "select-error" : ""
+                      }`}
                   >
                     <option value="">Pilih Ruangan</option>
                     {roomOptions.map((option) => (
@@ -530,9 +526,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                 >
                   <select
                     {...register("unit")}
-                    className={`select select-bordered w-full ${
-                      errors.unit ? "select-error" : ""
-                    }`}
+                    className={`select select-bordered w-full ${errors.unit ? "select-error" : ""
+                      }`}
                   >
                     <option value="">Pilih Unit</option>
                     {unitOptions.map((option) => (
@@ -553,9 +548,8 @@ const AddBookingModal = ({ isOpen, onClose, editingData, onFormSubmit }) => {
                 >
                   <select
                     {...register("metodePembayaran")}
-                    className={`select select-bordered w-full ${
-                      errors.metodePembayaran ? "select-error" : ""
-                    }`}
+                    className={`select select-bordered w-full ${errors.metodePembayaran ? "select-error" : ""
+                      }`}
                   >
                     <option value="">Pilih Metode</option>
                     {paymentOptions.map((option) => (
