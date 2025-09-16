@@ -18,7 +18,7 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
         console.log('🔍 DEBUG - API Query params:', params);
 
         return {
-          url: '/api/admin/bookings',
+          url: '/api/admin/bookings-room',
           params: params,
         };
       },
