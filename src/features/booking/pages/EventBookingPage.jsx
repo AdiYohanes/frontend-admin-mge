@@ -163,19 +163,19 @@ const EventBookingPage = () => {
     setEditingData(null);
   };
 
-  const handleOpenDeleteModal = (event) => {
+  const handleOpenCancelModal = (event) => {
     setEventToDelete(event);
     deleteModalRef.current?.showModal();
   };
 
-  const handleConfirmDelete = async () => {
+  const handleConfirmCancel = async () => {
     try {
       await deleteEventBooking(eventToDelete.rawEvent?.id || eventToDelete.id).unwrap();
-      toast.success("Event booking berhasil dihapus!");
+      toast.success("Event booking berhasil dibatalkan!");
       deleteModalRef.current?.close();
     } catch (err) {
-      toast.error("Gagal menghapus event booking.");
-      console.error("Delete event booking error:", err);
+      toast.error("Gagal membatalkan event booking.");
+      console.error("Cancel event booking error:", err);
     }
   };
 
@@ -314,7 +314,7 @@ const EventBookingPage = () => {
             page={currentPage}
             limit={limit}
             onEdit={handleOpenEditModal}
-            onDelete={handleOpenDeleteModal}
+            onDelete={handleOpenCancelModal}
           />
 
           {/* Table Information */}
@@ -355,12 +355,12 @@ const EventBookingPage = () => {
       />
       <ConfirmationModal
         ref={deleteModalRef}
-        title="Konfirmasi Hapus Event"
-        onConfirm={handleConfirmDelete}
+        title="Konfirmasi Batal Event"
+        onConfirm={handleConfirmCancel}
         isLoading={isDeleting}
       >
         <p>
-          Apakah Anda yakin ingin menghapus event{" "}
+          Apakah Anda yakin ingin membatalkan event{" "}
           <span className="font-bold">"{eventToDelete?.eventName}"</span>?
         </p>
       </ConfirmationModal>

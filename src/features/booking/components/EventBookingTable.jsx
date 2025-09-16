@@ -1,5 +1,5 @@
 import React from "react";
-import { PencilSquareIcon, TrashIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon, XMarkIcon } from "@heroicons/react/24/outline";
 
 const EventBookingTable = ({
   events,
@@ -164,12 +164,12 @@ const EventBookingTable = ({
                         <PencilSquareIcon className="h-5 w-5" />
                       </button>
                     </div>
-                    <div className="tooltip tooltip-error" data-tip="Hapus">
+                    <div className="tooltip tooltip-warning" data-tip="Cancel">
                       <button
                         onClick={() => onDelete(event)}
-                        className="btn btn-ghost btn-xs text-error"
+                        className="btn btn-ghost btn-xs text-warning"
                       >
-                        <TrashIcon className="h-5 w-5" />
+                        <XMarkIcon className="h-5 w-5" />
                       </button>
                     </div>
                   </div>
@@ -222,9 +222,9 @@ const EventBookingTable = ({
                 </button>
                 <button
                   onClick={() => onDelete(event)}
-                  className="btn btn-ghost btn-sm text-error"
+                  className="btn btn-ghost btn-sm text-warning"
                 >
-                  <TrashIcon className="h-5 w-5 mr-1" /> Delete
+                  <XMarkIcon className="h-5 w-5 mr-1" /> Cancel
                 </button>
               </div>
             </div>
