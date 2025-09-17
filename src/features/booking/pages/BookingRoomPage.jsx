@@ -221,7 +221,7 @@ const BookingRoomPage = () => {
     const adminToken = localStorage.getItem('token') || sessionStorage.getItem('token');
 
     // Get frontend URL from environment variable
-    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5174';
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL;
     const fullFrontendUrl = `${frontendUrl}/rent`;
     const newWindow = window.open(fullFrontendUrl, '_blank');
 
