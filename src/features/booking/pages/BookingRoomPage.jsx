@@ -217,8 +217,28 @@ const BookingRoomPage = () => {
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
-    // Redirect to specific URL for OTS booking
-    window.open('http://f0w8ssgc0kw4gkc08s04448o.168.231.84.221.sslip.io/rent', '_blank');
+    // Get admin token from localStorage or sessionStorage
+    const adminToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+    // Get frontend URL from environment variable
+    const frontendUrl = import.meta.env.VITE_FRONTEND_URL || 'http://localhost:5174';
+    const fullFrontendUrl = `${frontendUrl}/rent`;
+    const newWindow = window.open(fullFrontendUrl, '_blank');
+
+    // Send token via PostMessage after window opens
+    if (adminToken && newWindow) {
+      setTimeout(() => {
+        try {
+          newWindow.postMessage({
+            type: 'AUTO_LOGIN',
+            token: adminToken,
+            source: 'admin_panel'
+          }, frontendUrl);
+        } catch (error) {
+          console.error('Failed to send token via PostMessage:', error);
+        }
+      }, 1000); // Wait 1 second for window to fully load
+    }
   };
 
   const handleViewDetails = (booking) => {
