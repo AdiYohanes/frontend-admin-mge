@@ -13,7 +13,10 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
 
   const handleToggleStatus = async (review) => {
     try {
-      await updateReview({ ...review, isActive: !review.isActive }).unwrap();
+      await updateReview({
+        id: review.id,
+        is_active: !review.is_active
+      }).unwrap();
       toast.success(`Status review berhasil diperbarui.`);
     } catch {
       toast.error("Gagal memperbarui status.");
@@ -57,15 +60,17 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
                       <div className="mask mask-squircle w-12 h-12">
                         <img
                           src={
-                            review.avatarUrl ||
-                            `https://i.pravatar.cc/150?u=${review.name}`
+                            review.booking?.bookable?.avatarUrl ||
+                            `https://i.pravatar.cc/150?u=${review.booking?.bookable?.username}`
                           }
-                          alt={review.name}
+                          alt={review.booking?.bookable?.name || 'Unknown'}
                         />
                       </div>
                     </div>
                     <div>
-                      <div className="font-bold">{review.name}</div>
+                      <div className="font-bold">{review.booking?.bookable?.name || 'Unknown'}</div>
+                      <div className="text-sm text-gray-500">@{review.booking?.bookable?.username}</div>
+                      <div className="text-xs text-gray-400">Invoice: {review.booking?.invoice_number}</div>
                     </div>
                   </div>
                 </td>
@@ -81,7 +86,7 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
                   <input
                     type="checkbox"
                     className="toggle toggle-success"
-                    checked={review.isActive}
+                    checked={review.is_active}
                     onChange={() => handleToggleStatus(review)}
                     disabled={isUpdatingStatus}
                   />

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   useGetCategoriesQuery,
   useDeleteCategoryMutation,
@@ -25,12 +25,23 @@ const CategoryListPage = () => {
   const [categoryToDelete, setCategoryToDelete] = useState(null);
   const deleteModalRef = useRef(null);
 
-  // Panggilan API
+  // Panggilan API - remove search from API call for frontend filtering
   const { data, isLoading, isFetching } = useGetCategoriesQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
   });
+
+  // Frontend filtering based on search term
+  const filteredCategories = useMemo(() => {
+    if (!data?.categories) return [];
+
+    if (!debouncedSearchTerm.trim()) return data.categories;
+
+    return data.categories.filter(category =>
+      category.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (category.description && category.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+    );
+  }, [data?.categories, debouncedSearchTerm]);
 
   const [deleteCategory, { isLoading: isDeleting }] =
     useDeleteCategoryMutation();
@@ -82,7 +93,7 @@ const CategoryListPage = () => {
             showMonthFilter={false}
           />
           <CategoryTable
-            categories={data?.categories}
+            categories={filteredCategories}
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}

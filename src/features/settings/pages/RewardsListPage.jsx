@@ -32,7 +32,7 @@ const RewardsListPage = () => {
         }
     };
 
-    const { data, isLoading } = useGetRewardsQuery();
+    const { data, isLoading, refetch } = useGetRewardsQuery();
     const { data: fnbItemsData } = useGetFoodDrinkItemsQuery({ page: 1, limit: 9999, search: "" });
     const [deleteReward, { isLoading: isDeleting }] = useDeleteRewardMutation();
     const [updateRewardStatus, { isLoading: isUpdatingStatus }] = useUpdateRewardStatusMutation();
@@ -41,25 +41,12 @@ const RewardsListPage = () => {
         const rewards = data?.rewards || [];
         const fnbItems = fnbItemsData?.items || [];
 
-        console.log("DEBUG: All FNB Items from API (fnbItemsData.items):", fnbItems);
-        console.log("DEBUG: FNB Items Data structure:", fnbItemsData);
-
         return rewards.map((r) => {
-            console.log(`DEBUG: Processing reward: ${r.name}`);
-            console.log(`DEBUG: Reward effects:`, r.effects);
-            console.log(`DEBUG: Reward FNB items:`, r.effects?.fnbs);
-
             // Process FNB items to include names
             const processedFnbItems = (r.effects?.fnbs || []).map(fnbItem => {
-                console.log(`DEBUG: Processing fnbItem with fnb_id: ${fnbItem.fnb_id} for reward: ${r.name}`);
-                console.log(`DEBUG: fnbItem structure:`, fnbItem);
-
                 const matchedItem = fnbItems.find(item => {
-                    console.log(`DEBUG: Comparing item.id (${item.id}, type: ${typeof item.id}) with fnbItem.fnb_id (${fnbItem.fnb_id}, type: ${typeof fnbItem.fnb_id})`);
                     return String(item.id) === String(fnbItem.fnb_id);
                 });
-
-                console.log(`DEBUG: Matched item for fnb_id ${fnbItem.fnb_id}:`, matchedItem);
 
                 return {
                     ...fnbItem,
@@ -79,7 +66,11 @@ const RewardsListPage = () => {
                 unit: r.unit,
                 durationHours: r.effects?.duration_hours,
                 fnbItems: processedFnbItems,
-                raw: r,
+                raw: {
+                    ...r,
+                    imageUrl: r.imageUrl, // Ensure imageUrl is available
+                    effects: r.effects || [], // Ensure effects array exists
+                },
             };
         });
     }, [data?.rewards, fnbItemsData?.items]);
@@ -93,7 +84,6 @@ const RewardsListPage = () => {
     const pageRows = filtered.slice(startIndex, startIndex + limit);
 
     const handleDeleteClick = (reward) => {
-        console.log("Delete clicked for reward:", reward);
         setRewardToDelete(reward);
         deleteModalRef.current?.showModal();
     };
@@ -259,7 +249,6 @@ const RewardsListPage = () => {
                                                 onClick={(e) => {
                                                     e.preventDefault();
                                                     e.stopPropagation();
-                                                    console.log("Button clicked, calling handleDeleteClick");
                                                     handleDeleteClick(row);
                                                 }}
                                                 disabled={isDeleting}
@@ -285,7 +274,12 @@ const RewardsListPage = () => {
                     totalPages={totalPages}
                     onPageChange={setCurrentPage}
                 />
-                <AddRewardModal isOpen={isModalOpen} onClose={() => { setIsModalOpen(false); setEditingReward(null); }} editingData={editingReward} />
+                <AddRewardModal
+                    isOpen={isModalOpen}
+                    onClose={() => { setIsModalOpen(false); setEditingReward(null); }}
+                    onSuccess={() => { refetch(); }}
+                    editingData={editingReward}
+                />
 
                 <ConfirmationModal
                     ref={deleteModalRef}

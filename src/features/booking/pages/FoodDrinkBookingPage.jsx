@@ -44,7 +44,7 @@ const FoodDrinkBookingPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -66,7 +66,7 @@ const FoodDrinkBookingPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -84,54 +84,20 @@ const FoodDrinkBookingPage = () => {
     status: statusFilter,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: 'desc', // Default to newest first
+    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
   });
 
-  // Debug: Log API response
-  useEffect(() => {
-    console.log('🔍 DEBUG - FoodDrinkBooking API Response:', {
-      apiResponse,
-      isLoading,
-      isFetching,
-      currentPage,
-      limit,
-      statusFilter
-    });
-  }, [apiResponse, isLoading, isFetching, currentPage, limit, statusFilter]);
 
   // Use bookings directly from API response (already transformed)
   const bookings = useMemo(() => {
     return apiResponse?.bookings || [];
   }, [apiResponse?.bookings]);
 
-  // Debug: Log bookings
-  useEffect(() => {
-    console.log('🔍 DEBUG - Bookings:', {
-      bookingsCount: bookings.length,
-      sampleBookings: bookings.slice(0, 2).map(b => ({
-        id: b.id,
-        noTransaction: b.noTransaction,
-        name: b.name,
-        orderName: b.orderName,
-        fnbItemsCount: b.fnbItems?.length || 0
-      }))
-    });
-  }, [bookings]);
 
   // Filter data berdasarkan search term di frontend
   const filteredBookings = useMemo(() => {
     if (!bookings) return [];
 
-    // Debug: Log sebelum filtering
-    console.log('🔍 DEBUG - FoodDrinkBooking filtering:', {
-      totalBookings: bookings.length,
-      searchTerm: debouncedSearchTerm,
-      sampleBookings: bookings.slice(0, 3).map(b => ({
-        id: b.id,
-        noTransaction: b.noTransaction,
-        name: b.name
-      }))
-    });
 
     // Filter berdasarkan search term
     const filtered = bookings.filter(booking =>
@@ -140,31 +106,10 @@ const FoodDrinkBookingPage = () => {
       (booking.notes && booking.notes.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
     );
 
-    // Debug: Log setelah filtering
-    console.log('🔍 DEBUG - After search filter:', {
-      filteredBookingsCount: filtered.length,
-      sampleFilteredBookings: filtered.slice(0, 3).map(b => ({
-        id: b.id,
-        noTransaction: b.noTransaction,
-        name: b.name
-      }))
-    });
 
     return filtered;
   }, [bookings, debouncedSearchTerm]);
 
-  // Debug: Log final filtered bookings
-  useEffect(() => {
-    console.log('🔍 DEBUG - Final Filtered Bookings:', {
-      filteredBookingsCount: filteredBookings.length,
-      sampleFilteredBookings: filteredBookings.slice(0, 2).map(b => ({
-        id: b.id,
-        noTransaction: b.noTransaction,
-        name: b.name,
-        orderName: b.orderName
-      }))
-    });
-  }, [filteredBookings]);
 
   // Use pagination data from API response
   const paginationData = useMemo(() => {
@@ -176,14 +121,6 @@ const FoodDrinkBookingPage = () => {
     };
   }, [apiResponse?.pagination, limit]);
 
-  // Debug: Log pagination data
-  useEffect(() => {
-    console.log('🔍 DEBUG - Pagination Data:', {
-      paginationData,
-      filteredBookingsCount: filteredBookings.length,
-      apiResponseTotal: apiResponse?.pagination?.total
-    });
-  }, [paginationData, filteredBookings.length, apiResponse?.pagination?.total]);
 
   const handleOpenPrintModal = (order) => {
     setOrderToPrint(order);
@@ -299,8 +236,25 @@ const FoodDrinkBookingPage = () => {
 
             {/* Custom Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-4 mb-6">
-              {/* Search and Limit Controls */}
-              <div className="flex flex-col sm:flex-row gap-2 flex-1">
+              {/* Show Entries Controls - Left Side */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-base-content">Show</span>
+                <select
+                  className="select select-bordered select-sm"
+                  value={limit}
+                  onChange={(e) => setLimit(Number(e.target.value))}
+                >
+                  <option value={5}>5</option>
+                  <option value={10}>10</option>
+                  <option value={15}>15</option>
+                  <option value={20}>20</option>
+                  <option value={25}>25</option>
+                </select>
+                <span className="text-sm text-base-content">entries</span>
+              </div>
+
+              {/* Search and Filter Controls - Right Side */}
+              <div className="flex flex-col sm:flex-row gap-2 flex-1 justify-end">
                 <div className="form-control">
                   <input
                     type="text"
@@ -310,22 +264,6 @@ const FoodDrinkBookingPage = () => {
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
                 </div>
-                <div className="form-control">
-                  <select
-                    className="select select-bordered select-sm"
-                    value={limit}
-                    onChange={(e) => setLimit(Number(e.target.value))}
-                  >
-                    <option value={10}>10 per page</option>
-                    <option value={25}>25 per page</option>
-                    <option value={50}>50 per page</option>
-                    <option value={100}>100 per page</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Date Filter Controls */}
-              <div className="flex flex-col sm:flex-row gap-2">
                 <div className="form-control">
                   <button
                     onClick={() => setIsFilterModalOpen(true)}

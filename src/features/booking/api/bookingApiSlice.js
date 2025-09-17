@@ -15,7 +15,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
         if (year) params.year = year;
         if (status && status !== 'All') params.status = status;
 
-        console.log('🔍 DEBUG - API Query params:', params);
 
         return {
           url: '/api/admin/bookings-room',
@@ -24,7 +23,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
       },
       // Transformasi data mentah dari backend
       transformResponse: (response) => {
-        console.log('🔍 DEBUG - Raw response dari backend:', response);
 
         // Handle paginated response structure
         const bookingsData = response.data || [];
@@ -57,6 +55,7 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
               duration: startTime && endTime ? differenceInHours(endTime, startTime) : 0,
               endTime: endTime ? format(endTime, 'HH:mm') : '-',
               tanggalBooking: startTime ? format(startTime, 'dd MMMM yyyy') : 'N/A',
+              tanggalTransaksi: booking.created_at ? format(parseISO(booking.created_at), 'dd MMMM yyyy') : 'N/A',
               totalPembayaran: parseFloat(booking.total_price) || 0,
               metodePembayaran: booking.payment_method || 'N/A',
               statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : 'Unknown',
@@ -71,12 +70,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
           // original_total: paginationInfo.total // Simpan total asli untuk debugging
         };
 
-        console.log('🔍 DEBUG - Transformed data:', {
-          originalCount: bookingsData.length,
-          transformedCount: transformedData.length,
-          paginationInfo: filteredPaginationInfo,
-          sampleData: transformedData.slice(0, 3)
-        });
 
         // Return both transformed data and pagination info
         return {
@@ -100,7 +93,6 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
         url: `/api/admin/bookings/${bookingId}`,
       }),
       transformResponse: (response) => {
-        console.log('🔍 DEBUG - Booking detail response:', response);
 
         // Transform booking detail data
         const booking = response;

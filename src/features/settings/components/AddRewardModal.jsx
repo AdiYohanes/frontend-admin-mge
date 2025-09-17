@@ -14,7 +14,7 @@ const generateVoucher = () => {
 
 import { useAddRewardMutation, useUpdateRewardMutation } from "../api/settingsApiSlice";
 
-const AddRewardModal = ({ isOpen, onClose, editingData }) => {
+const AddRewardModal = ({ isOpen, onClose, editingData, onSuccess }) => {
     const [voucher, setVoucher] = useState("");
     const [preview, setPreview] = useState(null);
     const [imageFile, setImageFile] = useState(null);
@@ -50,23 +50,41 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
             setPreview(null);
             setImageFile(null);
             if (editingData) {
+                console.log("🔍 DEBUG - Editing data received:", editingData);
+
                 // Set preview for existing image when editing
                 if (editingData.imageUrl) {
                     setPreview(editingData.imageUrl);
                 }
                 setName(editingData.name || "");
                 setDescription(editingData.description || "");
-                setType(editingData.rewardType || editingData.effects?.type || "");
+                setType(editingData.rewardType || editingData.effects?.[0]?.type || "");
                 setPoints(editingData.pointsRequired ? String(editingData.pointsRequired) : '');
-                if ((editingData.effects?.type || editingData.rewardType) === "free_play") {
-                    setUnitId(String(editingData.effects?.unit_id || editingData.unit?.id || ""));
-                    setDuration(String(editingData.effects?.duration_hours || ""));
-                } else if ((editingData.effects?.type || editingData.rewardType) === "free_fnb") {
+
+                console.log("🔍 DEBUG - Basic fields set:", {
+                    name: editingData.name,
+                    description: editingData.description,
+                    type: editingData.rewardType || editingData.effects?.[0]?.type,
+                    points: editingData.pointsRequired
+                });
+                console.log("🔍 DEBUG - Effects structure:", editingData.effects);
+                console.log("🔍 DEBUG - Effects type:", typeof editingData.effects, Array.isArray(editingData.effects));
+
+                if ((editingData.effects?.[0]?.type || editingData.rewardType) === "free_play") {
+                    setUnitId(String(editingData.effects?.[0]?.unit_id || editingData.unit?.id || ""));
+                    setDuration(String(editingData.effects?.[0]?.duration_hours || ""));
+                    console.log("🔍 DEBUG - Free play fields set:", {
+                        unitId: editingData.effects?.[0]?.unit_id || editingData.unit?.id,
+                        duration: editingData.effects?.[0]?.duration_hours
+                    });
+                } else if ((editingData.effects?.[0]?.type || editingData.rewardType) === "free_fnb") {
                     // Only process FNB data if FNB items are loaded
                     if (!isLoadingFnbItems && fnbItems.length > 0) {
-                        const fnbs = editingData.effects?.fnbs || [];
-                        console.log("Editing FNB data:", fnbs);
-                        console.log("Available FNB items:", fnbItems);
+                        const fnbs = editingData.effects?.[0]?.fnbs || editingData.effects?.fnbs || [];
+                        console.log("🔍 DEBUG - Editing FNB data:", fnbs);
+                        console.log("🔍 DEBUG - Available FNB items count:", fnbItems.length);
+                        console.log("🔍 DEBUG - FNB items sample:", fnbItems.slice(0, 3).map(item => ({ id: item.id, name: item.name, type: typeof item.id })));
+                        console.log("🔍 DEBUG - Effects structure:", editingData.effects);
 
                         // Separate food and drink items
                         const foodItemsData = [];
@@ -75,8 +93,9 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                         fnbs.forEach((f) => {
                             if (f.fnb_id && f.quantity) {
                                 // Check if this item is food or drink by looking at the item data
-                                const item = fnbItems.find(item => item.id === f.fnb_id);
-                                console.log(`Processing FNB item ${f.fnb_id}:`, item);
+                                const item = fnbItems.find(item => String(item.id) === String(f.fnb_id));
+                                console.log(`Processing FNB item ${f.fnb_id} (type: ${typeof f.fnb_id}):`, item);
+                                console.log(`Available FNB item IDs:`, fnbItems.map(i => ({ id: i.id, type: typeof i.id })));
                                 if (item) {
                                     const categoryType = getCategoryType(item);
                                     console.log(`Category type for item ${f.fnb_id}:`, categoryType);
@@ -87,6 +106,8 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                                     }
                                 } else {
                                     console.warn(`FNB item with ID ${f.fnb_id} not found in available items`);
+                                    // Add to food items as fallback if not found
+                                    foodItemsData.push({ key: Date.now() + Math.random(), foodId: String(f.fnb_id), qty: String(f.quantity) });
                                 }
                             }
                         });
@@ -189,6 +210,12 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
                 ...drinkRows.filter((r) => r.drinkId && r.qty).map((r) => ({ fnb_id: Number(r.drinkId), quantity: Number(r.qty) })),
             ];
 
+            console.log("🔍 DEBUG - FNB data before submit:", {
+                foodRows: foodRows.filter((r) => r.foodId && r.qty),
+                drinkRows: drinkRows.filter((r) => r.drinkId && r.qty),
+                fnbs
+            });
+
             if (fnbs.length === 0) {
                 alert("Please select at least one food or drink item");
                 return;
@@ -240,14 +267,33 @@ const AddRewardModal = ({ isOpen, onClose, editingData }) => {
 
         try {
             if (editingData?.id) {
-                await updateReward({ id: editingData.id, formData }).unwrap();
+                console.log("🔍 DEBUG - Updating reward with ID:", editingData.id);
+                console.log("🔍 DEBUG - FormData contents:");
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}:`, value);
+                }
+                const result = await updateReward({ id: editingData.id, formData }).unwrap();
+                console.log("🔍 DEBUG - Update result:", result);
             } else {
-                await addReward(formData).unwrap();
+                console.log("🔍 DEBUG - Adding new reward");
+                const result = await addReward(formData).unwrap();
+                console.log("🔍 DEBUG - Add result:", result);
             }
+
+            // Call onSuccess callback if provided
+            if (onSuccess) {
+                onSuccess();
+            }
+
             onClose();
         } catch (e) {
-            console.error("Failed to save reward", e);
-            alert("Failed to save reward. Please try again.");
+            console.error("🔍 DEBUG - Failed to save reward", e);
+            console.error("🔍 DEBUG - Error details:", {
+                message: e.message,
+                status: e.status,
+                data: e.data
+            });
+            alert(`Failed to save reward: ${e.message || 'Unknown error'}. Please try again.`);
         }
     };
 

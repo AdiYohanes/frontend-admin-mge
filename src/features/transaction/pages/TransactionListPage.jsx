@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useMemo } from "react";
 import useDebounce from "../../../hooks/useDebounce";
-import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
 import TransactionTable from "../components/TransactionTable";
 import { useGetTransactionsQuery } from "../api/transactionApiSlice";
 import { useSearchParams } from 'react-router';
-import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
+import { ChevronUpIcon, ChevronDownIcon, CalendarIcon } from '@heroicons/react/24/outline';
 import * as XLSX from 'xlsx';
+import DatePickerModal from '../../../components/common/DatePickerModal';
 
 const TransactionListPage = () => {
   // --- URL PARAMETER MANAGEMENT ---
@@ -18,13 +18,19 @@ const TransactionListPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [monthFilter, setMonthFilter] = useState("");
   const [yearFilter, setYearFilter] = useState("");
-  const [statusFilter, setStatusFilter] = useState('confirmed');
+  const [statusFilter, setStatusFilter] = useState('All');
   const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isExporting, setIsExporting] = useState(false);
   const [showExportPreview, setShowExportPreview] = useState(false);
   const [exportData, setExportData] = useState([]);
   const [showComingSoon, setShowComingSoon] = useState(false);
+
+  // State untuk date picker modal
+  const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(null);
+  const [selectedYear, setSelectedYear] = useState(null);
+
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const statusTabs = ['All', 'completed', 'confirmed', 'cancelled'];
 
@@ -36,7 +42,7 @@ const TransactionListPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('per_page')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlStatus = searchParams.get('status') || 'confirmed';
+    const urlStatus = searchParams.get('status') || 'All';
     const urlSortDirection = searchParams.get('sort_direction') || 'desc';
 
     setMonthFilter(urlMonth);
@@ -71,7 +77,7 @@ const TransactionListPage = () => {
   }, [monthFilter, yearFilter, currentPage, limit, searchTerm, statusFilter, sortOrder, setSearchParams, searchParams]);
 
   // Use RTK Query hook for API calls
-  const { data, isLoading, error, refetch } = useGetTransactionsQuery({
+  const queryParams = {
     page: currentPage,
     limit: limit,
     search: debouncedSearchTerm,
@@ -79,7 +85,9 @@ const TransactionListPage = () => {
     year: yearFilter,
     sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
     status: statusFilter
-  });
+  };
+
+  const { data, isLoading, error, refetch } = useGetTransactionsQuery(queryParams);
 
   // Extract data from API response
   const transactions = useMemo(() => data?.transactions || [], [data?.transactions]);
@@ -90,19 +98,9 @@ const TransactionListPage = () => {
     last_page: 1
   }, [data?.pagination]);
 
-  // Debug logging
-  console.log('TransactionListPage Debug:', {
-    data,
-    transactions,
-    pagination,
-    isLoading,
-    error
-  });
 
-  // Month and year filtering is now handled by backend
-  const filteredTransactions = useMemo(() => {
-    return transactions;
-  }, [transactions]);
+  // All filtering is now handled by backend
+  const filteredTransactions = transactions;
 
   // Reset page when filters change
   useEffect(() => {
@@ -321,6 +319,30 @@ const TransactionListPage = () => {
     setShowComingSoon(true);
   };
 
+  // Date picker handlers
+  const handleDateSelect = (date) => {
+    if (date) {
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const year = date.getFullYear().toString();
+      setMonthFilter(month);
+      setYearFilter(year);
+      setSelectedMonth(date);
+      setSelectedYear(date);
+    } else {
+      setMonthFilter('');
+      setYearFilter('');
+      setSelectedMonth(null);
+      setSelectedYear(null);
+    }
+  };
+
+  const handleClearFilters = () => {
+    setMonthFilter('');
+    setYearFilter('');
+    setSelectedMonth(null);
+    setSelectedYear(null);
+  };
+
   // Handle error state
   if (error) {
     return (
@@ -428,56 +450,95 @@ const TransactionListPage = () => {
           ))}
         </div>
 
-        <TableControls
-          limit={limit}
-          setLimit={setLimit}
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          monthFilter={monthFilter}
-          setMonthFilter={setMonthFilter}
-          yearFilter={yearFilter}
-          setYearFilter={setYearFilter}
-          showMonthFilter={true}
-          searchPlaceholder="Search ..."
-          exportButton={
-            <button
-              onClick={handleExportPreview}
-              className="btn btn-outline btn-sm"
-              title="Export to Excel"
-              disabled={isLoading || isRefreshing || isExporting || transactions.length === 0}
+        {/* Custom Filter Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          {/* Show Entries Controls - Left Side */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-base-content">Show</span>
+            <select
+              className="select select-bordered select-sm"
+              value={limit}
+              onChange={(e) => setLimit(Number(e.target.value))}
             >
-              {isExporting ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
-                  Loading...
-                </>
-              ) : (
-                <>
-                  <svg
-                    className="w-4 h-4 mr-2"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                    />
-                  </svg>
-                  Export
-                </>
-              )}
-            </button>
-          }
-        />
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+              <option value={20}>20</option>
+              <option value={25}>25</option>
+            </select>
+            <span className="text-sm text-base-content">entries</span>
+          </div>
+
+          {/* Search, Filter and Export Button - Right Side */}
+          <div className="flex flex-col sm:flex-row gap-2 flex-1 justify-end">
+            <div className="form-control">
+              <input
+                type="text"
+                placeholder="Search transactions..."
+                className="input input-bordered input-sm w-full sm:w-64"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+            <div className="form-control">
+              <button
+                onClick={() => setIsFilterModalOpen(true)}
+                className="btn btn-outline btn-sm gap-2"
+              >
+                <CalendarIcon className="h-4 w-4" />
+                {monthFilter && yearFilter ? `Filter: ${monthFilter}/${yearFilter}` : 'Filter'}
+              </button>
+            </div>
+            {(monthFilter || yearFilter) && (
+              <div className="form-control">
+                <button
+                  onClick={handleClearFilters}
+                  className="btn btn-ghost btn-sm"
+                >
+                  Clear Filters
+                </button>
+              </div>
+            )}
+            <div className="form-control">
+              <button
+                onClick={handleExportPreview}
+                className="btn btn-outline btn-sm"
+                title="Export to Excel"
+                disabled={isLoading || isRefreshing || isExporting || transactions.length === 0}
+              >
+                {isExporting ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-current mr-2"></div>
+                    Loading...
+                  </>
+                ) : (
+                  <>
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                      />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                      />
+                    </svg>
+                    Export
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
 
         <TransactionTable
           transactions={filteredTransactions}
@@ -486,32 +547,24 @@ const TransactionListPage = () => {
           limit={limit}
         />
 
-        {/* Show total count */}
-        {!debouncedSearchTerm.trim() && !monthFilter && !yearFilter && (
+        {/* Show total count from API */}
+        {!debouncedSearchTerm.trim() && pagination.total > 0 && (
           <div className="text-sm text-gray-600 mt-2 text-center">
-            {pagination.total > 0 ? (
-              `Showing ${((pagination.current_page - 1) * pagination.per_page) + 1} to ${Math.min(pagination.current_page * pagination.per_page, pagination.total)} of ${pagination.total} ${statusFilter === 'All' ? 'all' : statusFilter} transactions`
-            ) : (
-              ""
+            Showing {filteredTransactions.length} of {pagination.total} transactions
+            {(monthFilter || yearFilter) && (
+              <> for {monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}</>
             )}
           </div>
         )}
-
-        {/* Show filtered count when searching or filtering */}
-        {(debouncedSearchTerm.trim() || monthFilter || yearFilter) && (
+        {/* Show filtered count when searching */}
+        {debouncedSearchTerm.trim() && (
           <div className="text-sm text-gray-600 mt-2 text-center">
-            {debouncedSearchTerm.trim() && (monthFilter || yearFilter) ? (
-              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions matching "${debouncedSearchTerm}" for ${monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}`
-            ) : debouncedSearchTerm.trim() ? (
-              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions matching "${debouncedSearchTerm}"`
-            ) : (
-              `Found ${filteredTransactions.length} ${statusFilter === 'All' ? 'all' : statusFilter} transactions for ${monthFilter && yearFilter ? `${monthFilter}/${yearFilter}` : monthFilter ? `month ${monthFilter}` : `year ${yearFilter}`}`
-            )}
+            Found {filteredTransactions.length} transactions matching "{debouncedSearchTerm}"
           </div>
         )}
 
         <Pagination
-          currentPage={pagination.current_page}
+          currentPage={currentPage}
           totalPages={pagination.last_page}
           onPageChange={setCurrentPage}
         />
@@ -620,6 +673,16 @@ const TransactionListPage = () => {
           </div>
         </div>
       )}
+
+      {/* Date Picker Modal */}
+      <DatePickerModal
+        isOpen={isFilterModalOpen}
+        onClose={() => setIsFilterModalOpen(false)}
+        selectedDate={selectedMonth || selectedYear}
+        onDateSelect={handleDateSelect}
+        title="Select Date Filter"
+        yearRange={20}
+      />
     </div>
   );
 };

@@ -137,6 +137,14 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["EventBooking"],
     }),
+
+    cancelEventPayment: builder.mutation({
+      query: (bookingId) => ({
+        url: `/api/bookings/${bookingId}/cancel-payment`,
+        method: "POST",
+      }),
+      invalidatesTags: ["EventBooking"],
+    }),
   }),
 });
 
@@ -145,4 +153,5 @@ export const {
   useAddEventBookingMutation,
   useUpdateEventBookingMutation,
   useDeleteEventBookingMutation,
+  useCancelEventPaymentMutation,
 } = eventBookingApiSlice;

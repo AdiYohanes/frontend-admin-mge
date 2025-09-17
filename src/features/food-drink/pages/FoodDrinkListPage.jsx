@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useMemo } from "react";
 import {
   useGetFoodDrinkItemsQuery,
   useDeleteFoodDrinkItemMutation,
@@ -23,11 +23,24 @@ const FoodDrinkListPage = () => {
   const [itemToDelete, setItemToDelete] = useState(null);
   const deleteModalRef = useRef(null);
 
+  // Remove search from API call for frontend filtering
   const { data, isLoading, isFetching } = useGetFoodDrinkItemsQuery({
     page: currentPage,
     limit,
-    search: debouncedSearchTerm,
   });
+
+  // Frontend filtering based on search term
+  const filteredItems = useMemo(() => {
+    if (!data?.items) return [];
+
+    if (!debouncedSearchTerm.trim()) return data.items;
+
+    return data.items.filter(item =>
+      item.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      (item.description && item.description.toLowerCase().includes(debouncedSearchTerm.toLowerCase())) ||
+      (item.category && item.category.name && item.category.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()))
+    );
+  }, [data?.items, debouncedSearchTerm]);
   const [deleteItem, { isLoading: isDeleting }] =
     useDeleteFoodDrinkItemMutation();
 
@@ -74,7 +87,7 @@ const FoodDrinkListPage = () => {
             showMonthFilter={false}
           />
           <FoodDrinkTable
-            items={data?.items}
+            items={filteredItems}
             isLoading={isLoading || isFetching}
             page={currentPage}
             limit={limit}

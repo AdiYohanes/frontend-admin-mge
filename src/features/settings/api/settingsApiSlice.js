@@ -296,10 +296,15 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Rewards (Admin) ===
     getRewards: builder.query({
-      query: () => "/api/admin/rewards",
-      transformResponse: (response) => ({
-        rewards: Array.isArray(response)
-          ? response.map((r) => ({
+      query: () => "/api/public/rewards",
+      transformResponse: (response) => {
+        console.log("🔍 DEBUG - getRewards response:", response);
+
+        // Response is already an array directly
+        const rewardsData = Array.isArray(response) ? response : [];
+
+        return {
+          rewards: rewardsData.map((r) => ({
             id: r.id,
             name: r.name,
             description: r.description || "",
@@ -312,8 +317,8 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
             unit: r.unit || null,
             isActive: Boolean(r.is_active),
           }))
-          : [],
-      }),
+        };
+      },
       providesTags: (result) =>
         result && result.rewards
           ? [{ type: "Rewards", id: "LIST" }, ...result.rewards.map((r) => ({ type: "Rewards", id: r.id }))]
@@ -331,16 +336,34 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "Rewards", id: "LIST" }],
     }),
     updateReward: builder.mutation({
-      query: ({ id, formData }) => ({
-        url: `/api/admin/rewards/${id}`,
-        method: "POST",
-        body: formData,
-        // Don't set Content-Type header, let browser set it with boundary for FormData
-      }),
-      invalidatesTags: (r, e, arg) => [
-        { type: "Rewards", id: "LIST" },
-        { type: "Rewards", id: arg.id },
-      ],
+      query: ({ id, formData }) => {
+        // Add _method field for Laravel method spoofing (POST method)
+        formData.append('_method', 'POST');
+        return {
+          url: `/api/admin/rewards/${id}`,
+          method: "POST",
+          body: formData,
+          // Don't set Content-Type header, let browser set it with boundary for FormData
+        };
+      },
+      invalidatesTags: (result, error, arg) => {
+        console.log("🔍 DEBUG - Invalidating tags for updateReward:", {
+          result,
+          error,
+          argId: arg.id,
+          tags: [
+            { type: "Rewards", id: "LIST" },
+            { type: "Rewards", id: arg.id },
+          ]
+        });
+
+        // Force invalidate all rewards cache
+        return [
+          { type: "Rewards", id: "LIST" },
+          { type: "Rewards", id: arg.id },
+          { type: "Rewards", id: "PARTIAL-LIST" },
+        ];
+      },
     }),
     deleteReward: builder.mutation({
       query: (id) => ({
@@ -353,15 +376,33 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
       ],
     }),
     updateRewardStatus: builder.mutation({
-      query: ({ id, isActive }) => ({
-        url: `/api/admin/rewards/${id}`,
-        method: "POST",
-        body: { is_active: isActive },
-      }),
-      invalidatesTags: (r, e, arg) => [
-        { type: "Rewards", id: "LIST" },
-        { type: "Rewards", id: arg.id },
-      ],
+      query: ({ id, isActive }) => {
+        const formData = new FormData();
+        formData.append('_method', 'POST');
+        formData.append('is_active', isActive ? '1' : '0');
+
+        return {
+          url: `/api/admin/rewards/${id}`,
+          method: "POST",
+          body: formData,
+          // Don't set Content-Type header, let browser set it with boundary for FormData
+        };
+      },
+      invalidatesTags: (r, e, arg) => {
+        console.log("🔍 DEBUG - Invalidating tags for updateRewardStatus:", {
+          result: r,
+          error: e,
+          argId: arg.id,
+          tags: [
+            { type: "Rewards", id: "LIST" },
+            { type: "Rewards", id: arg.id },
+          ]
+        });
+        return [
+          { type: "Rewards", id: "LIST" },
+          { type: "Rewards", id: arg.id },
+        ];
+      },
     }),
 
     // === Featured Rooms Endpoints ===

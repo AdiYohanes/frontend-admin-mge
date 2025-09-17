@@ -9,14 +9,6 @@ const EventBookingTable = ({
   onEdit,
   onDelete,
 }) => {
-  // Debug: Log the events data
-  console.log('EventBookingTable - events:', events);
-  console.log('EventBookingTable - isLoading:', isLoading);
-  if (events && events.length > 0) {
-    console.log('EventBookingTable - First event data:', events[0]);
-    console.log('EventBookingTable - First event tanggalBooking:', events[0].tanggalBooking);
-    console.log('EventBookingTable - First event startTime:', events[0].startTime);
-  }
 
   const getStatusBadge = (status) => {
     const baseClasses = "badge font-semibold text-xs";
@@ -40,14 +32,6 @@ const EventBookingTable = ({
     }
   };
 
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    return new Date(dateString).toLocaleDateString("id-ID", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-  };
 
   const formatTime = (timeString) => {
     if (!timeString) return "N/A";
@@ -96,7 +80,7 @@ const EventBookingTable = ({
               <th>Event Description</th>
               <th>Room</th>
               <th>Unit</th>
-              <th>Tanggal Booking</th>
+              <th>Tanggal Event</th>
               <th>Start Time</th>
               <th>End Time</th>
               <th>Durasi</th>

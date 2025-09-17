@@ -50,7 +50,7 @@ const BookingRoomPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -72,7 +72,7 @@ const BookingRoomPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -96,7 +96,7 @@ const BookingRoomPage = () => {
       status: statusFilter,
       page: currentPage,
       per_page: limit,
-      sort_direction: 'desc', // Default to newest first
+      sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
     },
     {
       pollingInterval: 30000,
@@ -119,10 +119,6 @@ const BookingRoomPage = () => {
   const allBookings = useMemo(() => apiResponse?.bookings || [], [apiResponse?.bookings]);
   const paginationInfo = useMemo(() => apiResponse?.pagination || {}, [apiResponse?.pagination]);
 
-  // Debug: Log data yang diterima dari API
-  useEffect(() => {
-    // noop: keep effect for potential future side-effects
-  }, [allBookings, paginationInfo, monthFilter, yearFilter, statusFilter]);
 
   // --- LOGIKA PENCARIAN & PAGINASI DI FRONTEND ---
   const { paginatedBookings, totalPages, totalFiltered } = useMemo(() => {
@@ -130,13 +126,6 @@ const BookingRoomPage = () => {
       return { paginatedBookings: [], totalPages: 1, totalFiltered: 0 };
     }
 
-    console.log('🔍 DEBUG - Pagination Logic:', {
-      allBookingsLength: allBookings.length,
-      limit: limit,
-      currentPage: currentPage,
-      searchTerm: debouncedSearchTerm,
-      paginationInfo: paginationInfo
-    });
 
     // Filter berdasarkan search term
     let filtered = [...allBookings];
@@ -161,11 +150,6 @@ const BookingRoomPage = () => {
       // Use data directly from API (already paginated by backend)
       const calculatedTotalPages = paginationInfo.last_page || Math.ceil(paginationInfo.total / limit) || 1;
 
-      console.log('🔍 DEBUG - Backend Pagination:', {
-        filteredLength: filtered.length,
-        calculatedTotalPages: calculatedTotalPages,
-        paginationInfo: paginationInfo
-      });
 
       return {
         paginatedBookings: filtered,
@@ -178,11 +162,6 @@ const BookingRoomPage = () => {
     const total = Math.ceil(filtered.length / limit);
     const paginated = filtered.slice((currentPage - 1) * limit, currentPage * limit);
 
-    console.log('🔍 DEBUG - Frontend Pagination:', {
-      filteredLength: filtered.length,
-      totalPages: total,
-      paginatedLength: paginated.length
-    });
 
     return {
       paginatedBookings: paginated,
@@ -191,20 +170,8 @@ const BookingRoomPage = () => {
     };
   }, [allBookings, debouncedSearchTerm, currentPage, limit, paginationInfo]);
 
-  // Debug: Log totalPages untuk memastikan tombol pagination muncul
-  useEffect(() => {
-    // noop: keep effect for potential future side-effects
-  }, [totalPages, currentPage, limit, paginationInfo, debouncedSearchTerm]);
 
-  // Debug: Log perubahan limit dan currentPage
-  useEffect(() => {
-    // noop: keep effect for potential future side-effects
-  }, [limit, currentPage, monthFilter, yearFilter, statusFilter]);
 
-  // Auto-refresh status indicator
-  useEffect(() => {
-    // noop: keep effect for potential future side-effects
-  }, [isFetching]);
 
   // Show last refresh time
   const [lastRefreshTime, setLastRefreshTime] = useState(new Date());
@@ -338,8 +305,25 @@ const BookingRoomPage = () => {
           </div>
 
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            {/* Search and Limit Controls */}
-            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            {/* Show Entries Controls - Left Side */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-base-content">Show</span>
+              <select
+                className="select select-bordered select-sm"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span className="text-sm text-base-content">entries</span>
+            </div>
+
+            {/* Search, Filter and Add Button - Right Side */}
+            <div className="flex flex-col sm:flex-row gap-2 flex-1 justify-end">
               <div className="form-control">
                 <input
                   type="text"
@@ -349,22 +333,6 @@ const BookingRoomPage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="form-control">
-                <select
-                  className="select select-bordered select-sm"
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                >
-                  <option value={10}>10 per page</option>
-                  <option value={25}>25 per page</option>
-                  <option value={50}>50 per page</option>
-                  <option value={100}>100 per page</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Date Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-2">
               <div className="form-control">
                 <button
                   onClick={() => setIsFilterModalOpen(true)}
@@ -384,23 +352,21 @@ const BookingRoomPage = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Add Button */}
-            <div className="form-control">
-              <button
-                onClick={handleOpenAddModal}
-                className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
-                aria-label="Add OTS Booking"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleOpenAddModal();
-                  }
-                }}
-              >
-                Add OTS Booking
-              </button>
+              <div className="form-control">
+                <button
+                  onClick={handleOpenAddModal}
+                  className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
+                  aria-label="Add OTS Booking"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleOpenAddModal();
+                    }
+                  }}
+                >
+                  Add OTS Booking
+                </button>
+              </div>
             </div>
           </div>
 

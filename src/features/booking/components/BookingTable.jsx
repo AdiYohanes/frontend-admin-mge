@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { EyeIcon } from '@heroicons/react/24/outline';
 import { formatCurrency } from '../../../utils/formatters';
 
-const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDetails, onRefund }) => {
+const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDetails }) => {
   // Fungsi helper untuk menentukan warna badge status
   const getStatusBadge = (status) => {
     const baseClasses = 'badge font-semibold capitalize';
@@ -100,8 +100,9 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
         <thead className="bg-base-200">
           <tr>
             <th>No</th>
+            <th>No Transaksi</th>
+            <th>Tanggal Transaksi</th>
             <th>Customer</th>
-            <th>Invoice Number</th>
             <th>Booking Type</th>
             <th>Rental Details</th>
             <th>Time & Duration</th>
@@ -114,8 +115,9 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
           {bookings.map((booking, index) => (
             <tr key={booking.id} className="hover">
               <th>{rowStartIndex + index + 1}</th>
+              <td><div className="font-mono text-xs text-brand-gold">{booking.noTransaction}</div></td>
+              <td><div className="text-sm">{booking.tanggalTransaksi || booking.tanggalBooking}</div></td>
               <td><div className="font-bold">{booking.name}</div><div className="text-xs opacity-60">{booking.phoneNumber}</div></td>
-              <td><div className="font-mono text-xs">{booking.noTransaction}</div></td>
               <td><div className={getBookingTypeBadge(booking.bookingType)}>{booking.bookingType}</div></td>
               <td>
                 <ul className="list-disc list-inside text-sm">

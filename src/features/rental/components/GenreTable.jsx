@@ -37,7 +37,6 @@ const GenreTable = ({
                         {/* Kolom untuk drag handle */}
                         <th>No</th>
                         <th>Genre Name</th>
-                        <th>Created At</th>
                         <th className="text-center">Actions</th>
                     </tr>
                 </thead>

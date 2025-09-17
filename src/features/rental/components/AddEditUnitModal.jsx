@@ -353,7 +353,7 @@ const AddEditUnitModal = ({ isOpen, onClose, editingData }) => {
               </div>
 
               {/* Description */}
-              <div className="form-control">
+              <div className="form-control flex flex-col">
                 <label className="label">
                   <span className="label-text font-medium">Description</span>
                 </label>

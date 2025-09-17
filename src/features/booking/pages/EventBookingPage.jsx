@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   useGetEventBookingsQuery,
-  useDeleteEventBookingMutation,
+  useCancelEventPaymentMutation,
 } from "../api/eventBookingApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
@@ -55,7 +55,7 @@ const EventBookingPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -77,7 +77,7 @@ const EventBookingPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -95,7 +95,7 @@ const EventBookingPage = () => {
     status: statusFilter,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: 'desc', // Default to newest first
+    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
   });
 
   // Debug: Log the data received from API
@@ -106,8 +106,8 @@ const EventBookingPage = () => {
   console.log('EventBookingPage - bookings from data:', data?.bookings);
   console.log('EventBookingPage - events from data:', data?.events);
 
-  const [deleteEventBooking, { isLoading: isDeleting }] =
-    useDeleteEventBookingMutation();
+  const [cancelEventPayment, { isLoading: isCancelling }] =
+    useCancelEventPaymentMutation();
 
   // Use data directly from API (already transformed by API slice)
   const bookings = useMemo(() => data?.bookings || [], [data?.bookings]);
@@ -170,7 +170,9 @@ const EventBookingPage = () => {
 
   const handleConfirmCancel = async () => {
     try {
-      await deleteEventBooking(eventToDelete.rawEvent?.id || eventToDelete.id).unwrap();
+      // Use the booking ID for cancel payment API
+      const bookingId = eventToDelete.rawBooking?.id || eventToDelete.id;
+      await cancelEventPayment(bookingId).unwrap();
       toast.success("Event booking berhasil dibatalkan!");
       deleteModalRef.current?.close();
     } catch (err) {
@@ -243,8 +245,25 @@ const EventBookingPage = () => {
             ))}
           </div>
           <div className="flex flex-col sm:flex-row gap-4 mb-4">
-            {/* Search and Limit Controls */}
-            <div className="flex flex-col sm:flex-row gap-2 flex-1">
+            {/* Show Entries Controls - Left Side */}
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-base-content">Show</span>
+              <select
+                className="select select-bordered select-sm"
+                value={limit}
+                onChange={(e) => setLimit(Number(e.target.value))}
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={20}>20</option>
+                <option value={25}>25</option>
+              </select>
+              <span className="text-sm text-base-content">entries</span>
+            </div>
+
+            {/* Search, Filter and Add Button - Right Side */}
+            <div className="flex flex-col sm:flex-row gap-2 flex-1 justify-end">
               <div className="form-control">
                 <input
                   type="text"
@@ -254,22 +273,6 @@ const EventBookingPage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <div className="form-control">
-                <select
-                  className="select select-bordered select-sm"
-                  value={limit}
-                  onChange={(e) => setLimit(Number(e.target.value))}
-                >
-                  <option value={10}>10 per page</option>
-                  <option value={25}>25 per page</option>
-                  <option value={50}>50 per page</option>
-                  <option value={100}>100 per page</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Date Filter Controls */}
-            <div className="flex flex-col sm:flex-row gap-2">
               <div className="form-control">
                 <button
                   onClick={() => setIsFilterModalOpen(true)}
@@ -289,23 +292,21 @@ const EventBookingPage = () => {
                   </button>
                 </div>
               )}
-            </div>
-
-            {/* Add Button */}
-            <div className="form-control">
-              <button
-                onClick={handleOpenAddModal}
-                className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
-                aria-label="Add Event"
-                tabIndex={0}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    handleOpenAddModal();
-                  }
-                }}
-              >
-                Add Event
-              </button>
+              <div className="form-control">
+                <button
+                  onClick={handleOpenAddModal}
+                  className="btn btn-sm bg-brand-gold text-white border-none hover:bg-yellow-400 focus:outline-none focus:ring-2 focus:ring-brand-gold focus:ring-offset-2"
+                  aria-label="Add Event"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      handleOpenAddModal();
+                    }
+                  }}
+                >
+                  Add Event
+                </button>
+              </div>
             </div>
           </div>
           <EventBookingTable
@@ -357,7 +358,7 @@ const EventBookingPage = () => {
         ref={deleteModalRef}
         title="Konfirmasi Batal Event"
         onConfirm={handleConfirmCancel}
-        isLoading={isDeleting}
+        isLoading={isCancelling}
       >
         <p>
           Apakah Anda yakin ingin membatalkan event{" "}
