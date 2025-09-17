@@ -217,36 +217,9 @@ const BookingRoomPage = () => {
 
   // --- HANDLER FUNCTIONS ---
   const handleOpenAddModal = () => {
-    // Get admin token from localStorage or sessionStorage
-    const adminToken = localStorage.getItem('token') || sessionStorage.getItem('token');
-
-    // Get frontend URL from environment variable
-    const frontendUrl = import.meta.env.VITE_FRONTEND_URL;
-
-    // Check if frontend URL is defined
-    if (!frontendUrl) {
-      console.error('VITE_FRONTEND_URL environment variable is not defined');
-      alert('Frontend URL tidak dikonfigurasi. Silakan set VITE_FRONTEND_URL di file .env');
-      return;
-    }
-
-    const fullFrontendUrl = `${frontendUrl}/rent`;
-    const newWindow = window.open(fullFrontendUrl, '_blank');
-
-    // Send token via PostMessage after window opens
-    if (adminToken && newWindow) {
-      setTimeout(() => {
-        try {
-          newWindow.postMessage({
-            type: 'AUTO_LOGIN',
-            token: adminToken,
-            source: 'admin_panel'
-          }, frontendUrl);
-        } catch (error) {
-          console.error('Failed to send token via PostMessage:', error);
-        }
-      }, 1000); // Wait 1 second for window to fully load
-    }
+    // Redirect to VITE_API_BASE_URL for OTS booking
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
+    window.open(`${baseUrl}/rent`, '_blank');
   };
 
   const handleViewDetails = (booking) => {
