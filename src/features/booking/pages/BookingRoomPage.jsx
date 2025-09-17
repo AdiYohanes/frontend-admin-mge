@@ -222,6 +222,14 @@ const BookingRoomPage = () => {
 
     // Get frontend URL from environment variable
     const frontendUrl = import.meta.env.VITE_FRONTEND_URL;
+
+    // Check if frontend URL is defined
+    if (!frontendUrl) {
+      console.error('VITE_FRONTEND_URL environment variable is not defined');
+      alert('Frontend URL tidak dikonfigurasi. Silakan set VITE_FRONTEND_URL di file .env');
+      return;
+    }
+
     const fullFrontendUrl = `${frontendUrl}/rent`;
     const newWindow = window.open(fullFrontendUrl, '_blank');
 
