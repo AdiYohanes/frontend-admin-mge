@@ -3,7 +3,7 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const transactionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status, month = "", year = "", sortBy = "total_price", sortOrder = "asc" }) => {
+      query: ({ page = 1, limit = 10, search = "", status, month = "", year = "", sortBy = "created_at", sortOrder = "asc" }) => {
         const params = {
           page,
           per_page: limit,
@@ -15,6 +15,7 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
         if (status && status !== 'All') params.status = status;
         if (month) params.month = month;
         if (year) params.year = year;
+
 
         return {
           url: '/api/admin/transactions',
@@ -35,6 +36,9 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
 
         // Transform transaction data - ambil semua data langsung dari API response
         const transformedData = transactionsData.map(transaction => {
+          const finalStatus = transaction.booking2?.status;
+
+
           return {
             // Field utama dari API response
             id: transaction.id,
@@ -64,7 +68,7 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
             paymentMethod: transaction.payment_method,
             paymentDate: transaction.payment_date,
             gatewayTransactionId: transaction.gateway_transaction_id,
-            status: transaction.status,
+            status: finalStatus,
             payload: transaction.payload,
             createdAt: transaction.created_at,
             updatedAt: transaction.updated_at,
