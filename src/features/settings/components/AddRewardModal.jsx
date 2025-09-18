@@ -58,29 +58,29 @@ const AddRewardModal = ({ isOpen, onClose, editingData, onSuccess }) => {
                 }
                 setName(editingData.name || "");
                 setDescription(editingData.description || "");
-                setType(editingData.rewardType || editingData.effects?.[0]?.type || "");
+                setType(editingData.rewardType || editingData.effects?.type || "");
                 setPoints(editingData.pointsRequired ? String(editingData.pointsRequired) : '');
 
                 console.log("🔍 DEBUG - Basic fields set:", {
                     name: editingData.name,
                     description: editingData.description,
-                    type: editingData.rewardType || editingData.effects?.[0]?.type,
+                    type: editingData.rewardType || editingData.effects?.type,
                     points: editingData.pointsRequired
                 });
                 console.log("🔍 DEBUG - Effects structure:", editingData.effects);
                 console.log("🔍 DEBUG - Effects type:", typeof editingData.effects, Array.isArray(editingData.effects));
 
-                if ((editingData.effects?.[0]?.type || editingData.rewardType) === "free_play") {
-                    setUnitId(String(editingData.effects?.[0]?.unit_id || editingData.unit?.id || ""));
-                    setDuration(String(editingData.effects?.[0]?.duration_hours || ""));
+                if ((editingData.effects?.type || editingData.rewardType) === "free_play") {
+                    setUnitId(String(editingData.effects?.unit_id || editingData.unit?.id || ""));
+                    setDuration(String(editingData.effects?.duration_hours || ""));
                     console.log("🔍 DEBUG - Free play fields set:", {
-                        unitId: editingData.effects?.[0]?.unit_id || editingData.unit?.id,
-                        duration: editingData.effects?.[0]?.duration_hours
+                        unitId: editingData.effects?.unit_id || editingData.unit?.id,
+                        duration: editingData.effects?.duration_hours
                     });
-                } else if ((editingData.effects?.[0]?.type || editingData.rewardType) === "free_fnb") {
+                } else if ((editingData.effects?.type || editingData.rewardType) === "free_fnb") {
                     // Only process FNB data if FNB items are loaded
                     if (!isLoadingFnbItems && fnbItems.length > 0) {
-                        const fnbs = editingData.effects?.[0]?.fnbs || editingData.effects?.fnbs || [];
+                        const fnbs = editingData.effects?.fnbs || [];
                         console.log("🔍 DEBUG - Editing FNB data:", fnbs);
                         console.log("🔍 DEBUG - Available FNB items count:", fnbItems.length);
                         console.log("🔍 DEBUG - FNB items sample:", fnbItems.slice(0, 3).map(item => ({ id: item.id, name: item.name, type: typeof item.id })));

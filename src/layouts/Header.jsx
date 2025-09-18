@@ -170,7 +170,7 @@ const Header = () => {
             </div>
           </label>
           <div
-            tabIndex={0}
+            tabIndex={-1}
             className="mt-3 z-[1] card card-compact dropdown-content w-80 md:w-96 bg-base-100 shadow"
           >
             <div className="card-body">
@@ -223,9 +223,11 @@ const Header = () => {
                         {!notif.read && (
                           <button
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
                               handleMarkAsRead(notif.id);
                             }}
+                            onMouseDown={(e) => e.preventDefault()}
                             disabled={isMarkingSingleRead}
                             className="btn btn-xs bg-blue-100 hover:bg-blue-200 text-blue-600 border-0 flex-shrink-0"
                             title="Mark as read"
@@ -242,9 +244,11 @@ const Header = () => {
                         {notif.read && (
                           <button
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
                               handleDeleteNotification(notif.id);
                             }}
+                            onMouseDown={(e) => e.preventDefault()}
                             disabled={isDeletingNotification}
                             className="btn btn-xs bg-red-100 hover:bg-red-200 text-red-600 border-0 flex-shrink-0"
                             title="Delete notification"
@@ -268,7 +272,12 @@ const Header = () => {
               <div className="card-actions mt-4 space-y-2">
                 <button
                   className="btn bg-brand-gold btn-block text-white"
-                  onClick={handleMarkAllRead}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleMarkAllRead();
+                  }}
+                  onMouseDown={(e) => e.preventDefault()}
                   disabled={isMarkingRead || unreadCount === 0}
                 >
                   {isMarkingRead ? (
@@ -281,7 +290,12 @@ const Header = () => {
                 {readCount > 0 && (
                   <button
                     className="btn btn-outline btn-error btn-block"
-                    onClick={handleDeleteAllReadNotifications}
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleDeleteAllReadNotifications();
+                    }}
+                    onMouseDown={(e) => e.preventDefault()}
                     disabled={isDeletingAllRead || readCount === 0}
                   >
                     {isDeletingAllRead ? (
