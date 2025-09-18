@@ -89,7 +89,6 @@ const TodaysBooking = () => {
         <div className="flex justify-between items-center mb-6 flex-shrink-0">
           <div>
             <h2 className="text-xl font-semibold text-gray-900 mb-1">Today's Booking</h2>
-            <p className="text-sm text-gray-500">Unit performance overview</p>
           </div>
 
           {/* Filter Dropdown */}
