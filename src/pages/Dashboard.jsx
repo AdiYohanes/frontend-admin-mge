@@ -13,7 +13,6 @@ import RevenueChart from "../features/dashboard/components/RevenueChart";
 import PeakTimeChart from "../features/dashboard/components/PeakTimeChart";
 import OrderSummaryChart from "../features/dashboard/components/OrderSummaryChart";
 import TodaysBooking from "../features/dashboard/components/TodaysBooking";
-import WebsiteTrafficChart from "../features/dashboard/components/WebsiteTrafficChart";
 import StatsSection from "../features/dashboard/components/StatsSection";
 
 const DashboardPage = () => {
@@ -172,17 +171,10 @@ const DashboardPage = () => {
           </div>
         </div>
 
-        {/* Baris 6: Order Summary & Website Traffic dengan spacing yang lebih baik */}
+        {/* Baris 6: Order Summary dengan spacing yang lebih baik */}
         <div className="card bg-base-100 shadow-xl border border-base-200">
           <div className="card-body">
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-              <div className="space-y-4">
-                <OrderSummaryChart />
-              </div>
-              <div className="space-y-4">
-                <WebsiteTrafficChart />
-              </div>
-            </div>
+            <OrderSummaryChart />
           </div>
         </div>
 

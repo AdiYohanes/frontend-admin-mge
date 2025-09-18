@@ -192,10 +192,25 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
         } else if (period === "weekly") {
           // Handle weekly period - show daily breakdown
           const dailyBreakdown = response.current_week?.daily_breakdown || [];
+
+          // Function to convert day name to 3-letter format
+          const getShortDayName = (dayName) => {
+            const dayMap = {
+              'Monday': 'Mon',
+              'Tuesday': 'Tue',
+              'Wednesday': 'Wed',
+              'Thursday': 'Thu',
+              'Friday': 'Fri',
+              'Saturday': 'Sat',
+              'Sunday': 'Sun'
+            };
+            return dayMap[dayName] || dayName;
+          };
+
           return {
             type: "chart",
             data: dailyBreakdown.map((item) => ({
-              name: item.day_name,
+              name: getShortDayName(item.day_name),
               "Unit Booking": item.unit_booking_count || 0,
               "F&B Booking": item.fnb_booking_count || 0,
             })),
