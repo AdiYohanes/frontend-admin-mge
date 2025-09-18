@@ -65,7 +65,7 @@ const TransactionListPage = () => {
     if (limit !== 10) params.set('per_page', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
     if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter);
-    params.set('sortBy', 'total_price');
+    params.set('sortBy', 'created_at');
     params.set('sortOrder', sortOrder === 'newest' ? 'asc' : 'desc');
 
     // Only update URL if parameters have changed
@@ -84,7 +84,7 @@ const TransactionListPage = () => {
     search: debouncedSearchTerm,
     month: monthFilter,
     year: yearFilter,
-    sortBy: 'total_price',
+    sortBy: 'created_at',
     sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
     status: statusFilter
   };
