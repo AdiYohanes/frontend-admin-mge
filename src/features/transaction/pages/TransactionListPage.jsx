@@ -43,7 +43,7 @@ const TransactionListPage = () => {
     const urlLimit = parseInt(searchParams.get('per_page')) || 10;
     const urlSearch = searchParams.get('search') || '';
     const urlStatus = searchParams.get('status') || 'All';
-    const urlSortDirection = searchParams.get('sort_direction') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'asc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -65,7 +65,8 @@ const TransactionListPage = () => {
     if (limit !== 10) params.set('per_page', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
     if (statusFilter && statusFilter !== 'All') params.set('status', statusFilter);
-    if (sortOrder !== 'newest') params.set('sort_direction', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortBy', 'total_price');
+    params.set('sortOrder', sortOrder === 'newest' ? 'asc' : 'desc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -83,7 +84,8 @@ const TransactionListPage = () => {
     search: debouncedSearchTerm,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sortBy: 'total_price',
+    sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
     status: statusFilter
   };
 

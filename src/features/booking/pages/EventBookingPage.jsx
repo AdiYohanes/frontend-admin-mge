@@ -26,7 +26,7 @@ const EventBookingPage = () => {
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState("All");
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' (asc) or 'oldest' (desc)
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingData, setEditingData] = useState(null);
@@ -55,7 +55,7 @@ const EventBookingPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'asc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -77,7 +77,8 @@ const EventBookingPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortBy', 'created_at');
+    params.set('sortOrder', sortOrder === 'newest' ? 'asc' : 'desc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -95,7 +96,8 @@ const EventBookingPage = () => {
     status: statusFilter,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sortBy: 'created_at',
+    sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
   });
 
   // Debug: Log the data received from API
@@ -170,9 +172,9 @@ const EventBookingPage = () => {
 
   const handleConfirmCancel = async () => {
     try {
-      // Use the booking ID for cancel payment API
-      const bookingId = eventToDelete.rawBooking?.id || eventToDelete.id;
-      await cancelEventPayment(bookingId).unwrap();
+      // Use the event ID for cancel API
+      const eventId = eventToDelete.rawEvent?.id || eventToDelete.id;
+      await cancelEventPayment(eventId).unwrap();
       toast.success("Event booking berhasil dibatalkan!");
       deleteModalRef.current?.close();
     } catch (err) {

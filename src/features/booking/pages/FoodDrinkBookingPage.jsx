@@ -22,7 +22,7 @@ const FoodDrinkBookingPage = () => {
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState("All");
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' (asc) or 'oldest' (desc)
   const [isPrintModalOpen, setIsPrintModalOpen] = useState(false);
   const [orderToPrint, setOrderToPrint] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -44,7 +44,7 @@ const FoodDrinkBookingPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'asc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -66,7 +66,8 @@ const FoodDrinkBookingPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortBy', 'created_at');
+    params.set('sortOrder', sortOrder === 'newest' ? 'asc' : 'desc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -84,7 +85,8 @@ const FoodDrinkBookingPage = () => {
     status: statusFilter,
     month: monthFilter,
     year: yearFilter,
-    sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
+    sortBy: 'created_at',
+    sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
   });
 
 

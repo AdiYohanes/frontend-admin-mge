@@ -23,7 +23,7 @@ const BookingRoomPage = () => {
   const [monthFilter, setMonthFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [statusFilter, setStatusFilter] = useState('All');
-  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' or 'oldest'
+  const [sortOrder, setSortOrder] = useState('newest'); // 'newest' (asc) or 'oldest' (desc)
 
   // State untuk date picker modal
   const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
@@ -50,7 +50,7 @@ const BookingRoomPage = () => {
     const urlPage = parseInt(searchParams.get('page')) || 1;
     const urlLimit = parseInt(searchParams.get('limit')) || 10;
     const urlSearch = searchParams.get('search') || '';
-    const urlSortDirection = searchParams.get('sortOrder') || 'desc';
+    const urlSortDirection = searchParams.get('sortOrder') || 'asc';
 
     setMonthFilter(urlMonth);
     setYearFilter(urlYear);
@@ -72,7 +72,8 @@ const BookingRoomPage = () => {
     if (currentPage > 1) params.set('page', currentPage.toString());
     if (limit !== 10) params.set('limit', limit.toString());
     if (searchTerm.trim()) params.set('search', searchTerm.trim());
-    params.set('sortOrder', sortOrder === 'newest' ? 'desc' : 'asc');
+    params.set('sortBy', 'created_at');
+    params.set('sortOrder', sortOrder === 'newest' ? 'asc' : 'desc');
 
     // Only update URL if parameters have changed
     const currentParams = searchParams.toString();
@@ -84,20 +85,26 @@ const BookingRoomPage = () => {
   }, [monthFilter, yearFilter, statusFilter, currentPage, limit, searchTerm, sortOrder, setSearchParams, searchParams]);
 
   // --- RTK QUERY HOOKS ---
+  const queryParams = {
+    month: monthFilter,
+    year: yearFilter,
+    status: statusFilter,
+    page: currentPage,
+    per_page: limit,
+    sortBy: 'created_at',
+    sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
+  };
+
+  console.log('🔍 BookingRoomPage Query Params:', queryParams);
+  console.log('🔍 Current sortOrder state:', sortOrder);
+
   const {
     data: apiResponse,
     isLoading,
     isFetching,
     refetch
   } = useGetBookingsQuery(
-    {
-      month: monthFilter,
-      year: yearFilter,
-      status: statusFilter,
-      page: currentPage,
-      per_page: limit,
-      sort_direction: sortOrder === 'newest' ? 'desc' : 'asc',
-    },
+    queryParams,
     {
       pollingInterval: 30000,
       refetchOnFocus: true,
@@ -210,7 +217,11 @@ const BookingRoomPage = () => {
   };
 
   const handleSortToggle = () => {
-    setSortOrder(prev => prev === 'newest' ? 'oldest' : 'newest');
+    setSortOrder(prev => {
+      const newOrder = prev === 'newest' ? 'oldest' : 'newest';
+      console.log('🔄 Sort toggle:', prev, '->', newOrder);
+      return newOrder;
+    });
   };
 
   // Date picker handlers

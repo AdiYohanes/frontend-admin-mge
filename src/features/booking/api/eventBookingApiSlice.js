@@ -3,10 +3,12 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const eventBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getEventBookings: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status = "", month = "", year = "", sort_direction = "desc" }) => {
+      query: ({ page = 1, limit = 10, search = "", status = "", month = "", year = "", sortBy = "created_at", sortOrder = "asc" }) => {
         const params = {
           page,
           per_page: limit,
+          sortBy,
+          sortOrder
         };
 
         // Hanya kirim parameter yang relevan ke backend
@@ -14,7 +16,6 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
         if (status && status !== 'All') params.status = status.toLowerCase();
         if (month) params.month = month;
         if (year) params.year = year;
-        if (sort_direction) params.sort_direction = sort_direction;
 
         console.log('🔍 DEBUG - Event API Query params:', params);
 
@@ -139,8 +140,8 @@ export const eventBookingApiSlice = apiSlice.injectEndpoints({
     }),
 
     cancelEventPayment: builder.mutation({
-      query: (bookingId) => ({
-        url: `/api/bookings/${bookingId}/cancel-payment`,
+      query: (eventId) => ({
+        url: `/api/admin/events/${eventId}/cancel`,
         method: "POST",
       }),
       invalidatesTags: ["EventBooking"],

@@ -115,7 +115,7 @@ const BookingTable = ({ bookings = [], isLoading, page = 1, limit = 10, onViewDe
           {bookings.map((booking, index) => (
             <tr key={booking.id} className="hover">
               <th>{rowStartIndex + index + 1}</th>
-              <td><div className="font-mono text-xs text-brand-gold">{booking.noTransaction}</div></td>
+              <td><div className="font-mono text-xs text-brand-gold font-bold">{booking.noTransaction}</div></td>
               <td><div className="text-sm">{booking.tanggalTransaksi || booking.tanggalBooking}</div></td>
               <td><div className="font-bold">{booking.name}</div><div className="text-xs opacity-60">{booking.phoneNumber}</div></td>
               <td><div className={getBookingTypeBadge(booking.bookingType)}>{booking.bookingType}</div></td>

@@ -4,11 +4,12 @@ import { format, parseISO, differenceInHours } from "date-fns";
 export const bookingApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getBookings: builder.query({
-      query: ({ month = '', year = '', status = '', page = 1, per_page = 10, sort_direction = 'desc' }) => {
+      query: ({ month = '', year = '', status = '', page = 1, per_page = 10, sortBy = 'created_at', sortOrder = 'asc' }) => {
         const params = {
           page,
           per_page,
-          sort_direction
+          sortBy,
+          sortOrder
         };
         // Hanya kirim parameter yang relevan ke backend
         if (month) params.month = month;
@@ -54,8 +55,8 @@ export const bookingApiSlice = apiSlice.injectEndpoints({
               startTime: startTime ? format(startTime, 'HH:mm') : '-',
               duration: startTime && endTime ? differenceInHours(endTime, startTime) : 0,
               endTime: endTime ? format(endTime, 'HH:mm') : '-',
-              tanggalBooking: startTime ? format(startTime, 'dd MMMM yyyy') : 'N/A',
-              tanggalTransaksi: booking.created_at ? format(parseISO(booking.created_at), 'dd MMMM yyyy') : 'N/A',
+              tanggalBooking: startTime ? format(startTime, 'dd/MM/yy') : 'N/A',
+              tanggalTransaksi: booking.created_at ? format(parseISO(booking.created_at), 'dd/MM/yy') : 'N/A',
               totalPembayaran: parseFloat(booking.total_price) || 0,
               metodePembayaran: booking.payment_method || 'N/A',
               statusBooking: booking.status ? (booking.status.charAt(0).toUpperCase() + booking.status.slice(1)) : 'Unknown',

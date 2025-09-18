@@ -3,11 +3,12 @@ import { apiSlice } from "../../../store/api/apiSlice";
 export const transactionApiSlice = apiSlice.injectEndpoints({
   endpoints: (builder) => ({
     getTransactions: builder.query({
-      query: ({ page = 1, limit = 10, search = "", status, month = "", year = "", sort_direction = "desc" }) => {
+      query: ({ page = 1, limit = 10, search = "", status, month = "", year = "", sortBy = "total_price", sortOrder = "asc" }) => {
         const params = {
           page,
           per_page: limit,
-          sort_direction
+          sortBy,
+          sortOrder
         };
 
         if (search) params.search = search;

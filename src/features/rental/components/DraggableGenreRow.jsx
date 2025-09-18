@@ -7,7 +7,6 @@ import {
     TrashIcon,
     TagIcon,
 } from "@heroicons/react/24/outline";
-import { format } from "date-fns";
 
 const DraggableGenreRow = ({
     genre,
@@ -32,14 +31,6 @@ const DraggableGenreRow = ({
         zIndex: isDragging ? 10 : "auto",
     };
 
-    const formatDate = (dateString) => {
-        try {
-            return format(new Date(dateString), "dd MMM yyyy");
-        } catch (error) {
-            console.error("Error formatting date:", error);
-            return "Invalid Date";
-        }
-    };
 
     return (
         <tr
@@ -68,9 +59,6 @@ const DraggableGenreRow = ({
                         <div className="font-semibold">{genre.name}</div>
                     </div>
                 </div>
-            </td>
-            <td className="text-sm text-base-content/70">
-                {formatDate(genre.created_at)}
             </td>
             <td className="text-center">
                 <div className="flex items-center justify-center gap-1">

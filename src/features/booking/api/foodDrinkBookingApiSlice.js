@@ -48,10 +48,12 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
   endpoints: builder => ({
     getFoodDrinkBookings: builder.query({
       // Gunakan endpoint baru untuk F&B bookings
-      query: ({ page = 1, limit = 10, status = '', month = '', year = '', sort_direction = 'desc' }) => {
+      query: ({ page = 1, limit = 10, status = '', month = '', year = '', sortBy = 'created_at', sortOrder = 'asc' }) => {
         const params = {
           page,
           per_page: limit,
+          sortBy,
+          sortOrder
         };
 
         // Hanya kirim parameter status jika tidak 'All'
@@ -67,11 +69,6 @@ export const foodDrinkBookingApiSlice = apiSlice.injectEndpoints({
         // Hanya kirim parameter year jika ada
         if (year) {
           params.year = year;
-        }
-
-        // Hanya kirim parameter sort_direction jika bukan default
-        if (sort_direction) {
-          params.sort_direction = sort_direction;
         }
 
         console.log('🔍 DEBUG - F&B API Query params:', params);

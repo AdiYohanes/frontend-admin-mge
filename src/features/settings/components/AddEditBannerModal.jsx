@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useEffect, useCallback, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -129,11 +129,13 @@ const createBannerSchema = (isEditMode = false) =>
           console.log("No files to validate size");
           return true;
         }
-        const isValidSize = files[0]?.size <= 2 * 1024 * 1024;
-        console.log("File size validation:", files[0]?.size, "bytes, valid:", isValidSize);
+        const fileSize = files[0]?.size;
+        const maxSize = 2 * 1024 * 1024; // 2MB
+        const isValidSize = fileSize <= maxSize;
+        console.log("File size validation:", fileSize, "bytes, max:", maxSize, "valid:", isValidSize);
         return isValidSize;
       }, {
-        message: `Ukuran gambar maksimal 2MB.`,
+        message: "Ukuran gambar maksimal 2MB. Silakan pilih gambar yang lebih kecil.",
       }),
   });
 // --- AKHIR BLOK PERBAIKAN ---
@@ -142,6 +144,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
   const isEditMode = Boolean(editingData);
   const [addBanner, { isLoading: isAdding }] = useAddBannerMutation();
   const [updateBanner, { isLoading: isUpdating }] = useUpdateBannerMutation();
+  const [fileError, setFileError] = useState(null);
   const isLoading = isAdding || isUpdating;
 
   // Gunakan skema dinamis di sini
@@ -170,8 +173,29 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
   console.log("image error:", errors.image);
 
   // Dropzone configuration
-  const onDrop = useCallback((acceptedFiles) => {
+  const onDrop = useCallback((acceptedFiles, rejectedFiles) => {
     console.log("Files dropped:", acceptedFiles);
+    console.log("Rejected files:", rejectedFiles);
+
+    // Clear previous errors
+    setFileError(null);
+
+    // Handle rejected files (too large, wrong type, etc.)
+    if (rejectedFiles && rejectedFiles.length > 0) {
+      const rejectedFile = rejectedFiles[0];
+      if (rejectedFile.errors.some(error => error.code === 'file-too-large')) {
+        const fileSize = (rejectedFile.file.size / 1024 / 1024).toFixed(2);
+        setFileError(`Ukuran gambar terlalu besar! File: ${fileSize}MB, Maksimal: 2MB`);
+        return;
+      }
+      if (rejectedFile.errors.some(error => error.code === 'file-invalid-type')) {
+        setFileError("Format file tidak didukung! Gunakan JPG, JPEG, atau PNG.");
+        return;
+      }
+      setFileError("File tidak valid. Silakan coba lagi.");
+      return;
+    }
+
     console.log("Setting image value to:", acceptedFiles);
     setValue("image", acceptedFiles, {
       shouldValidate: true,
@@ -194,6 +218,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
   useEffect(() => {
     if (isOpen) {
       console.log("Modal opened, resetting form...");
+      setFileError(null); // Clear file error when modal opens
       if (isEditMode && editingData) {
         console.log("Edit mode - resetting with existing data");
         reset({
@@ -323,7 +348,7 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
                   : watchedImage && Array.isArray(watchedImage) && watchedImage.length > 0
                     ? "border-brand-gold bg-brand-gold/5"
                     : "border-base-300 hover:border-brand-gold/50"
-                } ${errors.image ? "border-error" : ""}`}
+                } ${(errors.image || fileError) ? "border-error bg-error/5" : ""}`}
             >
               <input {...getInputProps()} />
 
@@ -335,9 +360,9 @@ const AddEditBannerModal = ({ isOpen, onClose, editingData }) => {
               />
             </div>
 
-            {errors.image && (
+            {(errors.image || fileError) && (
               <span className="text-xs text-error mt-1 flex items-center gap-1">
-                {errors.image.message}
+                {fileError || errors.image?.message}
               </span>
             )}
 
