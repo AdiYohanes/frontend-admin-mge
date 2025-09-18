@@ -1,13 +1,12 @@
 import React from "react";
 import {
-  PencilSquareIcon,
   TrashIcon,
   StarIcon,
 } from "@heroicons/react/24/solid";
 import { useUpdateCustomerReviewMutation } from "../api/settingsApiSlice";
 import { toast } from "react-hot-toast";
 
-const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
+const CustomerReviewTable = ({ reviews, isLoading, onDelete }) => {
   const [updateReview, { isLoading: isUpdatingStatus }] =
     useUpdateCustomerReviewMutation();
 
@@ -40,7 +39,7 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
             <th>Description</th>
             <th>Rating</th>
             <th>Activation</th>
-            <th className="text-center">Actions</th>
+            <th className="text-center">Action</th>
           </tr>
         </thead>
         <tbody>
@@ -59,10 +58,7 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
                     <div className="avatar">
                       <div className="mask mask-squircle w-12 h-12">
                         <img
-                          src={
-                            review.booking?.bookable?.avatarUrl ||
-                            `https://i.pravatar.cc/150?u=${review.booking?.bookable?.username}`
-                          }
+                          src="/images/admin-profile.png"
                           alt={review.booking?.bookable?.name || 'Unknown'}
                         />
                       </div>
@@ -92,20 +88,12 @@ const CustomerReviewTable = ({ reviews, isLoading, onEdit, onDelete }) => {
                   />
                 </td>
                 <td className="text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <button
-                      onClick={() => onEdit(review)}
-                      className="btn btn-ghost btn-sm"
-                    >
-                      <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(review)}
-                      className="btn btn-ghost btn-sm text-error"
-                    >
-                      <TrashIcon className="h-5 w-5" />
-                    </button>
-                  </div>
+                  <button
+                    onClick={() => onDelete(review)}
+                    className="btn btn-ghost btn-sm text-error"
+                  >
+                    <TrashIcon className="h-5 w-5" />
+                  </button>
                 </td>
               </tr>
             ))

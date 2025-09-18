@@ -458,7 +458,14 @@ export const settingsApiSlice = apiSlice.injectEndpoints({
 
     // === Customer Reviews Endpoints ===
     getCustomerReviews: builder.query({
-      query: () => "/api/admin/customer-reviews",
+      query: ({ page = 1, per_page = 15 } = {}) => {
+        const params = new URLSearchParams();
+        if (page > 1) params.set('page', page.toString());
+        if (per_page !== 15) params.set('per_page', per_page.toString());
+
+        const queryString = params.toString();
+        return `/api/public/customer-reviews${queryString ? `?${queryString}` : ''}`;
+      },
       transformResponse: (response) => ({
         reviews: response.data || [],
         pagination: {
