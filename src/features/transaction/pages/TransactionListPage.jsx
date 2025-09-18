@@ -32,7 +32,7 @@ const TransactionListPage = () => {
   const [selectedYear, setSelectedYear] = useState(null);
 
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-  const statusTabs = ['All', 'completed', 'confirmed', 'cancelled'];
+  const statusTabs = ['All', 'completed', 'confirmed', 'cancelled', 'pending'];
 
   // --- URL PARAMETER SYNCHRONIZATION ---
   // Initialize state from URL parameters on component mount
@@ -77,7 +77,7 @@ const TransactionListPage = () => {
     }
   }, [monthFilter, yearFilter, currentPage, limit, searchTerm, statusFilter, sortOrder, setSearchParams, searchParams]);
 
-  // Use RTK Query hook for API calls
+  // Use RTK Query hook for API calls - Remove status filter from backend
   const queryParams = {
     page: currentPage,
     limit: limit,
@@ -86,13 +86,23 @@ const TransactionListPage = () => {
     year: yearFilter,
     sortBy: 'created_at',
     sortOrder: sortOrder === 'newest' ? 'asc' : 'desc',
-    status: statusFilter
+    // status: statusFilter === 'All' ? undefined : statusFilter  // ← Remove status filter from backend
   };
 
   const { data, isLoading, error, refetch } = useGetTransactionsQuery(queryParams);
 
+  // Debug logging
+  console.log('🔍 TransactionListPage - API Response:', data);
+  console.log('🔍 TransactionListPage - Query Params:', queryParams);
+  console.log('🔍 TransactionListPage - Status Filter:', statusFilter);
+
   // Extract data from API response
-  const transactions = useMemo(() => data?.transactions || [], [data?.transactions]);
+  const transactions = useMemo(() => {
+    const trans = data?.transactions || [];
+    console.log('🔍 TransactionListPage - Raw Transactions:', trans);
+    console.log('🔍 TransactionListPage - Transaction Statuses:', trans.map(t => ({ id: t.id, status: t.status, booking2Status: t.booking2?.status })));
+    return trans;
+  }, [data?.transactions]);
   const pagination = useMemo(() => data?.pagination || {
     current_page: 1,
     total: 0,
@@ -101,8 +111,29 @@ const TransactionListPage = () => {
   }, [data?.pagination]);
 
 
-  // All filtering is now handled by backend
-  const filteredTransactions = transactions;
+  // Frontend filtering for status
+  const filteredTransactions = useMemo(() => {
+    if (statusFilter === 'All') {
+      return transactions;
+    }
+
+    return transactions.filter(transaction => {
+      const transactionStatus = transaction.booking2?.status || transaction.status;
+      return transactionStatus === statusFilter;
+    });
+  }, [transactions, statusFilter]);
+
+  // Debug logging for status filtering
+  console.log('🔍 TransactionListPage - Filtered Transactions:', filteredTransactions);
+  console.log('🔍 TransactionListPage - Status Filter:', statusFilter);
+  console.log('🔍 TransactionListPage - Status Counts:', {
+    all: transactions.length,
+    completed: transactions.filter(t => (t.booking2?.status || t.status) === 'completed').length,
+    confirmed: transactions.filter(t => (t.booking2?.status || t.status) === 'confirmed').length,
+    cancelled: transactions.filter(t => (t.booking2?.status || t.status) === 'cancelled').length,
+    pending: transactions.filter(t => (t.booking2?.status || t.status) === 'pending').length,
+  });
+  console.log('🔍 TransactionListPage - Filtered Count:', filteredTransactions.length);
 
   // Reset page when filters change
   useEffect(() => {

@@ -16,6 +16,7 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
         if (month) params.month = month;
         if (year) params.year = year;
 
+        console.log('🔍 Transaction API Query - Status:', status, 'Params:', params);
 
         return {
           url: '/api/admin/transactions',
@@ -36,8 +37,15 @@ export const transactionApiSlice = apiSlice.injectEndpoints({
 
         // Transform transaction data - ambil semua data langsung dari API response
         const transformedData = transactionsData.map(transaction => {
-          const finalStatus = transaction.booking2?.status;
+          // Prioritize booking2.status over transaction.status for consistency
+          const finalStatus = transaction.booking2?.status || transaction.status || 'unknown';
 
+          console.log('🔍 Transaction Transform - ID:', transaction.id, 'Transaction Status:', transaction.status, 'Booking2 Status:', transaction.booking2?.status, 'Final Status:', finalStatus);
+
+          // Debug specific status values
+          if (transaction.booking2?.status === 'completed' || transaction.status === 'completed') {
+            console.log('🔍 COMPLETED STATUS FOUND - ID:', transaction.id, 'Booking2 Status:', transaction.booking2?.status, 'Transaction Status:', transaction.status);
+          }
 
           return {
             // Field utama dari API response
