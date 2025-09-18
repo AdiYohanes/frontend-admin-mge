@@ -77,7 +77,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 
     // Endpoint untuk data Revenue Chart
     getRevenueChartData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/revenue",
         method: "POST",
         body: { period },
@@ -144,7 +144,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 
     // Endpoint untuk data Peak Time Chart
     getPeakTimeData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/peak-hours",
         method: "POST",
         body: { period },
@@ -161,7 +161,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
 
     // Endpoint untuk Order Summary Chart
     getOrderSummaryData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/order",
         method: "POST",
         body: { period },
@@ -241,7 +241,7 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
       providesTags: ["Dashboard"],
     }),
     getMostPopularData: builder.query({
-      query: ({ period = "daily" }) => ({
+      query: ({ period = "daily" } = {}) => ({
         url: "/api/admin/analytics/popularatity-stats",
         method: "POST",
         body: { period },

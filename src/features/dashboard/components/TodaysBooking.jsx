@@ -3,37 +3,84 @@ import { ChevronDownIcon } from "@heroicons/react/24/solid";
 import { useGetTodaysBookingDataQuery } from "../api/dashboardApiSlice";
 
 const TodaysBooking = () => {
-  const [filter, setFilter] = useState("daily");
+  const [typeFilter, setTypeFilter] = useState("all");
 
   // Komponen ini memanggil API-nya sendiri
   const { data, isLoading, isError } = useGetTodaysBookingDataQuery({
-    period: filter,
+    period: "daily",
+    ...(typeFilter !== "all" && { type: typeFilter })
   });
 
   // Ekstrak data dari respons API dengan aman
   const bookings = useMemo(() => {
-    if (!data || !data.unit_bookings) return [];
+    console.log("🔍 DEBUG - TodaysBooking data:", data);
+    console.log("🔍 DEBUG - typeFilter:", typeFilter);
 
-    // Group bookings by unit_name and calculate total duration
-    const unitStats = data.unit_bookings.reduce((acc, booking) => {
-      const unitName = booking.unit_name;
-      if (!acc[unitName]) {
-        acc[unitName] = {
-          name: unitName,
-          booking_count: 0,
-          total_duration: 0
-        };
+    if (!data) return [];
+
+    if (typeFilter === "room" && data?.room_bookings) {
+      // For room bookings, display individual bookings as list
+      return data.room_bookings.map((booking) => ({
+        unit_name: booking.unit_name,
+        time_range: `${booking.start_time} - ${booking.end_time}`,
+        duration: booking.duration,
+        start_time: booking.start_time,
+        end_time: booking.end_time
+      }));
+    } else if (typeFilter === "fnb" && data?.fnb_orders) {
+      // For FNB orders, display individual orders as list
+      return data.fnb_orders.map((order, index) => ({
+        unit_name: `Order #${index + 1}`,
+        items: order.items,
+        total_price: order.total_price,
+        order_time: order.order_time
+      }));
+    } else if (typeFilter === "all") {
+      // For all bookings, combine both room and FNB data
+      const allBookings = [];
+
+      // Add room bookings if available
+      if (data?.room_bookings) {
+        const roomBookings = data.room_bookings.map((booking) => ({
+          unit_name: booking.unit_name,
+          time_range: `${booking.start_time} - ${booking.end_time}`,
+          duration: booking.duration,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          type: 'room'
+        }));
+        allBookings.push(...roomBookings);
       }
-      acc[unitName].booking_count += 1;
-      acc[unitName].total_duration += booking.duration_hours;
-      return acc;
-    }, {});
 
-    // Convert to array and sort by booking count
-    return Object.values(unitStats).sort(
-      (a, b) => b.booking_count - a.booking_count
-    );
-  }, [data]);
+      // Add FNB orders if available
+      if (data?.fnb_orders) {
+        const fnbOrders = data.fnb_orders.map((order, index) => ({
+          unit_name: `Order #${index + 1}`,
+          items: order.items,
+          total_price: order.total_price,
+          order_time: order.order_time,
+          type: 'fnb'
+        }));
+        allBookings.push(...fnbOrders);
+      }
+
+      // Fallback to unit_bookings if no specific data found
+      if (allBookings.length === 0 && data?.unit_bookings) {
+        return data.unit_bookings.map((booking) => ({
+          unit_name: booking.unit_name,
+          time_range: `${booking.start_time} - ${booking.end_time}`,
+          duration: booking.duration,
+          start_time: booking.start_time,
+          end_time: booking.end_time,
+          type: 'room'
+        }));
+      }
+
+      return allBookings;
+    }
+
+    return [];
+  }, [data, typeFilter]);
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 h-full">
@@ -48,7 +95,7 @@ const TodaysBooking = () => {
           {/* Filter Dropdown */}
           <div className="dropdown dropdown-end">
             <label tabIndex={0} className="btn btn-sm bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700 font-medium">
-              {filter.charAt(0).toUpperCase() + filter.slice(1)}
+              {typeFilter === "all" ? "All" : typeFilter.toUpperCase()}
               <ChevronDownIcon className="h-4 w-4 ml-1" />
             </label>
             <ul
@@ -57,35 +104,35 @@ const TodaysBooking = () => {
             >
               <li>
                 <a
-                  onClick={() => setFilter("daily")}
-                  className={`text-sm px-3 py-2 rounded-md transition-colors ${filter === "daily"
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-50"
+                  onClick={() => setTypeFilter("all")}
+                  className={`text-sm px-3 py-2 rounded-md transition-colors ${typeFilter === "all"
+                    ? "bg-blue-50 text-blue-700 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
-                  Daily
+                  All
                 </a>
               </li>
               <li>
                 <a
-                  onClick={() => setFilter("weekly")}
-                  className={`text-sm px-3 py-2 rounded-md transition-colors ${filter === "weekly"
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-50"
+                  onClick={() => setTypeFilter("room")}
+                  className={`text-sm px-3 py-2 rounded-md transition-colors ${typeFilter === "room"
+                    ? "bg-blue-50 text-blue-700 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
-                  Weekly
+                  Room
                 </a>
               </li>
               <li>
                 <a
-                  onClick={() => setFilter("monthly")}
-                  className={`text-sm px-3 py-2 rounded-md transition-colors ${filter === "monthly"
-                      ? "bg-blue-50 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-50"
+                  onClick={() => setTypeFilter("fnb")}
+                  className={`text-sm px-3 py-2 rounded-md transition-colors ${typeFilter === "fnb"
+                    ? "bg-blue-50 text-blue-700 font-medium"
+                    : "text-gray-700 hover:bg-gray-50"
                     }`}
                 >
-                  Monthly
+                  FNB
                 </a>
               </li>
             </ul>
@@ -114,58 +161,32 @@ const TodaysBooking = () => {
               </div>
             </div>
           ) : bookings.length > 0 ? (
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead>
-                  <tr className="border-b border-gray-200">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Rank
-                    </th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Unit Name
-                    </th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Bookings
-                    </th>
-                    <th className="text-center py-3 px-4 text-xs font-semibold text-gray-600 uppercase tracking-wider">
-                      Total Duration
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {bookings.map((item, index) => (
-                    <tr key={index} className="hover:bg-gray-50 transition-colors">
-                      <td className="py-4 px-4">
-                        <div className="flex items-center">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${index === 0 ? 'bg-yellow-100 text-yellow-800' :
-                              index === 1 ? 'bg-gray-100 text-gray-800' :
-                                index === 2 ? 'bg-orange-100 text-orange-800' :
-                                  'bg-gray-50 text-gray-600'
-                            }`}>
-                            {index + 1}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4">
-                        <div className="flex items-center">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full mr-3"></div>
-                          <span className="font-medium text-gray-900">{item.name}</span>
-                        </div>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
-                          {item.booking_count}
-                        </span>
-                      </td>
-                      <td className="py-4 px-4 text-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {item.total_duration}h
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            // Universal List Layout for all filters
+            <div className="space-y-3">
+              {bookings.map((item, index) => (
+                <div key={index} className="flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors rounded-lg">
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900 mb-1">
+                      {(typeFilter === "fnb" || item.type === "fnb")
+                        ? (item.items?.join(", ") || "No items")
+                        : item.unit_name
+                      }
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      {(typeFilter === "fnb" || item.type === "fnb")
+                        ? item.order_time
+                        : item.time_range
+                      }
+                    </div>
+                  </div>
+                  <div className="text-sm font-medium text-gray-900">
+                    {(typeFilter === "fnb" || item.type === "fnb")
+                      ? `Rp ${item.total_price?.toLocaleString() || 0}`
+                      : item.duration
+                    }
+                  </div>
+                </div>
+              ))}
             </div>
           ) : (
             <div className="h-full flex items-center justify-center">
