@@ -109,110 +109,123 @@ const OrderSummaryChart = () => {
               </div>
             )}
           </div>
-          <select
-            className="select select-sm bg-gray-50 hover:bg-gray-100 border-gray-200 text-gray-700 font-medium focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
-            value={period}
-            onChange={(e) => setPeriod(e.target.value)}
-            aria-label="Pilih periode"
-          >
-            {periodOptions.map((opt) => (
-              <option key={opt.value} value={opt.value}>
-                {opt.label}
-              </option>
+
+          {/* Period Tabs - Right Side */}
+          <div className="tabs tabs-boxed bg-base-200">
+            {periodOptions.map((option) => (
+              <a
+                key={option.value}
+                className={`tab tab-sm ${period === option.value ? 'tab-active' : ''
+                  }`}
+                onClick={() => setPeriod(option.value)}
+              >
+                {option.label}
+              </a>
             ))}
-          </select>
+          </div>
         </div>
 
         {/* Chart Section */}
-        <div className="flex-grow h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart
-              data={chartData}
-              margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-            >
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="#f1f5f9"
-                strokeOpacity={0.6}
-                vertical={false}
-              />
-              <XAxis
-                dataKey="name"
-                tick={{
-                  fontSize: 11,
-                  fill: '#64748b',
-                  fontWeight: 500
-                }}
-                axisLine={{ stroke: '#e2e8f0' }}
-                tickLine={{ stroke: '#e2e8f0' }}
-                height={60}
-                angle={-45}
-                textAnchor="end"
-                interval={0}
-              />
-              <YAxis
-                allowDecimals={false}
-                tick={{
-                  fontSize: 12,
-                  fill: '#64748b',
-                  fontWeight: 500
-                }}
-                axisLine={{ stroke: '#e2e8f0' }}
-                tickLine={{ stroke: '#e2e8f0' }}
-                width={40}
-              />
-              <Tooltip
-                cursor={{ fill: "rgba(59, 130, 246, 0.05)" }}
-                contentStyle={{
-                  backgroundColor: "white",
-                  border: "1px solid #e2e8f0",
-                  borderRadius: "12px",
-                  boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
-                  padding: "12px 16px",
-                }}
-                labelStyle={{
-                  color: '#374151',
-                  fontWeight: 600,
-                  fontSize: '14px',
-                  marginBottom: '8px'
-                }}
-                formatter={(value, name) => [
-                  <span className="font-semibold text-gray-900">{value}</span>,
-                  <span className="text-gray-600">{name}</span>
-                ]}
-              />
-              <Legend
-                iconType="circle"
-                wrapperStyle={{
-                  paddingTop: '20px',
-                  fontSize: '14px',
-                  fontWeight: 500
-                }}
-                formatter={(value) => (
-                  <span className="text-gray-700 font-medium">{value}</span>
-                )}
-              />
-              <Bar
-                dataKey="Unit Booking"
-                name="Unit Booking"
-                fill="#10b981"
-                barSize={chartData.length > 10 ? 20 : 32}
-                radius={[4, 4, 0, 0]}
-                stroke="#059669"
-                strokeWidth={1}
-              />
-              <Bar
-                dataKey="F&B Booking"
-                name="F&B Booking"
-                fill="#3b82f6"
-                barSize={chartData.length > 10 ? 20 : 32}
-                radius={[4, 4, 0, 0]}
-                stroke="#2563eb"
-                strokeWidth={1}
-              />
-            </BarChart>
-          </ResponsiveContainer>
+        <div className="flex-grow h-80 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+          <div className="min-w-full" style={{ minWidth: chartData.length > 10 ? `${chartData.length * 60}px` : '100%' }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart
+                data={chartData}
+                margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
+              >
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  stroke="#f1f5f9"
+                  strokeOpacity={0.6}
+                  vertical={false}
+                />
+                <XAxis
+                  dataKey="name"
+                  tick={{
+                    fontSize: 11,
+                    fill: '#64748b',
+                    fontWeight: 500
+                  }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  tickLine={{ stroke: '#e2e8f0' }}
+                  height={60}
+                  angle={-45}
+                  textAnchor="end"
+                  interval={0}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  tick={{
+                    fontSize: 12,
+                    fill: '#64748b',
+                    fontWeight: 500
+                  }}
+                  axisLine={{ stroke: '#e2e8f0' }}
+                  tickLine={{ stroke: '#e2e8f0' }}
+                  width={40}
+                />
+                <Tooltip
+                  cursor={{ fill: "rgba(59, 130, 246, 0.05)" }}
+                  contentStyle={{
+                    backgroundColor: "white",
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "12px",
+                    boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+                    padding: "12px 16px",
+                  }}
+                  labelStyle={{
+                    color: '#374151',
+                    fontWeight: 600,
+                    fontSize: '14px',
+                    marginBottom: '8px'
+                  }}
+                  formatter={(value, name) => [
+                    <span className="font-semibold text-gray-900">{value}</span>,
+                    <span className="text-gray-600">{name}</span>
+                  ]}
+                />
+                <Legend
+                  iconType="circle"
+                  wrapperStyle={{
+                    paddingTop: '20px',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }}
+                  formatter={(value) => (
+                    <span className="text-gray-700 font-medium">{value}</span>
+                  )}
+                />
+                <Bar
+                  dataKey="Unit Booking"
+                  name="Unit Booking"
+                  fill="#10b981"
+                  barSize={chartData.length > 10 ? 20 : 32}
+                  radius={[4, 4, 0, 0]}
+                  stroke="#059669"
+                  strokeWidth={1}
+                />
+                <Bar
+                  dataKey="F&B Booking"
+                  name="F&B Booking"
+                  fill="#3b82f6"
+                  barSize={chartData.length > 10 ? 20 : 32}
+                  radius={[4, 4, 0, 0]}
+                  stroke="#2563eb"
+                  strokeWidth={1}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
+
+        {/* Scroll Indicator */}
+        {chartData.length > 10 && (
+          <div className="text-center py-2">
+            <p className="text-xs text-gray-500">
+              Showing {chartData.length} data points - Scroll horizontally to see more
+            </p>
+          </div>
+        )}
 
         {/* Summary Stats */}
         {chartData.length > 0 && (

@@ -139,7 +139,7 @@ const TodaysBooking = () => {
         </div>
 
         {/* Unit Bookings Table */}
-        <div className="flex-grow overflow-x-auto">
+        <div className="h-80 overflow-hidden">
           {isLoading ? (
             <div className="h-full flex items-center justify-center">
               <div className="flex flex-col items-center space-y-3">
@@ -160,32 +160,34 @@ const TodaysBooking = () => {
               </div>
             </div>
           ) : bookings.length > 0 ? (
-            // Universal List Layout for all filters
-            <div className="space-y-3">
-              {bookings.map((item, index) => (
-                <div key={index} className="flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors rounded-lg">
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900 mb-1">
-                      {(typeFilter === "fnb" || item.type === "fnb")
-                        ? (item.items?.join(", ") || "No items")
-                        : item.unit_name
-                      }
+            // Universal List Layout for all filters with fixed height and scroll
+            <div className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+              <div className="space-y-3 pr-2">
+                {bookings.map((item, index) => (
+                  <div key={index} className="flex items-center justify-between py-3 px-4 hover:bg-gray-50 transition-colors rounded-lg">
+                    <div className="flex-1">
+                      <div className="text-sm font-medium text-gray-900 mb-1">
+                        {(typeFilter === "fnb" || item.type === "fnb")
+                          ? (item.items?.join(", ") || "No items")
+                          : item.unit_name
+                        }
+                      </div>
+                      <div className="text-xs text-gray-500">
+                        {(typeFilter === "fnb" || item.type === "fnb")
+                          ? item.order_time
+                          : item.time_range
+                        }
+                      </div>
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-sm font-medium text-gray-900">
                       {(typeFilter === "fnb" || item.type === "fnb")
-                        ? item.order_time
-                        : item.time_range
+                        ? `Rp ${item.total_price?.toLocaleString() || 0}`
+                        : item.duration
                       }
                     </div>
                   </div>
-                  <div className="text-sm font-medium text-gray-900">
-                    {(typeFilter === "fnb" || item.type === "fnb")
-                      ? `Rp ${item.total_price?.toLocaleString() || 0}`
-                      : item.duration
-                    }
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
           ) : (
             <div className="h-full flex items-center justify-center">
