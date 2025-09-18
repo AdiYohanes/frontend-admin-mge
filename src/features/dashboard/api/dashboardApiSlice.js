@@ -179,6 +179,16 @@ export const dashboardApiSlice = apiSlice.injectEndpoints({
         if (period === "monthly") {
           // Handle monthly period - show weekly breakdown
           const weeklyBreakdown = response.current_month?.weekly_breakdown || [];
+          console.log("🔍 OrderSummary API Transform - Monthly:", {
+            period,
+            response,
+            weeklyBreakdown,
+            transformedData: weeklyBreakdown.map((item) => ({
+              name: item.week,
+              "Unit Booking": item.unit_booking_count || 0,
+              "F&B Booking": item.fnb_booking_count || 0,
+            }))
+          });
           return {
             type: "chart",
             data: weeklyBreakdown.map((item) => ({
