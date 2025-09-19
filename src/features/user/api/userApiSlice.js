@@ -157,6 +157,48 @@ export const userApiSlice = apiSlice.injectEndpoints({
       invalidatesTags: [{ type: "User", id: "LIST" }],
     }),
 
+    toggleUserBlock: builder.mutation({
+      query: ({ userId, action }) => ({
+        url: `/api/admin/user/${userId}/toggle-block`,
+        method: "POST",
+        body: { action },
+      }),
+      // Optimistic update untuk realtime
+      async onQueryStarted({ userId, action }, { dispatch, queryFulfilled }) {
+        // Optimistic update untuk getUsers query
+        const patchResult = dispatch(
+          userApiSlice.util.updateQueryData('getUsers', { page: 1, per_page: 9999, role: "CUST" }, (draft) => {
+            const user = draft.users.find(user => user.id === userId);
+            if (user) {
+              user.isActive = action === 'unblock';
+            }
+          })
+        );
+
+        // Optimistic update untuk getTopSpenders query
+        const topSpendersPatch = dispatch(
+          userApiSlice.util.updateQueryData('getTopSpenders', undefined, (draft) => {
+            const user = draft.find(user => user.id === userId);
+            if (user) {
+              user.isActive = action === 'unblock';
+            }
+          })
+        );
+
+        try {
+          await queryFulfilled;
+        } catch {
+          // Jika gagal, rollback optimistic update
+          patchResult.undo();
+          topSpendersPatch.undo();
+        }
+      },
+      invalidatesTags: (result, error, arg) => [
+        { type: "User", id: "LIST" },
+        { type: "User", id: arg.userId },
+      ],
+    }),
+
     verifyUser: builder.query({
       query: (phone) => ({
         url: "/api/admin/user",
@@ -179,5 +221,6 @@ export const {
   useAddUserMutation,
   useUpdateUserMutation,
   useDeleteUserMutation,
+  useToggleUserBlockMutation,
   useVerifyUserQuery,
 } = userApiSlice;

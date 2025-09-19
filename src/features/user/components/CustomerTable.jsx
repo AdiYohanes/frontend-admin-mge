@@ -1,8 +1,8 @@
 import React from "react";
-import { TrashIcon, PencilSquareIcon } from "@heroicons/react/24/outline";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
 import { formatCurrency } from "../../../utils/formatters";
 
-const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
+const CustomerTable = ({ users, isLoading, page, limit, onEdit, onToggleBlock }) => {
   if (isLoading)
     return (
       <div className="flex justify-center p-10">
@@ -31,6 +31,7 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
             <th>Booking Hours</th>
             <th>Status</th>
             <th>Created</th>
+            <th className="text-center">Active</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -67,6 +68,18 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
                 {new Date(user.created_at).toLocaleDateString('id-ID')}
               </td>
               <td className="text-center">
+                <div className="form-control">
+                  <label className="label cursor-pointer">
+                    <input
+                      type="checkbox"
+                      className="toggle toggle-sm"
+                      checked={user.isActive}
+                      onChange={() => onToggleBlock(user)}
+                    />
+                  </label>
+                </div>
+              </td>
+              <td className="text-center">
                 <div className="flex items-center justify-center gap-1">
                   <div className="tooltip" data-tip="Edit">
                     <button
@@ -74,14 +87,6 @@ const CustomerTable = ({ users, isLoading, page, limit, onDelete, onEdit }) => {
                       className="btn btn-ghost btn-xs text-warning"
                     >
                       <PencilSquareIcon className="h-5 w-5" />
-                    </button>
-                  </div>
-                  <div className="tooltip tooltip-error" data-tip="Hapus">
-                    <button
-                      onClick={() => onDelete(user)}
-                      className="btn btn-ghost btn-xs text-error"
-                    >
-                      <TrashIcon className="h-5 w-5" />
                     </button>
                   </div>
                 </div>

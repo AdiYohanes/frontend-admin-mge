@@ -1,8 +1,8 @@
-import React, { useState, useRef, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   useGetUsersQuery,
   useGetTopSpendersQuery,
-  useDeleteUserMutation,
+  useToggleUserBlockMutation,
 } from "../api/userApiSlice";
 import useDebounce from "../../../hooks/useDebounce";
 import { toast } from "react-hot-toast";
@@ -10,7 +10,6 @@ import { useSearchParams } from 'react-router';
 
 import TableControls from "../../../components/common/TableControls";
 import Pagination from "../../../components/common/Pagination";
-import ConfirmationModal from "../../../components/common/ConfirmationModal";
 import TopUserCard from "../components/TopUserCard";
 import CustomerTable from "../components/CustomerTable";
 import AddEditCustomerModal from "../components/AddEditCustomerModal";
@@ -24,9 +23,6 @@ const CustomerListPage = () => {
   const [limit, setLimit] = useState(15);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearchTerm = useDebounce(searchTerm, 500);
-
-  const [customerToDelete, setCustomerToDelete] = useState(null);
-  const deleteModalRef = useRef(null);
 
   // State untuk modal edit
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -77,7 +73,7 @@ const CustomerListPage = () => {
   const { data: topUsers, isLoading: isLoadingTopUsers } =
     useGetTopSpendersQuery();
 
-  const [deleteUser, { isLoading: isDeleting }] = useDeleteUserMutation();
+  const [toggleUserBlock, { isLoading: isToggling }] = useToggleUserBlockMutation();
 
   // Frontend pagination for filtered results
   const { paginatedUsers, paginationData } = useMemo(() => {
@@ -124,9 +120,15 @@ const CustomerListPage = () => {
 
   // --- HANDLER FUNCTIONS ---
 
-  const handleDeleteCustomer = (user) => {
-    setCustomerToDelete(user);
-    deleteModalRef.current?.showModal();
+  const handleToggleBlock = async (user) => {
+    try {
+      const action = user.isActive ? 'block' : 'unblock';
+      await toggleUserBlock({ userId: user.id, action }).unwrap();
+      toast.success(`Customer berhasil ${action === 'block' ? 'diblokir' : 'dibuka blokir'}!`);
+    } catch (err) {
+      toast.error(`Gagal ${user.isActive ? 'memblokir' : 'membuka blokir'} customer.`);
+      console.error("Failed to toggle user block:", err);
+    }
   };
 
   const handleEditCustomer = (user) => {
@@ -147,16 +149,6 @@ const CustomerListPage = () => {
     setCurrentPage(1);
   }, [limit, searchTerm]);
 
-  const handleConfirmDelete = async () => {
-    try {
-      await deleteUser(customerToDelete.id).unwrap();
-      toast.success("Customer berhasil dihapus!");
-      deleteModalRef.current?.close();
-    } catch (err) {
-      toast.error("Gagal menghapus customer.");
-      console.error("Failed to delete customer:", err);
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -199,8 +191,8 @@ const CustomerListPage = () => {
             isLoading={isLoadingTable || isFetchingTable}
             page={currentPage}
             limit={limit}
-            onDelete={handleDeleteCustomer}
             onEdit={handleEditCustomer}
+            onToggleBlock={handleToggleBlock}
           />
 
           {/* Table Information */}
@@ -236,18 +228,6 @@ const CustomerListPage = () => {
           />
         </div>
       </div>
-
-      <ConfirmationModal
-        ref={deleteModalRef}
-        title="Konfirmasi Hapus Customer"
-        onConfirm={handleConfirmDelete}
-        isLoading={isDeleting}
-      >
-        <p>
-          Apakah Anda yakin ingin menghapus customer{" "}
-          <span className="font-bold">{customerToDelete?.name}</span>?
-        </p>
-      </ConfirmationModal>
 
       <AddEditCustomerModal
         isOpen={isEditModalOpen}

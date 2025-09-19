@@ -5,7 +5,6 @@ import {
     Bars3Icon,
     PencilSquareIcon,
     TrashIcon,
-    TagIcon,
 } from "@heroicons/react/24/outline";
 
 const DraggableGenreRow = ({
@@ -49,16 +48,7 @@ const DraggableGenreRow = ({
             </td>
             <th>{(page - 1) * limit + index + 1}</th>
             <td>
-                <div className="flex items-center gap-3">
-                    <div className="avatar placeholder">
-                        <div className="bg-brand-gold/10 text-brand-gold rounded-full w-10 h-10 flex items-center justify-center">
-                            <TagIcon className="h-5 w-5" />
-                        </div>
-                    </div>
-                    <div>
-                        <div className="font-semibold">{genre.name}</div>
-                    </div>
-                </div>
+                <div className="font-semibold">{genre.name}</div>
             </td>
             <td className="text-center">
                 <div className="flex items-center justify-center gap-1">
