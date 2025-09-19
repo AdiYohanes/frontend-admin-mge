@@ -31,7 +31,7 @@ const CustomerTable = ({ users, isLoading, page, limit, onEdit, onToggleBlock })
             <th>Booking Hours</th>
             <th>Status</th>
             <th>Created</th>
-            <th className="text-center">Active</th>
+            <th className="text-center">Block User</th>
             <th className="text-center">Actions</th>
           </tr>
         </thead>
@@ -68,15 +68,20 @@ const CustomerTable = ({ users, isLoading, page, limit, onEdit, onToggleBlock })
                 {new Date(user.created_at).toLocaleDateString('id-ID')}
               </td>
               <td className="text-center">
-                <div className="form-control">
-                  <label className="label cursor-pointer">
-                    <input
-                      type="checkbox"
-                      className="toggle toggle-sm"
-                      checked={user.isActive}
-                      onChange={() => onToggleBlock(user)}
-                    />
-                  </label>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="form-control">
+                    <label className="label cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="toggle toggle-sm"
+                        checked={user.isActive}
+                        onChange={() => onToggleBlock(user)}
+                      />
+                    </label>
+                  </div>
+                  {!user.isActive && (
+                    <span className="badge badge-error badge-sm">Blocked</span>
+                  )}
                 </div>
               </td>
               <td className="text-center">
